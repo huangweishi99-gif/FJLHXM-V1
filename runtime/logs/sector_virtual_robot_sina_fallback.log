@@ -1,0 +1,134 @@
+
+===== 板块: 虚拟机器人 => 虚拟机器人(BK1190) =====
+ rank symbol name       amount
+    1 300059 东方财富 6.652045e+09
+    2 300033  同花顺 4.374452e+09
+    3 002929 润建股份 3.898028e+09
+    4 301171 易点天下 3.013937e+09
+    5 300377  赢时胜 8.083804e+08
+    6 603687  大胜达 5.709759e+08
+    7 300560  中富通 4.899661e+08
+    8 300378 鼎捷数智 4.371193e+08
+    9 601519  大智慧 4.272890e+08
+   10 000636 风华高科 3.608504e+08
+   11 001314 亿道信息 3.238548e+08
+   12 600446 金证股份 3.218103e+08
+   13 300264 佳创视讯 1.846683e+08
+   14 300663 科蓝软件 1.577514e+08
+   15 603528 多伦科技 8.211618e+07
+
+[虚拟机器人 1/15] 东方财富(300059) 已成功，跳过
+
+[虚拟机器人 2/15] 同花顺(300033)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+同花顺(300033): candidates_all=250 long=114 trades=55 return=88.22% dd=-18.87% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\300033_同花顺
+
+[虚拟机器人 3/15] 润建股份(002929)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+润建股份(002929): candidates_all=265 long=116 trades=55 return=78.50% dd=-28.26% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\002929_润建股份
+
+[虚拟机器人 4/15] 易点天下(301171)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=905(sina) H1=1023(sina)
+易点天下(301171): candidates_all=242 long=97 trades=49 return=-25.53% dd=-53.78% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\301171_易点天下
+
+[虚拟机器人 5/15] 赢时胜(300377)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+赢时胜(300377): candidates_all=262 long=106 trades=58 return=-24.62% dd=-41.12% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\300377_赢时胜
+
+[虚拟机器人 6/15] 大胜达(603687)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+大胜达(603687): candidates_all=255 long=137 trades=61 return=-20.00% dd=-27.81% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\603687_大胜达
+
+[虚拟机器人 7/15] 中富通(300560)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+中富通(300560): candidates_all=241 long=114 trades=52 return=-55.40% dd=-58.34% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\300560_中富通
+
+[虚拟机器人 8/15] 鼎捷数智(300378)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+鼎捷数智(300378): candidates_all=270 long=118 trades=57 return=8.67% dd=-29.44% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\300378_鼎捷数智
+
+[虚拟机器人 9/15] 大智慧(601519)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+大智慧(601519): candidates_all=234 long=98 trades=46 return=115.81% dd=-19.51% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\601519_大智慧
+
+[虚拟机器人 10/15] 风华高科(000636)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+风华高科(000636): candidates_all=261 long=145 trades=69 return=-28.39% dd=-37.47% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\000636_风华高科
+
+[虚拟机器人 11/15] 亿道信息(001314)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=784(sina) H1=1023(sina)
+亿道信息(001314): candidates_all=171 long=87 trades=50 return=-34.92% dd=-48.18% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\001314_亿道信息
+
+[虚拟机器人 12/15] 金证股份(600446)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+金证股份(600446): candidates_all=256 long=107 trades=53 return=-6.64% dd=-28.78% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\600446_金证股份
+
+[虚拟机器人 13/15] 佳创视讯(300264)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+佳创视讯(300264): candidates_all=237 long=127 trades=63 return=-74.27% dd=-79.19% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\300264_佳创视讯
+
+[虚拟机器人 14/15] 科蓝软件(300663)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+科蓝软件(300663): candidates_all=231 long=95 trades=49 return=44.75% dd=-35.27% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\300663_科蓝软件
+
+[虚拟机器人 15/15] 多伦科技(603528)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+多伦科技(603528): candidates_all=253 long=121 trades=58 return=-49.13% dd=-49.13% bad=0 out=results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\虚拟机器人_BK1190\603528_多伦科技
+
+Saved combined summary to results\fengji_total_a_stock_sectors_virtual_robot_ds07_fixed\a_stock_sector_batch_summary.csv

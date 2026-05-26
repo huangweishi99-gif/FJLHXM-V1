@@ -1,0 +1,257 @@
+
+===== 板块: 飞行汽车(eVTOL) => 飞行汽车(eVTOL)(BK1157) =====
+ rank symbol  name       amount
+    1 600580  卧龙电驱 3.719842e+09
+    2 002465  海格通信 3.419121e+09
+    3 300975  商络电子 2.818620e+09
+    4 603290  斯达半导 2.526934e+09
+    5 000969  安泰科技 2.182420e+09
+    6 300953  震裕科技 1.772537e+09
+    7 000887  中鼎股份 1.744992e+09
+    8 603596   伯特利 1.680891e+09
+    9 300263  隆华科技 1.295836e+09
+   10 002074  国轩高科 1.180720e+09
+   11 300607   拓斯达 1.116832e+09
+   12 300825   阿尔特 1.071698e+09
+   13 300083   创世纪 1.069866e+09
+   14 688333   铂力特 1.000429e+09
+   15 301696  三瑞智能 9.563419e+08
+   16 688433 XD华曙高 9.178770e+08
+   17 300900  广联航空 8.370105e+08
+   18 301366  一博科技 7.507110e+08
+   19 301099  雅创电子 7.488497e+08
+   20 300843  胜蓝股份 7.480392e+08
+   21 300053   航宇微 5.785091e+08
+   22 002067  景兴纸业 5.749815e+08
+   23 000625  长安汽车 5.674618e+08
+   24 002085  万丰奥威 5.061482e+08
+   25 688295  中复神鹰 4.811619e+08
+   26 603319  美湖股份 4.679406e+08
+   27 002182  宝武镁业 4.180812e+08
+   28 002708  光洋股份 4.034231e+08
+
+[飞行汽车(eVTOL) 1/28] 卧龙电驱(600580)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+卧龙电驱(600580): candidates_all=302 long=134 trades=52 return=206.06% dd=-21.06% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\600580_卧龙电驱
+
+[飞行汽车(eVTOL) 2/28] 海格通信(002465)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+海格通信(002465): candidates_all=250 long=133 trades=56 return=-17.30% dd=-37.20% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\002465_海格通信
+
+[飞行汽车(eVTOL) 3/28] 商络电子(300975)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+商络电子(300975): candidates_all=257 long=158 trades=73 return=-31.89% dd=-63.24% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300975_商络电子
+
+[飞行汽车(eVTOL) 4/28] 斯达半导(603290)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+斯达半导(603290): candidates_all=274 long=110 trades=25 return=0.80% dd=-12.25% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\603290_斯达半导
+
+[飞行汽车(eVTOL) 5/28] 安泰科技(000969)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+安泰科技(000969): candidates_all=264 long=157 trades=63 return=55.50% dd=-38.50% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\000969_安泰科技
+
+[飞行汽车(eVTOL) 6/28] 震裕科技(300953)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+震裕科技(300953): candidates_all=251 long=127 trades=51 return=50.59% dd=-30.65% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300953_震裕科技
+
+[飞行汽车(eVTOL) 7/28] 中鼎股份(000887)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+中鼎股份(000887): candidates_all=266 long=148 trades=58 return=21.92% dd=-37.14% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\000887_中鼎股份
+
+[飞行汽车(eVTOL) 8/28] 伯特利(603596)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+伯特利(603596): candidates_all=251 long=113 trades=58 return=-49.97% dd=-49.97% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\603596_伯特利
+
+[飞行汽车(eVTOL) 9/28] 隆华科技(300263)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+隆华科技(300263): candidates_all=234 long=113 trades=46 return=74.48% dd=-24.08% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300263_隆华科技
+
+[飞行汽车(eVTOL) 10/28] 国轩高科(002074)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+国轩高科(002074): candidates_all=234 long=110 trades=65 return=-15.07% dd=-35.87% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\002074_国轩高科
+
+[飞行汽车(eVTOL) 11/28] 拓斯达(300607)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+拓斯达(300607): candidates_all=241 long=111 trades=56 return=-15.96% dd=-43.97% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300607_拓斯达
+
+[飞行汽车(eVTOL) 12/28] 阿尔特(300825)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+阿尔特(300825): candidates_all=239 long=86 trades=39 return=-3.75% dd=-43.03% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300825_阿尔特
+
+[飞行汽车(eVTOL) 13/28] 创世纪(300083)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+创世纪(300083): candidates_all=254 long=115 trades=51 return=31.54% dd=-18.69% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300083_创世纪
+
+[飞行汽车(eVTOL) 14/28] 铂力特(688333)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+铂力特(688333): candidates_all=255 long=112 trades=49 return=-22.83% dd=-47.68% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\688333_铂力特
+
+[飞行汽车(eVTOL) 15/28] 三瑞智能(301696)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=29(sina) H1=116(sina)
+三瑞智能(301696): candidates_all=7 long=7 trades=2 return=-1.54% dd=-4.94% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\301696_三瑞智能
+
+[飞行汽车(eVTOL) 16/28] XD华曙高(688433)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=750(sina) H1=1023(sina)
+XD华曙高(688433): candidates_all=193 long=101 trades=40 return=49.47% dd=-25.87% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\688433_XD华曙高
+
+[飞行汽车(eVTOL) 17/28] 广联航空(300900)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+广联航空(300900): candidates_all=268 long=121 trades=56 return=-34.65% dd=-55.48% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300900_广联航空
+
+[飞行汽车(eVTOL) 18/28] 一博科技(301366)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=883(sina) H1=1023(sina)
+一博科技(301366): candidates_all=216 long=89 trades=45 return=-34.07% dd=-52.35% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\301366_一博科技
+
+[飞行汽车(eVTOL) 19/28] 雅创电子(301099)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+雅创电子(301099): candidates_all=256 long=124 trades=55 return=-55.47% dd=-58.40% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\301099_雅创电子
+
+[飞行汽车(eVTOL) 20/28] 胜蓝股份(300843)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+胜蓝股份(300843): candidates_all=266 long=148 trades=70 return=18.87% dd=-47.10% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300843_胜蓝股份
+
+[飞行汽车(eVTOL) 21/28] 航宇微(300053)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+航宇微(300053): candidates_all=254 long=121 trades=55 return=5.17% dd=-32.85% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\300053_航宇微
+
+[飞行汽车(eVTOL) 22/28] 景兴纸业(002067)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+景兴纸业(002067): candidates_all=219 long=100 trades=55 return=-47.81% dd=-48.90% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\002067_景兴纸业
+
+[飞行汽车(eVTOL) 23/28] 长安汽车(000625)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+长安汽车(000625): candidates_all=261 long=109 trades=60 return=-38.72% dd=-45.47% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\000625_长安汽车
+
+[飞行汽车(eVTOL) 24/28] 万丰奥威(002085)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+万丰奥威(002085): candidates_all=290 long=141 trades=67 return=24.31% dd=-28.53% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\002085_万丰奥威
+
+[飞行汽车(eVTOL) 25/28] 中复神鹰(688295)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1001(sina) H1=1023(sina)
+中复神鹰(688295): candidates_all=289 long=110 trades=50 return=-3.02% dd=-27.81% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\688295_中复神鹰
+
+[飞行汽车(eVTOL) 26/28] 美湖股份(603319)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+美湖股份(603319): candidates_all=272 long=142 trades=63 return=8.70% dd=-35.06% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\603319_美湖股份
+
+[飞行汽车(eVTOL) 27/28] 宝武镁业(002182)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+宝武镁业(002182): candidates_all=256 long=124 trades=55 return=-12.09% dd=-36.29% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\002182_宝武镁业
+
+[飞行汽车(eVTOL) 28/28] 光洋股份(002708)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+光洋股份(002708): candidates_all=229 long=123 trades=60 return=-56.55% dd=-63.22% bad=0 out=results\fengji_total_a_stock_sectors_evtol_ds07_fixed\飞行汽车(eVTOL)_BK1157\002708_光洋股份
+
+Saved combined summary to results\fengji_total_a_stock_sectors_evtol_ds07_fixed\a_stock_sector_batch_summary.csv

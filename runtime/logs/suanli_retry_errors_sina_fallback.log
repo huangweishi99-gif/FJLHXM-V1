@@ -1,0 +1,142 @@
+Resuming 算力概念 BK1134 ranks 1-28
+
+[算力概念 rank 1] 新易盛(300502) status=ok，跳过
+
+[算力概念 rank 2] 中际旭创(300308) status=ok，跳过
+
+[算力概念 rank 3] 澜起科技(688008) status=ok，跳过
+
+[算力概念 rank 4] 寒武纪(688256) status=ok，跳过
+
+[算力概念 rank 5] 天孚通信(300394) status=ok，跳过
+
+[算力概念 rank 6] 工业富联(601138) status=ok，跳过
+
+[算力概念 rank 7] 海光信息(688041) status=ok，跳过
+
+[算力概念 rank 8] 利通电子(603629) status=ok，跳过
+
+[算力概念 rank 9] 协创数据(300857) status=ok，跳过
+
+[算力概念 rank 10] 中科曙光(603019) status=ok，跳过
+
+[算力概念 rank 11] 弘信电子(300657)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+弘信电子(300657): candidates_all=286 long=167 trades=53 return=7.64% dd=-66.04% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\300657_弘信电子
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 12] 紫光国微(002049)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1023 H1=1023
+紫光国微(002049): candidates_all=273 long=103 trades=43 return=-3.64% dd=-19.29% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\002049_紫光国微
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 13] 紫光股份(000938) status=ok，跳过
+
+[算力概念 rank 14] 润泽科技(300442) status=ok，跳过
+
+[算力概念 rank 15] 宏景科技(301396)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=854(sina) H1=1023(sina)
+宏景科技(301396): candidates_all=212 long=118 trades=50 return=294.76% dd=-40.71% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\301396_宏景科技
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 16] 行云科技(300209)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+行云科技(300209): candidates_all=236 long=140 trades=70 return=-12.92% dd=-72.48% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\300209_行云科技
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 17] 浪潮信息(000977) status=ok，跳过
+
+[算力概念 rank 18] 烽火通信(600498) status=ok，跳过
+
+[算力概念 rank 19] 润建股份(002929)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1023 H1=1023
+润建股份(002929): candidates_all=265 long=116 trades=55 return=78.50% dd=-28.26% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\002929_润建股份
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 20] 协鑫能科(002015)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+协鑫能科(002015): candidates_all=265 long=116 trades=56 return=35.71% dd=-39.00% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\002015_协鑫能科
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 21] 太辰光(300570) status=ok，跳过
+
+[算力概念 rank 22] 摩尔线程-U(688795)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=110(sina) H1=440(sina)
+摩尔线程-U(688795): candidates_all=31 long=14 trades=0 return=0.00% dd=0.00% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\688795_摩尔线程-U
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 23] 中兴通讯(000063)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+中兴通讯(000063): candidates_all=268 long=135 trades=61 return=-18.48% dd=-32.13% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\000063_中兴通讯
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 24] 莲花控股(600186)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+莲花控股(600186): candidates_all=257 long=132 trades=68 return=-30.14% dd=-63.63% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\600186_莲花控股
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 25] 网宿科技(300017)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+网宿科技(300017): candidates_all=254 long=133 trades=60 return=47.03% dd=-15.86% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\300017_网宿科技
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 26] 东方国信(300166)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+东方国信(300166): candidates_all=263 long=128 trades=66 return=-32.43% dd=-48.30% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\300166_东方国信
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 27] 昆仑万维(300418)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+昆仑万维(300418): candidates_all=259 long=131 trades=60 return=47.72% dd=-43.77% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\300418_昆仑万维
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+[算力概念 rank 28] 晶科科技(601778)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+晶科科技(601778): candidates_all=246 long=110 trades=51 return=60.98% dd=-29.71% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\601778_晶科科技
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary_partial.csv
+
+Saved final sector summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_suanli_ds07_fixed\算力概念_BK1134\sector_summary.csv

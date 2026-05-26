@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "C:\Users\guangwan\Documents\峰极量化项目-V1\src\batch_backtest_a_stock_sector.py", line 339, in <module>
+    main()
+  File "C:\Users\guangwan\Documents\峰极量化项目-V1\src\batch_backtest_a_stock_sector.py", line 311, in main
+    board = resolve_board(term, boards)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\guangwan\Documents\峰极量化项目-V1\src\batch_backtest_a_stock_sector.py", line 129, in resolve_board
+    raise ValueError(f"找不到板块: {text}. 可用样例: {choices}")
+ValueError: 找不到板块: 低空经济. 可用样例: 电子, 半导体, 数字芯片设计, 通信网络设备及器件, 集成电路制造, 通信设备, 集成电路封测, 电力, 通信, 公用事业, 火力发电, 消费电子零部件及组装, 自动化设备, 消费电子, 激光设备, 电子化学品Ⅲ, 电子化学品Ⅱ, 半导体设备, 分立器件, 通信终端及配件, 其他电子Ⅲ, 其他电子Ⅱ, 半导体材料, 机械设备, 电视广播Ⅲ, 电视广播Ⅱ, 其他电源设备Ⅲ, 电能综合服务, 焦煤, 被动元件

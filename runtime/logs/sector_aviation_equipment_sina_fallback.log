@@ -1,0 +1,249 @@
+
+===== 板块: 航空装备Ⅱ => 航空装备Ⅱ(BK1231) =====
+ rank symbol name       amount
+    1 300395  菲利华 7.735915e+09
+    2 002297 博云新材 3.322352e+09
+    3 688122 西部超导 2.975077e+09
+    4 002625 光启技术 2.418269e+09
+    5 600893 航发动力 1.529991e+09
+    6 600760 中航沈飞 1.054346e+09
+    7 301696 三瑞智能 9.563419e+08
+    8 300777 中简科技 9.176677e+08
+    9 300900 广联航空 8.370105e+08
+   10 605123 派克新材 8.297844e+08
+   11 300699 光威复材 8.090636e+08
+   12 000697 炼石航空 6.663746e+08
+   13 688297 中无人机 6.072216e+08
+   14 000768 中航西飞 5.980832e+08
+   15 600391 航发科技 5.856336e+08
+   16 300424 航新科技 5.021150e+08
+   17 600316 洪都航空 4.707676e+08
+   18 002389 航天彩虹 4.479779e+08
+   19 688239 航宇科技 4.277755e+08
+   20 300775 三角防务 4.240070e+08
+   21 600862 中航高科 4.163826e+08
+   22 000738 航发控制 4.012365e+08
+   23 300034 钢研高纳 3.676152e+08
+   24 600372 中航机载 3.523083e+08
+   25 688281 华秦科技 3.319539e+08
+   26 002023 海特高新 3.299004e+08
+   27 688685  迈信林 2.738706e+08
+   28 300696  爱乐达 2.614754e+08
+
+[航空装备Ⅱ 1/28] 菲利华(300395)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+菲利华(300395): candidates_all=242 long=134 trades=66 return=-14.23% dd=-53.95% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\300395_菲利华
+
+[航空装备Ⅱ 2/28] 博云新材(002297)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+博云新材(002297): candidates_all=235 long=123 trades=48 return=43.20% dd=-29.14% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\002297_博云新材
+
+[航空装备Ⅱ 3/28] 西部超导(688122)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+西部超导(688122): candidates_all=255 long=134 trades=56 return=-11.11% dd=-27.73% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\688122_西部超导
+
+[航空装备Ⅱ 4/28] 光启技术(002625)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+光启技术(002625): candidates_all=241 long=124 trades=51 return=78.54% dd=-25.06% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\002625_光启技术
+
+[航空装备Ⅱ 5/28] 航发动力(600893)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+航发动力(600893): candidates_all=285 long=127 trades=53 return=0.01% dd=-26.62% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\600893_航发动力
+
+[航空装备Ⅱ 6/28] 中航沈飞(600760)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+中航沈飞(600760): candidates_all=248 long=121 trades=50 return=8.94% dd=-14.06% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\600760_中航沈飞
+
+[航空装备Ⅱ 7/28] 三瑞智能(301696)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=29 H1=116
+三瑞智能(301696): candidates_all=7 long=7 trades=2 return=-1.54% dd=-4.94% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\301696_三瑞智能
+
+[航空装备Ⅱ 8/28] 中简科技(300777)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+中简科技(300777): candidates_all=260 long=106 trades=58 return=-13.64% dd=-34.22% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\300777_中简科技
+
+[航空装备Ⅱ 9/28] 广联航空(300900)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1023 H1=1023
+广联航空(300900): candidates_all=268 long=121 trades=56 return=-34.65% dd=-55.48% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\300900_广联航空
+
+[航空装备Ⅱ 10/28] 派克新材(605123)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+派克新材(605123): candidates_all=269 long=118 trades=55 return=-9.70% dd=-31.11% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\605123_派克新材
+
+[航空装备Ⅱ 11/28] 光威复材(300699)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+光威复材(300699): candidates_all=255 long=130 trades=58 return=-24.12% dd=-36.89% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\300699_光威复材
+
+[航空装备Ⅱ 12/28] 炼石航空(000697)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+炼石航空(000697): candidates_all=227 long=113 trades=45 return=82.87% dd=-18.73% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\000697_炼石航空
+
+[航空装备Ⅱ 13/28] 中无人机(688297)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=945(sina) H1=1023(sina)
+中无人机(688297): candidates_all=248 long=106 trades=47 return=-14.10% dd=-33.97% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\688297_中无人机
+
+[航空装备Ⅱ 14/28] 中航西飞(000768)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+中航西飞(000768): candidates_all=267 long=102 trades=52 return=-39.05% dd=-42.13% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\000768_中航西飞
+
+[航空装备Ⅱ 15/28] 航发科技(600391)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+航发科技(600391): candidates_all=258 long=126 trades=57 return=-14.89% dd=-36.62% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\600391_航发科技
+
+[航空装备Ⅱ 16/28] 航新科技(300424)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+航新科技(300424): candidates_all=239 long=128 trades=66 return=-57.46% dd=-59.79% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\300424_航新科技
+
+[航空装备Ⅱ 17/28] 洪都航空(600316)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+洪都航空(600316): candidates_all=270 long=106 trades=53 return=1.12% dd=-31.63% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\600316_洪都航空
+
+[航空装备Ⅱ 18/28] 航天彩虹(002389)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+航天彩虹(002389): candidates_all=259 long=127 trades=61 return=-57.25% dd=-57.25% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\002389_航天彩虹
+
+[航空装备Ⅱ 19/28] 航宇科技(688239)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+航宇科技(688239): candidates_all=247 long=143 trades=67 return=-56.08% dd=-58.01% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\688239_航宇科技
+
+[航空装备Ⅱ 20/28] 三角防务(300775)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+三角防务(300775): candidates_all=272 long=125 trades=59 return=-46.19% dd=-48.06% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\300775_三角防务
+
+[航空装备Ⅱ 21/28] 中航高科(600862)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+中航高科(600862): candidates_all=253 long=126 trades=62 return=-22.54% dd=-30.79% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\600862_中航高科
+
+[航空装备Ⅱ 22/28] 航发控制(000738)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: <urlopen error _ssl.c:983: The handshake operation timed out>
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+航发控制(000738): candidates_all=269 long=123 trades=58 return=-42.77% dd=-43.16% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\000738_航发控制
+
+[航空装备Ⅱ 23/28] 钢研高纳(300034)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+钢研高纳(300034): candidates_all=280 long=129 trades=61 return=-64.66% dd=-65.40% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\300034_钢研高纳
+
+[航空装备Ⅱ 24/28] 中航机载(600372)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+中航机载(600372): candidates_all=254 long=129 trades=59 return=-33.27% dd=-36.48% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\600372_中航机载
+
+[航空装备Ⅱ 25/28] 华秦科技(688281)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1021(sina) H1=1023(sina)
+华秦科技(688281): candidates_all=270 long=129 trades=44 return=-34.90% dd=-45.13% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\688281_华秦科技
+
+[航空装备Ⅱ 26/28] 海特高新(002023)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+海特高新(002023): candidates_all=277 long=162 trades=72 return=-43.55% dd=-46.45% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\002023_海特高新
+
+[航空装备Ⅱ 27/28] 迈信林(688685)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+迈信林(688685): candidates_all=262 long=128 trades=51 return=91.78% dd=-38.28% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\688685_迈信林
+
+[航空装备Ⅱ 28/28] 爱乐达(300696)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+东方财富下载失败，改用新浪备用源: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 下载/本地CSV缓存 D1=1023(sina) H1=1023(sina)
+爱乐达(300696): candidates_all=226 long=90 trades=49 return=17.25% dd=-20.16% bad=0 out=results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\航空装备Ⅱ_BK1231\300696_爱乐达
+
+Saved combined summary to results\fengji_total_a_stock_sectors_aviation_equipment_ds07_fixed\a_stock_sector_batch_summary.csv

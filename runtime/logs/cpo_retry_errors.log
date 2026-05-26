@@ -1,0 +1,109 @@
+Resuming CPO概念 BK1128 ranks 1-28
+
+[CPO概念 rank 1] 新易盛(300502) status=ok，跳过
+
+[CPO概念 rank 2] 中际旭创(300308) status=ok，跳过
+
+[CPO概念 rank 3] 天孚通信(300394) status=ok，跳过
+
+[CPO概念 rank 4] 长电科技(600584) status=ok，跳过
+
+[CPO概念 rank 5] 光迅科技(002281)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+光迅科技(002281): candidates_all=356 long=187 trades=102 return=-2.67% dd=-49.14% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\002281_光迅科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 6] 华工科技(000988)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+华工科技(000988): candidates_all=353 long=188 trades=91 return=13.24% dd=-33.25% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\000988_华工科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 7] 立讯精密(002475) status=ok，跳过
+
+[CPO概念 rank 8] 工业富联(601138) status=ok，跳过
+
+[CPO概念 rank 9] 通富微电(002156)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+通富微电(002156): candidates_all=357 long=183 trades=94 return=38.96% dd=-41.12% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\002156_通富微电
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 10] 中天科技(600522)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+中天科技(600522): candidates_all=322 long=182 trades=88 return=176.87% dd=-41.24% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\600522_中天科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 11] 亨通光电(600487)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+亨通光电(600487): candidates_all=351 long=200 trades=91 return=10.79% dd=-53.29% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\600487_亨通光电
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 12] 仕佳光子(688313)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1390 H1=128
+仕佳光子(688313): candidates_all=299 long=133 trades=73 return=149.36% dd=-28.82% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\688313_仕佳光子
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 13] 协创数据(300857)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1411 H1=128
+协创数据(300857): candidates_all=296 long=144 trades=70 return=146.30% dd=-48.57% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\300857_协创数据
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 14] 华天科技(002185)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1536 H1=128
+华天科技(002185): candidates_all=327 long=130 trades=59 return=65.28% dd=-19.94% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\002185_华天科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 15] 紫光股份(000938)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+紫光股份(000938): candidates_all=390 long=185 trades=90 return=19.42% dd=-42.36% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\000938_紫光股份
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 16] 剑桥科技(603083)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+剑桥科技(603083): candidates_all=354 long=169 trades=78 return=109.36% dd=-55.33% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\603083_剑桥科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 17] 太辰光(300570) status=ok，跳过
+
+[CPO概念 rank 18] 永鼎股份(600105) status=ok，跳过
+
+[CPO概念 rank 19] 烽火通信(600498) status=ok，跳过
+
+[CPO概念 rank 20] 天通股份(600330) status=ok，跳过
+
+[CPO概念 rank 21] 光库科技(300620) status=ok，跳过
+
+[CPO概念 rank 22] 联讯仪器(688808) status=ok，跳过
+
+[CPO概念 rank 23] 罗博特科(300757) status=ok，跳过
+
+[CPO概念 rank 24] 景旺电子(603228) status=ok，跳过
+
+[CPO概念 rank 25] 红板科技(603459) status=ok，跳过
+
+[CPO概念 rank 26] 长芯博创(300548) status=ok，跳过
+
+[CPO概念 rank 27] 泰晶科技(603738) status=ok，跳过
+
+[CPO概念 rank 28] 炬光科技(688167) status=ok，跳过
+
+Saved final sector summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary.csv

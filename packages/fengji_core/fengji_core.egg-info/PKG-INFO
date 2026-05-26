@@ -1,0 +1,22 @@
+Metadata-Version: 2.4
+Name: fengji-core
+Version: 0.1.0
+Summary: FengJi OS identity engine and DS01-DS09 strategy primitives
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: pandas>=2.0
+Requires-Dist: numpy>=1.24
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+
+# fengji-core
+
+峰极 OS 与定式层（DS01–DS09）纯 Python 内核，无 CLI / 无 UI 依赖。
+
+安装（项目根目录）：
+
+```powershell
+pip install -e packages/fengji_core
+```
+
+`src/quant/` 保留为兼容层，现有脚本无需改 import。

@@ -1,0 +1,150 @@
+
+===== 板块: 半导体 => 半导体(BK1036) =====
+ rank symbol name       amount
+    1 688981 中芯国际 3.725371e+10
+    2 603986 兆易创新 2.938771e+10
+    3 688008 澜起科技 2.443313e+10
+    4 688256  寒武纪 2.402835e+10
+    5 600584 长电科技 2.104879e+10
+    6 688012 中微公司 1.694330e+10
+    7 688041 海光信息 1.661976e+10
+    8 002156 通富微电 1.534251e+10
+    9 002371 北方华创 1.373470e+10
+   10 688525 佰维存储 1.144419e+10
+   11 301308  江波龙 1.010511e+10
+   12 688347 华虹公司 9.976682e+09
+   13 688072 拓荆科技 9.722979e+09
+   14 688820 盛合晶微 9.583831e+09
+   15 300604 长川科技 9.208391e+09
+   16 001309  德明利 9.096244e+09
+   17 688521 芯原股份 6.986326e+09
+   18 300672  国科微 6.146749e+09
+   19 688126 沪硅产业 6.141027e+09
+   20 002049 紫光国微 5.696260e+09
+   21 603501 豪威集团 5.688061e+09
+   22 688498 源杰科技 5.633894e+09
+   23 688110 东芯股份 5.192079e+09
+   24 002409 雅克科技 4.855325e+09
+   25 002185 华天科技 4.834879e+09
+   26 688048 长光华芯 4.761216e+09
+   27 688082 盛美上海 4.593175e+09
+   28 603005 晶方科技 4.510143e+09
+
+[半导体 1/28] 中芯国际(688981)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1410 H1=128
+中芯国际(688981): candidates_all=297 long=133 trades=74 return=-32.30% dd=-39.52% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\688981_中芯国际
+
+[半导体 2/28] 兆易创新(603986)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+兆易创新(603986): error Remote end closed connection without response
+
+[半导体 3/28] 澜起科技(688008)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1546 H1=128
+澜起科技(688008): candidates_all=354 long=167 trades=74 return=-55.51% dd=-57.10% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\688008_澜起科技
+
+[半导体 4/28] 寒武纪(688256)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1416 H1=0；H1缺失，仅运行日线定式DS01-DS06
+寒武纪(688256): H1不可用，跳过DS07/DS08，仅运行 DS01,DS02,DS03,DS04,DS05,DS06
+寒武纪(688256): candidates_all=311 long=142 trades=56 return=236.09% dd=-21.53% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\688256_寒武纪
+
+[半导体 5/28] 长电科技(600584)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1540 H1=124
+长电科技(600584): candidates_all=354 long=176 trades=92 return=1.80% dd=-47.81% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\600584_长电科技
+
+[半导体 6/28] 中微公司(688012)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+中微公司(688012): error Remote end closed connection without response
+
+[半导体 7/28] 海光信息(688041)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=903 H1=128
+海光信息(688041): candidates_all=217 long=132 trades=53 return=115.93% dd=-25.60% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\688041_海光信息
+
+[半导体 8/28] 通富微电(002156)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1546 H1=128
+通富微电(002156): candidates_all=357 long=183 trades=94 return=38.96% dd=-41.12% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\002156_通富微电
+
+[半导体 9/28] 北方华创(002371)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1544 H1=128
+北方华创(002371): candidates_all=344 long=194 trades=63 return=71.58% dd=-21.04% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\002371_北方华创
+
+[半导体 10/28] 佰维存储(688525)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+佰维存储(688525): error Remote end closed connection without response
+
+[半导体 11/28] 江波龙(301308)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+江波龙(301308): error Remote end closed connection without response
+
+[半导体 12/28] 华虹公司(688347)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+H1下载失败，仅运行日线定式DS01-DS06: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=665 H1=0
+华虹公司(688347): H1不可用，跳过DS07/DS08，仅运行 DS01,DS02,DS03,DS04,DS05,DS06
+华虹公司(688347): candidates_all=137 long=64 trades=32 return=56.19% dd=-20.64% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\688347_华虹公司
+
+[半导体 13/28] 拓荆科技(688072)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+拓荆科技(688072): error Remote end closed connection without response
+
+[半导体 14/28] 盛合晶微(688820)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+盛合晶微(688820): error Remote end closed connection without response
+
+[半导体 15/28] 长川科技(300604)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+长川科技(300604): error Remote end closed connection without response
+
+[半导体 16/28] 德明利(001309)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+德明利(001309): error Remote end closed connection without response
+
+[半导体 17/28] 芯原股份(688521)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+芯原股份(688521): error Remote end closed connection without response
+
+[半导体 18/28] 国科微(300672)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+国科微(300672): error Remote end closed connection without response
+
+[半导体 19/28] 沪硅产业(688126)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+沪硅产业(688126): error Remote end closed connection without response
+
+[半导体 20/28] 紫光国微(002049)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+紫光国微(002049): error Remote end closed connection without response
+
+[半导体 21/28] 豪威集团(603501)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+豪威集团(603501): error Remote end closed connection without response
+
+[半导体 22/28] 源杰科技(688498)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+源杰科技(688498): error Remote end closed connection without response
+
+[半导体 23/28] 东芯股份(688110)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+东芯股份(688110): error Remote end closed connection without response
+
+[半导体 24/28] 雅克科技(002409)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+雅克科技(002409): error Remote end closed connection without response
+
+[半导体 25/28] 华天科技(002185)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=1536 H1=128
+华天科技(002185): candidates_all=327 long=130 trades=59 return=65.28% dd=-19.94% bad=0 out=results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\002185_华天科技
+
+[半导体 26/28] 长光华芯(688048)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+长光华芯(688048): error Remote end closed connection without response
+
+[半导体 27/28] 盛美上海(688082)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+盛美上海(688082): error Remote end closed connection without response
+
+[半导体 28/28] 晶方科技(603005)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+晶方科技(603005): error Remote end closed connection without response
+
+Saved combined summary to results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\a_stock_sector_batch_summary.csv

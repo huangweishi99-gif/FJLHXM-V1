@@ -1,0 +1,85 @@
+Resuming CPO概念 BK1128 ranks 17-28
+
+[CPO概念 rank 17] 太辰光(300570)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+太辰光(300570): candidates_all=354 long=183 trades=94 return=70.61% dd=-50.58% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\300570_太辰光
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 18] 永鼎股份(600105)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+永鼎股份(600105): candidates_all=335 long=189 trades=78 return=144.30% dd=-28.98% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\600105_永鼎股份
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 19] 烽火通信(600498)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+烽火通信(600498): candidates_all=372 long=184 trades=82 return=-19.51% dd=-36.91% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\600498_烽火通信
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 20] 天通股份(600330)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+天通股份(600330): candidates_all=361 long=179 trades=88 return=39.43% dd=-40.28% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\600330_天通股份
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 21] 光库科技(300620)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1536 H1=128
+光库科技(300620): candidates_all=356 long=200 trades=95 return=213.69% dd=-30.90% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\300620_光库科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 22] 联讯仪器(688808)
+数据源: 本地数据库 data\market_data.sqlite，导出 D1=18 H1=72
+联讯仪器(688808): candidates_all=0 long=0 trades=0 return=0.00% dd=0.00% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\688808_联讯仪器
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 23] 罗博特科(300757)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1526 H1=128
+罗博特科(300757): candidates_all=343 long=201 trades=91 return=96.12% dd=-40.96% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\300757_罗博特科
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 24] 景旺电子(603228)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+景旺电子(603228): candidates_all=332 long=166 trades=84 return=-36.63% dd=-59.57% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\603228_景旺电子
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 25] 红板科技(603459)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=31 H1=124
+红板科技(603459): candidates_all=4 long=4 trades=2 return=11.69% dd=-2.04% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\603459_红板科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 26] 长芯博创(300548)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1542 H1=128
+长芯博创(300548): candidates_all=358 long=168 trades=77 return=318.04% dd=-38.52% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\300548_长芯博创
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 27] 泰晶科技(603738)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1546 H1=128
+泰晶科技(603738): candidates_all=363 long=196 trades=80 return=102.61% dd=-30.45% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\603738_泰晶科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+[CPO概念 rank 28] 炬光科技(688167)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1066 H1=128
+炬光科技(688167): candidates_all=261 long=116 trades=51 return=94.78% dd=-20.77% bad=0 out=results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\688167_炬光科技
+Updated partial summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary_partial.csv
+
+Saved final sector summary: results\fengji_total_a_stock_sectors_cpo_ds07_fixed\CPO概念_BK1128\sector_summary.csv

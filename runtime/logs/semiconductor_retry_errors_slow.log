@@ -1,0 +1,66 @@
+Resuming 半导体 BK1036 ranks 1-28
+
+[半导体 rank 1] 中芯国际(688981) status=ok，跳过
+
+[半导体 rank 2] 兆易创新(603986)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+兆易创新(603986): error Remote end closed connection without response
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
+
+[半导体 rank 3] 澜起科技(688008) status=ok，跳过
+
+[半导体 rank 4] 寒武纪(688256) status=ok，跳过
+
+[半导体 rank 5] 长电科技(600584) status=ok，跳过
+
+[半导体 rank 6] 中微公司(688012)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+中微公司(688012): error Remote end closed connection without response
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
+
+[半导体 rank 7] 海光信息(688041) status=ok，跳过
+
+[半导体 rank 8] 通富微电(002156) status=ok，跳过
+
+[半导体 rank 9] 北方华创(002371) status=ok，跳过
+
+[半导体 rank 10] 佰维存储(688525)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+佰维存储(688525): error Remote end closed connection without response
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
+
+[半导体 rank 11] 江波龙(301308)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+江波龙(301308): error Remote end closed connection without response
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
+
+[半导体 rank 12] 华虹公司(688347) status=ok，跳过
+
+[半导体 rank 13] 拓荆科技(688072)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+拓荆科技(688072): error Remote end closed connection without response
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
+
+[半导体 rank 14] 盛合晶微(688820)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+盛合晶微(688820): error Remote end closed connection without response
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
+
+[半导体 rank 15] 长川科技(300604)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+长川科技(300604): error Remote end closed connection without response
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
+
+[半导体 rank 16] 德明利(001309)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+德明利(001309): error Remote end closed connection without response
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
+
+[半导体 rank 17] 芯原股份(688521)
+数据库取数失败，改用东方财富下载/缓存: 数据库数据不完整: D1=0, H1=0
+H1下载失败，仅运行日线定式DS01-DS06: Remote end closed connection without response
+已回写数据库: data\market_data.sqlite
+数据源: 东方财富下载/本地CSV缓存 D1=1385 H1=0
+芯原股份(688521): H1不可用，跳过DS07/DS08，仅运行 DS01,DS02,DS03,DS04,DS05,DS06
+芯原股份(688521): candidates_all=327 long=154 trades=74 return=146.93% dd=-29.04% bad=0 out=C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\688521_芯原股份
+Updated partial summary: C:\Users\guangwan\Documents\峰极量化项目-V1\results\fengji_total_a_stock_sectors_semiconductor_ds07_fixed\半导体_BK1036\sector_summary_partial.csv
