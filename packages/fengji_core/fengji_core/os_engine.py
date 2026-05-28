@@ -46,6 +46,56 @@ class TurnEvent:
     redefined_to: str | None
 
 
+def _raw_node_from_state(item: dict[str, Any]) -> RawNode:
+    return RawNode(
+        point_idx=int(item["point_idx"]),
+        confirm_idx=int(item["confirm_idx"]),
+        price=float(item["price"]),
+        raw_type=str(item["raw_type"]),
+        dual_extreme=bool(item.get("dual_extreme", False)),
+        arbitration=str(item.get("arbitration", "")),
+    )
+
+
+def _identity_node_from_state(item: dict[str, Any]) -> IdentityNode:
+    return IdentityNode(
+        point_idx=int(item["point_idx"]),
+        confirm_idx=int(item["confirm_idx"]),
+        price=float(item["price"]),
+        raw_type=str(item["raw_type"]),
+        identity=str(item["identity"]),
+        camp=int(item["camp"]),
+        note=str(item.get("note", "")),
+        source=str(item.get("source", "")),
+    )
+
+
+def _turn_event_from_state(item: dict[str, Any]) -> TurnEvent:
+    redefined_from_idx = item.get("redefined_from_idx")
+    return TurnEvent(
+        idx=int(item["idx"]),
+        date=item.get("date"),
+        turn=str(item["turn"]),
+        broken_identity=str(item["broken_identity"]),
+        broken_price=float(item["broken_price"]),
+        break_price=float(item["break_price"]),
+        redefined_from_idx=None if redefined_from_idx is None else int(redefined_from_idx),
+        redefined_to=item.get("redefined_to"),
+    )
+
+
+def _maybe_raw_node(item: dict[str, Any] | None) -> RawNode | None:
+    if item is None:
+        return None
+    return _raw_node_from_state(item)
+
+
+def _maybe_identity_node(item: dict[str, Any] | None) -> IdentityNode | None:
+    if item is None:
+        return None
+    return _identity_node_from_state(item)
+
+
 def role(identity: str) -> str:
     if identity in {"RED_PEAK", "BLUE_PEAK"}:
         return "PEAK"
@@ -89,8 +139,9 @@ def audit_identity_line(identity_line: list[IdentityNode]) -> bool:
 class FengJiOSIdentityEngine:
     """Runtime for FengJi OS identity, camp, hardening, and audit state."""
 
-    def __init__(self, gap: int = 3) -> None:
+    def __init__(self, gap: int = 3, record_hardened_by_bar: bool = True) -> None:
         self.gap = gap
+        self.record_hardened_by_bar = record_hardened_by_bar
         self.reset()
 
     def reset(self) -> None:
@@ -107,6 +158,53 @@ class FengJiOSIdentityEngine:
         self.blue_ext: IdentityNode | None = None
         self.last_failed_high: RawNode | None = None
         self.last_failed_low: RawNode | None = None
+
+    @property
+    def processed_len(self) -> int:
+        return len(self.logs)
+
+    def to_state(self, include_hardened_by_bar: bool | None = None) -> dict[str, Any]:
+        keep_hardened_by_bar = self.record_hardened_by_bar if include_hardened_by_bar is None else include_hardened_by_bar
+        return {
+            "version": 1,
+            "gap": self.gap,
+            "record_hardened_by_bar": self.record_hardened_by_bar,
+            "processed_len": self.processed_len,
+            "camp": self.camp,
+            "raw_nodes": [asdict(node) for node in self.raw_nodes],
+            "hardened_nodes": [asdict(node) for node in self.hardened_nodes],
+            "identity_nodes": [asdict(node) for node in self.identity_nodes],
+            "turns": [asdict(turn) for turn in self.turns],
+            "logs": self.logs,
+            "hardened_by_bar": [[asdict(node) for node in nodes] for nodes in self.hardened_by_bar] if keep_hardened_by_bar else [],
+            "red_peak": None if self.red_peak is None else asdict(self.red_peak),
+            "red_ext": None if self.red_ext is None else asdict(self.red_ext),
+            "blue_peak": None if self.blue_peak is None else asdict(self.blue_peak),
+            "blue_ext": None if self.blue_ext is None else asdict(self.blue_ext),
+            "last_failed_high": None if self.last_failed_high is None else asdict(self.last_failed_high),
+            "last_failed_low": None if self.last_failed_low is None else asdict(self.last_failed_low),
+        }
+
+    def load_state(self, state: dict[str, Any]) -> "FengJiOSIdentityEngine":
+        self.gap = int(state.get("gap", self.gap))
+        self.record_hardened_by_bar = bool(state.get("record_hardened_by_bar", self.record_hardened_by_bar))
+        self.camp = int(state.get("camp", NEUTRAL))
+        self.raw_nodes = [_raw_node_from_state(item) for item in state.get("raw_nodes", [])]
+        self.hardened_nodes = [_raw_node_from_state(item) for item in state.get("hardened_nodes", [])]
+        self.identity_nodes = [_identity_node_from_state(item) for item in state.get("identity_nodes", [])]
+        self.turns = [_turn_event_from_state(item) for item in state.get("turns", [])]
+        self.logs = list(state.get("logs", []))
+        self.hardened_by_bar = [
+            [_raw_node_from_state(node) for node in nodes]
+            for nodes in state.get("hardened_by_bar", [])
+        ]
+        self.red_peak = _maybe_identity_node(state.get("red_peak"))
+        self.red_ext = _maybe_identity_node(state.get("red_ext"))
+        self.blue_peak = _maybe_identity_node(state.get("blue_peak"))
+        self.blue_ext = _maybe_identity_node(state.get("blue_ext"))
+        self.last_failed_high = _maybe_raw_node(state.get("last_failed_high"))
+        self.last_failed_low = _maybe_raw_node(state.get("last_failed_low"))
+        return self
 
     def detect_raw_33_node(self, df: pd.DataFrame, i: int) -> RawNode | None:
         if i < 6:
@@ -159,23 +257,27 @@ class FengJiOSIdentityEngine:
 
         return hardened
 
-    def update_hardened_nodes(self, node: RawNode | None) -> None:
+    def update_hardened_nodes(self, node: RawNode | None) -> bool:
         if node is None:
-            return
+            return False
         if not self.hardened_nodes:
             self.hardened_nodes.append(node)
-            return
+            return True
 
         last = self.hardened_nodes[-1]
         if node.raw_type == last.raw_type:
             if node.raw_type == "HIGH" and node.price >= last.price:
                 self.hardened_nodes[-1] = node
+                return True
             elif node.raw_type == "LOW" and node.price <= last.price:
                 self.hardened_nodes[-1] = node
-            return
+                return True
+            return False
 
         if abs(node.point_idx - last.point_idx) >= self.gap:
             self.hardened_nodes.append(node)
+            return True
+        return False
 
     def process_bar(self, df: pd.DataFrame, i: int) -> None:
         row = df.iloc[i]
@@ -185,14 +287,16 @@ class FengJiOSIdentityEngine:
         close = float(row["close"])
 
         node = self.detect_raw_33_node(df, i)
+        node_accepted = False
         if node is not None:
             self.raw_nodes.append(node)
-            self.update_hardened_nodes(node)
+            node_accepted = self.update_hardened_nodes(node)
 
-        self.hardened_by_bar.append(list(self.hardened_nodes))
+        if self.record_hardened_by_bar:
+            self.hardened_by_bar.append(list(self.hardened_nodes))
         self.try_seed_camp(i, date, high, low)
 
-        if node is not None:
+        if node is not None and node_accepted:
             self.classify_identity(node)
 
         self.check_transition(i, date, high, low)
@@ -355,10 +459,39 @@ class FengJiOSIdentityEngine:
         audit_identity_line(build_identity_line(self.identity_nodes))
         return self
 
+    def run_from_state(self, df: pd.DataFrame, state: dict[str, Any] | None) -> "FengJiOSIdentityEngine":
+        if state is None:
+            return self.run(df)
+        self.load_state(state)
+        start = int(state.get("processed_len", self.processed_len))
+        if start > len(df):
+            raise ValueError("OS state has processed more bars than the input frame.")
+        for i in range(start, len(df)):
+            self.process_bar(df, i)
+        self.audit_identity_system()
+        audit_identity_line(build_identity_line(self.identity_nodes))
+        return self
+
     def to_frame(self, df: pd.DataFrame) -> pd.DataFrame:
         os_log = self.export_os_log().set_index("idx")
         out = df.copy()
-        for column in ["camp", "active_high", "active_low", "red_peak_price", "red_ext_price", "blue_peak_price", "blue_ext_price"]:
+        for column in [
+            "camp",
+            "active_high",
+            "active_low",
+            "red_peak_idx",
+            "red_peak_price",
+            "red_ext_idx",
+            "red_ext_price",
+            "blue_peak_idx",
+            "blue_peak_price",
+            "blue_ext_idx",
+            "blue_ext_price",
+            "last_failed_high_idx",
+            "last_failed_high_price",
+            "last_failed_low_idx",
+            "last_failed_low_price",
+        ]:
             out[column] = os_log[column].values if column in os_log else np.nan
         return out
 

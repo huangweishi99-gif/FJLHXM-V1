@@ -42,10 +42,7 @@ FUTURES_MULTIPLIERS = {
 }
 
 TOTAL_PATTERN_STRATEGIES = ["DS01", "DS02", "DS03", "DS04", "DS05", "DS06", "DS07", "DS08"]
-DEFAULT_FEISHU_WEBHOOK = os.getenv(
-    "FENGJI_FEISHU_WEBHOOK",
-    "https://open.feishu.cn/open-apis/bot/v2/hook/8895c204-34e4-47aa-99a3-39859955fe91",
-)
+DEFAULT_FEISHU_WEBHOOK = os.getenv("FENGJI_FEISHU_WEBHOOK", "") or os.getenv("FEISHU_WEBHOOK", "")
 DEFAULT_SYMBOL_EQUITY = 100000.0
 TRADE_COLUMNS = [
     "event_time", "symbol", "strategy_id", "side", "action", "lots",
@@ -499,6 +496,13 @@ def main() -> None:
     parser.add_argument("--max-ds01-entries", type=int, default=3)
     parser.add_argument("--max-open-positions-per-symbol", type=int, default=3)
     args = parser.parse_args()
+    if not args.feishu_webhook:
+        try:
+            from fengji_feishu_config import resolve_feishu_webhook
+
+            args.feishu_webhook = resolve_feishu_webhook(ROOT)
+        except Exception:
+            pass
 
     state_path = Path(args.state_file)
     state = load_json(state_path, {"version": 3, "started_at": now_text(), "symbols": {}})

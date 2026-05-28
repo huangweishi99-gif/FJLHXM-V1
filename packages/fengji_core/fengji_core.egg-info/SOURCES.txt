@@ -15,6 +15,7 @@ fengji_core/ds09.py
 fengji_core/futures_specs.py
 fengji_core/metrics.py
 fengji_core/os_engine.py
+fengji_core/os_state_store.py
 fengji_core/strategies.py
 fengji_core.egg-info/PKG-INFO
 fengji_core.egg-info/SOURCES.txt

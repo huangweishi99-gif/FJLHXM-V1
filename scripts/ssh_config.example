@@ -1,0 +1,18 @@
+# 复制到用户目录：%USERPROFILE%\.ssh\config
+# 密钥请本地生成，勿提交私钥到仓库。
+# 国内：Windows Server + OpenSSH，用户 Administrator
+# 国外：Ubuntu，用户 ubuntu
+
+Host domestic-quant fengji-domestic 106.53.107.248
+    HostName 106.53.107.248
+    User Administrator
+    IdentityFile C:/Users/YOUR_USER/.ssh/quant_domestic_ed25519
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+
+Host overseas-quant fengji-overseas 43.167.10.79
+    HostName 43.167.10.79
+    User ubuntu
+    IdentityFile C:/Users/YOUR_USER/.ssh/quant_overseas_ed25519
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new

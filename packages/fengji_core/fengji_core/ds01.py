@@ -15,6 +15,7 @@ class DS01PendingOrder:
     trigger_price: float
     stop_price: float
     is_add: bool
+    left_count: int = 0
 
 
 def build_lines_from_hardened(nodes: list[RawNode]) -> list[tuple[RawNode, RawNode]]:
@@ -45,6 +46,7 @@ def make_ds01_pending(
     camp: int,
     position: dict | None,
     max_adds: int = 3,
+    left_count: int = 0,
 ) -> DS01PendingOrder | None:
     """DS01 挫棍 setup: same-direction candle creates next-bar trigger."""
     row = df.iloc[i]
@@ -66,6 +68,7 @@ def make_ds01_pending(
             trigger_price=float(row["high"]),
             stop_price=float(row["low"]),
             is_add=is_add,
+            left_count=left_count,
         )
     if camp == -1 and is_bear:
         return DS01PendingOrder(
@@ -75,22 +78,24 @@ def make_ds01_pending(
             trigger_price=float(row["low"]),
             stop_price=float(row["high"]),
             is_add=is_add,
+            left_count=left_count,
         )
     return None
 
 
 def ds01_left_filter_pass(
     hardened_nodes: list[RawNode],
-    trigger_idx: int,
-    trigger_price: float,
+    bar_idx: int,
+    price: float,
     is_add: bool,
     lookback: int = 30,
+    max_lines: int = 2,
 ) -> tuple[bool, int]:
-    """首仓在突破触发价位置检查左30无线；续棍不要求左30无线。"""
-    left_count = count_left_lines(hardened_nodes, trigger_idx, trigger_price, lookback)
+    """首仓在当日突破/跌破触发价格位置检查左30线数；续棍不要求左30线数。"""
+    left_count = count_left_lines(hardened_nodes, bar_idx, price, lookback)
     if is_add:
         return True, left_count
-    return left_count == 0, left_count
+    return left_count <= max_lines, left_count
 
 
 def entry_fill(row: pd.Series, side: int, trigger_price: float) -> float | None:

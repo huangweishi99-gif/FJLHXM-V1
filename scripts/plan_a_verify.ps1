@@ -15,6 +15,7 @@ python -m pip install -e packages/fengji_core -q
 
 Write-Host "`n[2/5] pytest" -ForegroundColor Yellow
 python -m pytest tests/ -q
+if ($LASTEXITCODE -ne 0) { throw "pytest failed with exit code $LASTEXITCODE" }
 
 Write-Host "`n[3/5] DS05 sample backtest" -ForegroundColor Yellow
 $ds05Out = Join-Path $Root "results\plan_a_verify\ds05"

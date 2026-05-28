@@ -57,6 +57,7 @@ def run_ds03_backtest(df: pd.DataFrame, config: DS03BacktestConfig) -> dict:
     orders: list[dict] = []
     equity: list[dict] = []
     stop_history: list[dict] = []
+    consumed_peak_keys: set[str] = set()
 
     for i in range(len(os_df)):
         row = os_df.iloc[i]
@@ -106,7 +107,7 @@ def run_ds03_backtest(df: pd.DataFrame, config: DS03BacktestConfig) -> dict:
             stop_history.append({"idx": i, "date": date, "trade_no": position["trade_no"], "side": position["side"], "stop": position["stop"]})
 
         if position is None and not exited:
-            signal = make_ds03_signal(os_df, i)
+            signal = make_ds03_signal(os_df, i, consumed_peak_keys)
             if signal is not None:
                 side = signal.side
                 fill = entry_fill(row, signal)
@@ -132,6 +133,8 @@ def run_ds03_backtest(df: pd.DataFrame, config: DS03BacktestConfig) -> dict:
                         "entry_ref": signal.entry_ref,
                         "ref_idx": signal.ref_idx,
                         "signal_camp": signal.signal_camp,
+                        "peak_key": signal.peak_key,
+                        "trigger_source": signal.trigger_source,
                     }
                     position = update_ds03_stop(position, os_df, i)
                     stop_history.append({"idx": i, "date": date, "trade_no": trade_no, "side": side, "stop": position["stop"]})

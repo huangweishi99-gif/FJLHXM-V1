@@ -16,8 +16,12 @@ TQ_PASS = os.getenv("TQ_PASS", "Hwsgzjdqg1021")
 
 # --- 目录配置 ---
 DATA_DIR = Path(os.getenv("FUTURES_DATA_DIR", r"C:\Users\Administrator\quant_futures\data"))
+LOG_DIR = Path(os.getenv("FUTURES_LOG_DIR", r"C:\Users\Administrator\quant_futures\runtime\logs"))
+LOG_FILE = LOG_DIR / "data_manager_futures.log"
+STALE_CATCHUP_HOURS = int(os.getenv("FUTURES_STALE_CATCHUP_HOURS", "36"))
 for d in ["1d", "1h", "15m"]:
     (DATA_DIR / d).mkdir(parents=True, exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 DATA_LENGTHS = {
     "1d": 800,
@@ -74,6 +78,16 @@ TQ_SYMBOL_MAP = {
 
 def ts() -> str:
     return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def log_line(message: str) -> None:
+    line = f"[{ts()}] {message}"
+    print(line, flush=True)
+    try:
+        with LOG_FILE.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except OSError:
+        pass
 
 
 def active_windows() -> tuple[tuple[dt_time, dt_time, set[int]], ...]:
@@ -154,17 +168,17 @@ def fetch_symbol(api: TqApi, short_code: str, tq_code: str) -> bool:
     for timeframe in ["1d", "1h", "15m"]:
         try:
             frame = fetch_frame(api, tq_code, timeframe)
-            atomic_write_csv(frame, DATA_DIR / timeframe / f"{short_code}USDT.csv")
+            primary = DATA_DIR / timeframe / f"{short_code}.csv"
+            atomic_write_csv(frame, primary)
+            legacy = DATA_DIR / timeframe / f"{short_code}USDT.csv"
+            if legacy != primary:
+                atomic_write_csv(frame, legacy)
             rows[timeframe] = len(frame)
         except Exception as exc:
             ok = False
-            print(f"[ERROR] [{ts()}] 抓取 [{short_code}] {timeframe} 失败: {exc}", flush=True)
+            log_line(f"[ERROR] 抓取 [{short_code}] {timeframe} 失败: {exc}")
     if ok:
-        print(
-            f"[OK] [{ts()}] 成功抓取 [{short_code}] "
-            f"1d={rows.get('1d', 0)} 1h={rows.get('1h', 0)} 15m={rows.get('15m', 0)}",
-            flush=True,
-        )
+        log_line(f"[OK] 成功抓取 [{short_code}] 1d={rows.get('1d', 0)} 1h={rows.get('1h', 0)} 15m={rows.get('15m', 0)}")
     return ok
 
 
@@ -181,11 +195,33 @@ def connect_api() -> TqApi:
     raise RuntimeError(f"天勤连接连续失败: {last_error}")
 
 
+def latest_1d_mtime(short_code: str) -> datetime | None:
+    path = DATA_DIR / "1d" / f"{short_code}.csv"
+    if not path.exists():
+        path = DATA_DIR / "1d" / f"{short_code}USDT.csv"
+    if not path.exists():
+        return None
+    return datetime.fromtimestamp(path.stat().st_mtime)
+
+
+def needs_stale_catchup() -> bool:
+    now = datetime.now()
+    stale: list[str] = []
+    for short_code in TQ_SYMBOL_MAP:
+        mtime = latest_1d_mtime(short_code)
+        if mtime is None or (now - mtime).total_seconds() > STALE_CATCHUP_HOURS * 3600:
+            stale.append(short_code)
+    if stale:
+        log_line(f"[CATCHUP] 日线停更超过 {STALE_CATCHUP_HOURS}h，需补抓: {','.join(stale[:8])}{'...' if len(stale)>8 else ''}")
+        return True
+    return False
+
+
 def fetch_all_data(api: TqApi) -> tuple[int, int]:
     success_count = 0
     fail_count = 0
     try:
-        print(f"[{ts()}] 开始抓取 {len(TQ_SYMBOL_MAP)} 个品种。", flush=True)
+        log_line(f"开始抓取 {len(TQ_SYMBOL_MAP)} 个品种。")
         for short_code, tq_code in TQ_SYMBOL_MAP.items():
             if fetch_symbol(api, short_code, tq_code):
                 success_count += 1
@@ -194,21 +230,18 @@ def fetch_all_data(api: TqApi) -> tuple[int, int]:
             time.sleep(0.2)
     except Exception as exc:
         fail_count += max(0, len(TQ_SYMBOL_MAP) - success_count - fail_count)
-        print(f"[ERROR] [{ts()}] 天勤数据更新严重异常: {exc}", flush=True)
-        print(traceback.format_exc(), flush=True)
+        log_line(f"[ERROR] 天勤数据更新严重异常: {exc}")
+        log_line(traceback.format_exc())
     finally:
-        print(
-            f"[{ts()}] 本轮天勤数据更新完毕：成功 {success_count}，失败 {fail_count}。等待下一次轮询...\n",
-            flush=True,
-        )
+        log_line(f"本轮天勤数据更新完毕：成功 {success_count}，失败 {fail_count}。")
     return success_count, fail_count
 
 
 def main() -> None:
     api: TqApi | None = None
-    print(f"[天勤直连版] 数据泵启动，使用长连接复用模式，市场模式={MARKET_MODE}。", flush=True)
+    log_line(f"[天勤直连版] 数据泵启动，市场模式={MARKET_MODE}，日志={LOG_FILE}")
     while True:
-        if not is_market_update_time():
+        if not is_market_update_time() and not needs_stale_catchup():
             if api is not None:
                 try:
                     api.close()
@@ -216,11 +249,7 @@ def main() -> None:
                     print(f"[WARN] [{ts()}] 非交易更新时段关闭天勤连接失败: {exc}", flush=True)
                 api = None
             wait_seconds = seconds_until_next_window()
-            print(
-                f"[{ts()}] 当前不在数据更新时段，暂停抓取；"
-                f"距离下一次自动更新约 {wait_seconds // 60} 分钟。",
-                flush=True,
-            )
+            log_line(f"当前不在数据更新时段，暂停抓取；距离下一次自动更新约 {wait_seconds // 60} 分钟。")
             time.sleep(min(wait_seconds, IDLE_SLEEP_SECONDS))
             continue
 

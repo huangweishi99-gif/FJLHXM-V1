@@ -1,1 +1,1 @@
-﻿from fengji_core.ds07 import *  # noqa: F403
+from fengji_core.ds07 import *  # noqa: F403

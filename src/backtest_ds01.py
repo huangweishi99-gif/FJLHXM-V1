@@ -133,10 +133,11 @@ def run_ds01_backtest(df: pd.DataFrame, config: DS01BacktestConfig) -> dict:
                 visible_idx = max(0, i - 1)
                 hardened_visible = engine.hardened_by_bar[visible_idx] if engine.hardened_by_bar else []
                 max_confirm_idx = max((node.confirm_idx for node in hardened_visible), default=-1)
+                left_check_price = float(row["high"]) if pending.side == 1 else float(row["low"])
                 left_ok, left_count = ds01_left_filter_pass(
                     hardened_visible,
                     i,
-                    pending.trigger_price,
+                    left_check_price,
                     pending.is_add,
                     config.left_lookback,
                 )
@@ -161,6 +162,7 @@ def run_ds01_backtest(df: pd.DataFrame, config: DS01BacktestConfig) -> dict:
                             "signal_idx": pending.signal_idx,
                             "trigger_price": pending.trigger_price,
                             "left_count": left_count,
+                            "left_check_price": left_check_price,
                             "visible_os_idx": visible_idx,
                             "max_hardened_confirm_idx_used": max_confirm_idx,
                             "future_violation": max_confirm_idx > i - 1,
@@ -179,6 +181,7 @@ def run_ds01_backtest(df: pd.DataFrame, config: DS01BacktestConfig) -> dict:
                             "side": pending.side,
                             "order_status": "left_filter_reject",
                             "trigger_price": pending.trigger_price,
+                            "left_check_price": left_check_price,
                             "left_count": left_count,
                             "visible_os_idx": visible_idx,
                             "max_hardened_confirm_idx_used": max_confirm_idx,
@@ -222,6 +225,7 @@ def run_ds01_backtest(df: pd.DataFrame, config: DS01BacktestConfig) -> dict:
                         ),
                         "future_violations": sum(int(bool(leg["future_violation"])) for leg in position["legs"]),
                         "camp_signal": position["camp_signal"],
+                        "legs": list(position["legs"]),
                     }
                 )
                 position = None
@@ -235,6 +239,37 @@ def run_ds01_backtest(df: pd.DataFrame, config: DS01BacktestConfig) -> dict:
 
         unrealized = 0.0 if position is None else position_pnl(position, float(row["close"]), config)
         equity.append({"date": date, "equity": cash + unrealized, "cash": cash, "unrealized": unrealized})
+
+    if position is not None:
+        trades.append(
+            {
+                "trade_no": position["trade_no"],
+                "direction": "long" if int(position["side"]) == 1 else "short",
+                "entry_idx": position["entry_idx"],
+                "exit_idx": pd.NA,
+                "entry_date": position["entry_date"],
+                "exit_date": pd.NaT,
+                "avg_entry_price": position["avg_entry_price"],
+                "exit_price": pd.NA,
+                "total_lots": position["total_lots"],
+                "entries": position["entries"],
+                "initial_stop": position["initial_stop"],
+                "final_stop": position["stop"],
+                "gross_pnl": unrealized,
+                "net_pnl": unrealized - float(position["entry_fee"]),
+                "fee": float(position["entry_fee"]),
+                "exit_reason": "open",
+                "left_count": position["left_count"],
+                "left_check_price": position["legs"][0].get("left_check_price"),
+                "visible_os_idx": position["legs"][0]["visible_os_idx"],
+                "max_hardened_confirm_idx_used": max(
+                    int(leg["max_hardened_confirm_idx_used"]) for leg in position["legs"]
+                ),
+                "future_violations": sum(int(bool(leg["future_violation"])) for leg in position["legs"]),
+                "camp_signal": position["camp_signal"],
+                "legs": list(position["legs"]),
+            }
+        )
 
     trades_df = pd.DataFrame(trades)
     equity_df = pd.DataFrame(equity)

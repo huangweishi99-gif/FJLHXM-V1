@@ -21,6 +21,7 @@ class DS09Signal:
     key: str
     session_date: Any
     mode: str
+    d1_camp: int
     d1_boundary: float
     prev_open: float
     prev_close: float
@@ -35,34 +36,52 @@ class DS09Signal:
 
 
 def build_prev_day_boundary_map(d1_df: pd.DataFrame) -> dict[pd.Timestamp, dict[str, Any]]:
+    if "camp" not in d1_df.columns:
+        raise ValueError("DS09 requires D1 FengJi OS camp column before building boundaries.")
     d1 = d1_df.copy()
     d1["session_date"] = pd.to_datetime(d1["date"]).dt.normalize()
+    d1 = d1.sort_values("session_date").reset_index(drop=True)
     d1["prev_open"] = d1["open"].shift(1)
     d1["prev_high"] = d1["high"].shift(1)
     d1["prev_low"] = d1["low"].shift(1)
     d1["prev_close"] = d1["close"].shift(1)
+    d1["prev_camp"] = d1["camp"].shift(1)
     out: dict[pd.Timestamp, dict[str, Any]] = {}
     for _, row in d1.iterrows():
-        if pd.isna(row["prev_open"]) or pd.isna(row["prev_close"]):
+        if pd.isna(row["prev_open"]) or pd.isna(row["prev_close"]) or pd.isna(row["prev_camp"]):
             continue
         session_date = pd.to_datetime(row["session_date"]).normalize()
         prev_open = float(row["prev_open"])
         prev_close = float(row["prev_close"])
-        if prev_close < prev_open:
+        prev_camp = int(row["prev_camp"])
+        if prev_camp == RED and prev_close < prev_open:
             out[session_date] = {
                 "mode": "LONG",
+                "d1_camp": RED,
                 "boundary": float(row["prev_high"]),
                 "prev_open": prev_open,
                 "prev_close": prev_close,
             }
-        elif prev_close > prev_open:
+        elif prev_camp == BLUE and prev_close > prev_open:
             out[session_date] = {
                 "mode": "SHORT",
+                "d1_camp": BLUE,
                 "boundary": float(row["prev_low"]),
                 "prev_open": prev_open,
                 "prev_close": prev_close,
             }
     return out
+
+
+def assign_session_date(m15_df: pd.DataFrame, d1_df: pd.DataFrame, *, futures: bool) -> pd.DataFrame:
+    """Map M15 bars to D1 session_date. Crypto uses calendar day; futures use night-session roll."""
+    if futures:
+        return assign_cn_futures_session_date(m15_df, d1_df)
+    out = m15_df.copy()
+    out["session_date"] = pd.to_datetime(out["date"]).dt.normalize()
+    valid = set(pd.to_datetime(d1_df["date"]).dt.normalize())
+    out = out[out["session_date"].isin(valid)]
+    return out.dropna(subset=["session_date"]).reset_index(drop=True)
 
 
 def assign_cn_futures_session_date(m5_df: pd.DataFrame, d1_df: pd.DataFrame) -> pd.DataFrame:
@@ -102,25 +121,33 @@ def make_ds09_signal(row: pd.Series, day_state: dict[str, Any], symbol: str = ""
     if mode == "LONG":
         if int(row.get("camp", 0)) != RED:
             return None
-        red_peak = row.get("red_peak_price", np.nan)
-        red_ext = row.get("red_ext_price", np.nan)
-        red_peak_idx = row.get("red_peak_idx", np.nan)
-        red_ext_idx = row.get("red_ext_idx", np.nan)
-        if pd.isna(red_peak) or pd.isna(red_ext) or pd.isna(red_peak_idx) or pd.isna(red_ext_idx):
-            return None
 
         if day_state.get("attack_idx") is None:
+            red_peak = row.get("red_peak_price", np.nan)
+            red_peak_idx = row.get("red_peak_idx", np.nan)
+            if pd.isna(red_peak) or pd.isna(red_peak_idx):
+                return None
             if int(red_peak_idx) >= int(lock_idx):
                 day_state["attack_idx"] = int(red_peak_idx)
                 day_state["attack_price"] = float(red_peak)
             return None
 
         if day_state.get("defense_idx") is None:
+            red_ext = row.get("red_ext_price", np.nan)
+            red_ext_idx = row.get("red_ext_idx", np.nan)
+            if pd.isna(red_ext) or pd.isna(red_ext_idx):
+                return None
             if int(red_ext_idx) > int(day_state["attack_idx"]):
                 day_state["defense_idx"] = int(red_ext_idx)
                 day_state["defense_price"] = float(red_ext)
             return None
 
+        red_peak = row.get("red_peak_price", np.nan)
+        red_ext = row.get("red_ext_price", np.nan)
+        red_peak_idx = row.get("red_peak_idx", np.nan)
+        red_ext_idx = row.get("red_ext_idx", np.nan)
+        if pd.isna(red_peak) or pd.isna(red_ext) or pd.isna(red_peak_idx) or pd.isna(red_ext_idx):
+            return None
         if i <= int(day_state["defense_idx"]):
             return None
         attack_price = float(day_state["attack_price"])
@@ -140,6 +167,7 @@ def make_ds09_signal(row: pd.Series, day_state: dict[str, Any], symbol: str = ""
                     key=key,
                     session_date=session_date,
                     mode=mode,
+                    d1_camp=int(day_state["d1_camp"]),
                     d1_boundary=float(day_state["boundary"]),
                     prev_open=float(day_state["prev_open"]),
                     prev_close=float(day_state["prev_close"]),
@@ -153,25 +181,33 @@ def make_ds09_signal(row: pd.Series, day_state: dict[str, Any], symbol: str = ""
     if mode == "SHORT":
         if int(row.get("camp", 0)) != BLUE:
             return None
-        blue_peak = row.get("blue_peak_price", np.nan)
-        blue_ext = row.get("blue_ext_price", np.nan)
-        blue_peak_idx = row.get("blue_peak_idx", np.nan)
-        blue_ext_idx = row.get("blue_ext_idx", np.nan)
-        if pd.isna(blue_peak) or pd.isna(blue_ext) or pd.isna(blue_peak_idx) or pd.isna(blue_ext_idx):
-            return None
 
         if day_state.get("attack_idx") is None:
+            blue_peak = row.get("blue_peak_price", np.nan)
+            blue_peak_idx = row.get("blue_peak_idx", np.nan)
+            if pd.isna(blue_peak) or pd.isna(blue_peak_idx):
+                return None
             if int(blue_peak_idx) >= int(lock_idx):
                 day_state["attack_idx"] = int(blue_peak_idx)
                 day_state["attack_price"] = float(blue_peak)
             return None
 
         if day_state.get("defense_idx") is None:
+            blue_ext = row.get("blue_ext_price", np.nan)
+            blue_ext_idx = row.get("blue_ext_idx", np.nan)
+            if pd.isna(blue_ext) or pd.isna(blue_ext_idx):
+                return None
             if int(blue_ext_idx) > int(day_state["attack_idx"]):
                 day_state["defense_idx"] = int(blue_ext_idx)
                 day_state["defense_price"] = float(blue_ext)
             return None
 
+        blue_peak = row.get("blue_peak_price", np.nan)
+        blue_ext = row.get("blue_ext_price", np.nan)
+        blue_peak_idx = row.get("blue_peak_idx", np.nan)
+        blue_ext_idx = row.get("blue_ext_idx", np.nan)
+        if pd.isna(blue_peak) or pd.isna(blue_ext) or pd.isna(blue_peak_idx) or pd.isna(blue_ext_idx):
+            return None
         if i <= int(day_state["defense_idx"]):
             return None
         attack_price = float(day_state["attack_price"])
@@ -191,6 +227,7 @@ def make_ds09_signal(row: pd.Series, day_state: dict[str, Any], symbol: str = ""
                     key=key,
                     session_date=session_date,
                     mode=mode,
+                    d1_camp=int(day_state["d1_camp"]),
                     d1_boundary=float(day_state["boundary"]),
                     prev_open=float(day_state["prev_open"]),
                     prev_close=float(day_state["prev_close"]),
@@ -237,10 +274,15 @@ def check_stop(row: pd.Series, position: dict) -> tuple[float | None, str | None
 def audit_ds09_structure(trades: pd.DataFrame) -> pd.DataFrame:
     if trades.empty:
         return trades.copy()
+    if "d1_camp" not in trades.columns:
+        out = trades.copy()
+        out["audit_reason"] = "missing_d1_camp"
+        return out
     bad_long = (
         (trades["direction"] == "long")
         & (
             (trades["mode"] != "LONG")
+            | (trades["d1_camp"] != RED)
             | (trades["prev_close"] >= trades["prev_open"])
             | (trades["entry_idx"] <= trades["defense_idx"])
             | (trades["attack_idx"] < trades["lock_idx"])
@@ -253,6 +295,7 @@ def audit_ds09_structure(trades: pd.DataFrame) -> pd.DataFrame:
         (trades["direction"] == "short")
         & (
             (trades["mode"] != "SHORT")
+            | (trades["d1_camp"] != BLUE)
             | (trades["prev_close"] <= trades["prev_open"])
             | (trades["entry_idx"] <= trades["defense_idx"])
             | (trades["attack_idx"] < trades["lock_idx"])

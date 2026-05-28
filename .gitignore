@@ -3,5 +3,11 @@ __pycache__/
 .pytest_cache/
 .venv/
 data/*.csv
+data/market_data.sqlite
 results/
+runtime/
+runtime/feishu_webhook.env
+**/feishu_webhook.env
+*.egg-info/
+src.zip
 

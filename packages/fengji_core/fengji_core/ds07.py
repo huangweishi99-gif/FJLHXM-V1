@@ -90,11 +90,19 @@ def attach_os_detail(df: pd.DataFrame, engine) -> pd.DataFrame:
         "blue_peak_price",
         "blue_ext_idx",
         "blue_ext_price",
+        "last_failed_high_idx",
+        "last_failed_high_price",
+        "last_failed_low_idx",
+        "last_failed_low_price",
     ]
     for column in detail_columns:
         if column in os_log:
             out[column] = os_log[column].values
-    out["hardened_count"] = [len(nodes) for nodes in engine.hardened_by_bar[: len(out)]]
+    hardened_by_bar = getattr(engine, "hardened_by_bar", [])
+    if len(hardened_by_bar) >= len(out):
+        out["hardened_count"] = [len(nodes) for nodes in hardened_by_bar[: len(out)]]
+    else:
+        out["hardened_count"] = len(getattr(engine, "hardened_nodes", []))
     return out
 
 

@@ -16,7 +16,12 @@ from backtest_ds06 import DS06BacktestConfig, run_ds06_backtest
 from backtest_ds07 import DS07BacktestConfig, load_frame, run_ds07_backtest
 from backtest_ds08 import DS08BacktestConfig, run_ds08_backtest
 from backtest_ds09 import DS09BacktestConfig, load_m15_frame, run_ds09_backtest
-from fengji_core.constants import DEFAULT_STRATEGIES_CSV, FENGJI_TOTAL_PATTERN_STRATEGIES, STRATEGY_PRIORITY
+try:
+    from fengji_core.constants import DEFAULT_STRATEGIES_CSV, FENGJI_TOTAL_PATTERN_STRATEGIES, STRATEGY_PRIORITY
+except ModuleNotFoundError:
+    FENGJI_TOTAL_PATTERN_STRATEGIES = ["DS01", "DS02", "DS03", "DS04", "DS05", "DS06", "DS07", "DS08", "DS09"]
+    DEFAULT_STRATEGIES_CSV = ",".join(FENGJI_TOTAL_PATTERN_STRATEGIES)
+    STRATEGY_PRIORITY = {strategy: (idx + 1) * 10 for idx, strategy in enumerate(FENGJI_TOTAL_PATTERN_STRATEGIES)}
 from quant.data import load_ohlcv_for_engine
 from quant.futures_specs import FuturesSpec, get_futures_spec
 
@@ -68,12 +73,49 @@ def normalize_trades(symbol: str, strategy_id: str, trades: pd.DataFrame) -> pd.
         return pd.DataFrame(rows)
 
     for _, row in trades.iterrows():
+        legs = row.get("legs") if "legs" in row else None
+        if strategy_id == "DS01" and isinstance(legs, list) and legs:
+            exit_price = _first_existing(row, ["exit_price"])
+            exit_time = pd.to_datetime(_first_existing(row, ["exit_date", "exit_time"]), errors="coerce")
+            exit_idx = _first_existing(row, ["exit_idx"])
+            net_each = float(_first_existing(row, ["net", "net_pnl"], 0.0) or 0.0) / max(len(legs), 1)
+            for leg_no, leg in enumerate(legs, start=1):
+                side = _direction_to_side(leg.get("side"))
+                entry_time = pd.to_datetime(leg.get("entry_date"), errors="coerce")
+                source_trade_no = _first_existing(row, ["trade_no"], len(rows) + 1)
+                rows.append(
+                    {
+                        "candidate_id": f"{symbol}-{strategy_id}-{int(source_trade_no)}-{leg_no}",
+                        "symbol": symbol,
+                        "strategy_id": strategy_id,
+                        "strategy_priority": STRATEGY_PRIORITY[strategy_id],
+                        "direction": "long" if side == 1 else "short",
+                        "side": side,
+                        "entry_time": entry_time,
+                        "exit_time": exit_time,
+                        "entry_idx": leg.get("entry_idx"),
+                        "exit_idx": exit_idx,
+                        "entry_price": leg.get("entry_price"),
+                        "exit_price": exit_price,
+                        "initial_stop": leg.get("stop"),
+                        "current_stop": _first_existing(row, ["final_stop", "stop", "initial_stop"], leg.get("stop")),
+                        "stop_rule_id": f"{strategy_id}_STOP",
+                        "lots": int(leg.get("lots", 1)),
+                        "pattern": "DS01 Add Cuogun" if leg.get("is_add") else "DS01 Initial Cuogun",
+                        "source_trade_no": f"{source_trade_no}.{leg_no}",
+                        "exit_reason": _first_existing(row, ["exit_reason", "reason"], ""),
+                        "net": net_each,
+                    }
+                )
+            continue
+
         side = _direction_to_side(_first_existing(row, ["side", "direction"]))
         entry_price = _first_existing(row, ["entry_price", "avg_entry_price"])
         exit_price = _first_existing(row, ["exit_price"])
         entry_time = pd.to_datetime(_first_existing(row, ["entry_date", "entry_time", "date"]), errors="coerce")
         exit_time = pd.to_datetime(_first_existing(row, ["exit_date", "exit_time"]), errors="coerce")
-        if pd.isna(exit_time) and "exit_idx" in row:
+        exit_idx = _first_existing(row, ["exit_idx"])
+        if pd.isna(exit_time) and exit_idx is not None and not pd.isna(exit_idx):
             exit_time = entry_time
 
         rows.append(
@@ -87,7 +129,7 @@ def normalize_trades(symbol: str, strategy_id: str, trades: pd.DataFrame) -> pd.
                 "entry_time": entry_time,
                 "exit_time": exit_time,
                 "entry_idx": _first_existing(row, ["entry_idx"]),
-                "exit_idx": _first_existing(row, ["exit_idx"]),
+                "exit_idx": exit_idx,
                 "entry_price": entry_price,
                 "exit_price": exit_price,
                 "initial_stop": _first_existing(row, ["initial_stop", "defense_price"]),

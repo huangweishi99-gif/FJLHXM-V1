@@ -156,8 +156,9 @@ def draw_trade_marks(ax, df: pd.DataFrame, trade: pd.Series, start: int, end: in
     ax.scatter(entry_x, float(trade["entry_price"]), marker=entry_marker, s=100, color="#00a152", zorder=6, label="entry")
     ax.scatter(exit_x, float(trade["exit_price"]), marker=exit_marker, s=100, color="#f57c00", zorder=6, label="exit")
     ax.axhline(float(trade["initial_stop"]), color="#8e24aa", linestyle="--", linewidth=1.1, label="K2 initial stop")
-    defense_identity = "RED_EXT" if side == 1 else "BLUE_EXT"
-    ax.axhline(float(trade["active_extreme"]), color="#455a64", linestyle=":", linewidth=1.1, label=f"{defense_identity} defense")
+    k2_extreme = trade.get("k2_possible_extreme", trade.get("initial_stop"))
+    defense_identity = "K2 possible RED_EXT" if side == 1 else "K2 possible BLUE_EXT"
+    ax.axhline(float(k2_extreme), color="#455a64", linestyle=":", linewidth=1.1, label=defense_identity)
 
 
 def draw_stop_path(ax, df: pd.DataFrame, trade: pd.Series) -> None:

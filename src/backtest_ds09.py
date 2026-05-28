@@ -100,7 +100,8 @@ def load_m5_frame(path: str | Path, atr_window: int) -> pd.DataFrame:
 def run_ds09_backtest(d1_df: pd.DataFrame, m15_df: pd.DataFrame, config: DS09BacktestConfig, symbol: str = "") -> dict:
     m15_with_session = assign_cn_futures_session_date(m15_df, d1_df)
     m15_os, m15_engine = build_os_detail_frame(m15_with_session, config.gap)
-    boundary_map = build_prev_day_boundary_map(d1_df)
+    d1_os, d1_engine = build_os_detail_frame(d1_df, config.gap)
+    boundary_map = build_prev_day_boundary_map(d1_os)
     ds05_config = as_ds05_config(config)
     cash = config.initial_cash
     position: dict | None = None
@@ -167,6 +168,7 @@ def run_ds09_backtest(d1_df: pd.DataFrame, m15_df: pd.DataFrame, config: DS09Bac
                         "key": position["key"],
                         "session_date": position["session_date"],
                         "mode": position["mode"],
+                        "d1_camp": position["d1_camp"],
                         "d1_boundary": position["d1_boundary"],
                         "prev_open": position["prev_open"],
                         "prev_close": position["prev_close"],
@@ -279,6 +281,7 @@ def run_ds09_backtest(d1_df: pd.DataFrame, m15_df: pd.DataFrame, config: DS09Bac
                 "key": position["key"],
                 "session_date": position["session_date"],
                 "mode": position["mode"],
+                "d1_camp": position["d1_camp"],
                 "d1_boundary": position["d1_boundary"],
                 "prev_open": position["prev_open"],
                 "prev_close": position["prev_close"],
@@ -298,7 +301,8 @@ def run_ds09_backtest(d1_df: pd.DataFrame, m15_df: pd.DataFrame, config: DS09Bac
         equity_df["drawdown"] = equity_df["equity"] / equity_df["peak"] - 1.0
     signals_df = pd.DataFrame(signals)
     return {
-        "d1_df": d1_df,
+        "d1_df": d1_os,
+        "d1_engine": d1_engine,
         "m15_df": m15_os,
         "m15_engine": m15_engine,
         "m5_df": m15_os,

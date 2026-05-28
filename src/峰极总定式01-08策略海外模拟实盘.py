@@ -27,7 +27,6 @@ REQUIRED_ENGINE_FILES = [
     "backtest_ds06.py",
     "backtest_ds07.py",
     "backtest_ds08.py",
-    "backtest_ds09.py",
     "quant/os_engine.py",
     "quant/data.py",
 ]
@@ -80,7 +79,10 @@ MONITOR_COINS = [
 
 DEFAULT_TRADE_COINS = list(MONITOR_COINS)
 
-TOTAL_PATTERN_STRATEGIES = ["DS01", "DS02", "DS03", "DS04", "DS05", "DS06", "DS07", "DS08", "DS09"]
+TOTAL_PATTERN_STRATEGIES = ["DS01", "DS02", "DS03", "DS04", "DS05", "DS06", "DS07", "DS08"]
+DAILY_PATTERN_STRATEGIES = {"DS01", "DS02", "DS03", "DS04", "DS05", "DS06"}
+PENDING_MANAGED_STRATEGIES = {"DS01", "DS03", "DS05", "DS07", "DS08"}
+DIRECT_OPEN_STRATEGIES = set(TOTAL_PATTERN_STRATEGIES) - PENDING_MANAGED_STRATEGIES
 DEFAULT_FEISHU_WEBHOOK = os.getenv("FEISHU_WEBHOOK", "")
 
 
@@ -172,8 +174,24 @@ def send_msg(webhook: str, text: str) -> None:
         print(f"飞书发送异常: {exc}")
 
 
+def safe_read_csv(path: Path) -> pd.DataFrame:
+    if not path.exists() or path.stat().st_size <= 5:
+        return pd.DataFrame()
+    try:
+        return pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame()
+
+
 def read_source_csv(path: Path) -> pd.DataFrame:
-    frame = pd.read_csv(path)
+    if not path.exists():
+        raise FileNotFoundError(f"数据文件不存在: {path}")
+    if path.stat().st_size <= 5:
+        raise ValueError(f"数据文件为空或正在写入中，请稍后重试: {path}")
+    try:
+        frame = pd.read_csv(path)
+    except pd.errors.EmptyDataError as exc:
+        raise ValueError(f"数据文件无法解析（可能同步中断）: {path}") from exc
     frame.columns = [column.strip().lower() for column in frame.columns]
     if "date" not in frame.columns:
         if "timestamp" in frame.columns:
@@ -219,7 +237,7 @@ def find_data_file(data_dir: Path, symbol: str, timeframe: str) -> Path:
         "15m": "15m",
     }[timeframe]
     preferred = data_dir / preferred_folder / f"{clean}.csv"
-    if preferred.exists():
+    if preferred.exists() and preferred.stat().st_size > 5:
         return preferred
 
     candidates: list[Path] = []
@@ -241,11 +259,13 @@ def find_data_file(data_dir: Path, symbol: str, timeframe: str) -> Path:
         )
 
     for candidate in candidates:
-        if candidate.exists():
+        if candidate.exists() and candidate.stat().st_size > 5:
             return candidate
 
     # Last-resort shallow search. Avoid recursive scanning every loop; server data should stay in data/1d, data/1h, data/15m.
     for candidate in data_dir.glob("*.csv"):
+        if candidate.stat().st_size <= 5:
+            continue
         name = candidate.name.lower().replace("-", "").replace("_", "")
         if clean.lower() in name and any(alias.lower().replace("-", "").replace("_", "") in name for alias in timeframe_aliases[timeframe]):
             return candidate
@@ -266,9 +286,12 @@ def current_bar_key(data_dir: Path, symbol: str) -> str:
     paths = symbol_paths(data_dir, symbol)
     keys: list[str] = []
     for tf in ["1d", "1h"]:
-        if not paths[tf].exists():
+        if not paths[tf].exists() or paths[tf].stat().st_size <= 5:
             return ""
-        frame = read_source_csv(paths[tf])
+        try:
+            frame = read_source_csv(paths[tf])
+        except (ValueError, pd.errors.EmptyDataError):
+            return ""
         if frame.empty:
             return ""
         keys.append(f"{tf}:{pd.to_datetime(frame['date'].iloc[-1])}")
@@ -319,7 +342,7 @@ def run_fengji_scan(symbol: str, args: argparse.Namespace, run_id: str) -> tuple
         out_dir=out_dir,
     )
     accepted_path = out_dir / "accepted_trades.csv"
-    accepted = pd.read_csv(accepted_path) if accepted_path.exists() else pd.DataFrame()
+    accepted = safe_read_csv(accepted_path)
     meta = {
         "out_dir": str(out_dir),
         "d1_time": str(d1_time),
@@ -376,7 +399,7 @@ def format_entry(symbol: str, row: pd.Series, money: MoneyConfig, meta: dict[str
         f"杠杆: {money.leverage:.1f}x\n"
         f"名义仓位: {margin * money.leverage:.2f} USDT\n"
         f"虚拟本金: 每个品种独立 {money.initial_cash:.2f} USDT\n"
-        f"总定式: DS01-DS09\n"
+        f"总定式: DS01-DS08\n"
         f"数据: D1={meta.get('d1_time')} H1={meta.get('h1_time')}"
     )
 
@@ -511,7 +534,7 @@ def write_dashboard_snapshot(args: argparse.Namespace, state: dict[str, Any]) ->
         "version": 1,
         "generated_at": now_text(),
         "mode": "paper",
-        "engine": "峰极总定式 DS01-DS09",
+        "engine": "峰极总定式 DS01-DS08",
         "runtime_dir": str(Path(args.runtime_dir).resolve()),
         "data_dir": str(Path(args.data_dir).resolve()),
         "money": {
@@ -631,7 +654,14 @@ def process_symbol(symbol: str, args: argparse.Namespace, root_state: dict, run_
         print(f"[{clean}] 仅监控，不在模拟交易名单")
         return
 
-    recent = accepted[(accepted["entry_time"] >= lookback_start) & (accepted["entry_time"] <= ref_time)].copy()
+    d1_time = pd.to_datetime(meta.get("d1_time"), errors="coerce")
+    same_daily_bar = (
+        accepted["strategy_id"].isin(DAILY_PATTERN_STRATEGIES)
+        & (accepted["entry_time"].dt.normalize() == d1_time.normalize())
+    )
+    recent = accepted[
+        (((accepted["entry_time"] >= lookback_start) & (accepted["entry_time"] <= ref_time)) | same_daily_bar)
+    ].copy()
     if recent.empty:
         print(f"[{clean}] 无最新开仓信号 accepted={len(accepted)}")
         return
@@ -640,6 +670,11 @@ def process_symbol(symbol: str, args: argparse.Namespace, root_state: dict, run_
     for _, row in recent.sort_values(["entry_time", "strategy_priority"]).iterrows():
         key = trade_key(row)
         if key in seen:
+            continue
+        strategy_id = str(row.get("strategy_id", "")).upper()
+        if strategy_id not in DIRECT_OPEN_STRATEGIES:
+            symbol_state["seen_entries"].append(key)
+            print(f"[{clean}] 跳过主程序直接开仓 {strategy_id}，交给挂单监控触发")
             continue
 
         exit_time = pd.to_datetime(row.get("exit_time"), errors="coerce")
@@ -653,7 +688,13 @@ def process_symbol(symbol: str, args: argparse.Namespace, root_state: dict, run_
 
         entry_time = pd.to_datetime(row.get("entry_time"), errors="coerce")
         max_lag = pd.Timedelta(hours=args.max_entry_lag_hours)
-        if pd.isna(entry_time) or entry_time < ref_time - max_lag:
+        is_current_daily = (
+            strategy_id in DAILY_PATTERN_STRATEGIES
+            and not pd.isna(entry_time)
+            and not pd.isna(d1_time)
+            and entry_time.normalize() == d1_time.normalize()
+        )
+        if pd.isna(entry_time) or (entry_time < ref_time - max_lag and not is_current_daily):
             symbol_state["seen_entries"].append(key)
             print(
                 f"[{clean}] 跳过过期信号 {row.get('strategy_id')} "
@@ -697,7 +738,7 @@ def process_symbol(symbol: str, args: argparse.Namespace, root_state: dict, run_
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Binance local-data FengJi DS01-DS09 paper monitor.")
+    parser = argparse.ArgumentParser(description="Binance local-data FengJi DS01-DS08 paper monitor.")
     parser.add_argument("--config", default="runtime/fengji_paper/config.json", help="JSON config file. CLI values override config values.")
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--runtime-dir", default="runtime/fengji_paper")
@@ -749,12 +790,13 @@ def main() -> None:
         f"🚀【峰极总定式模拟盘已启动】\n"
         f"时间: {now_text()}\n"
         f"模式: 只模拟，不真实下单\n"
-        f"总定式: DS01-DS09\n"
+        f"总定式: DS01-DS08\n"
         f"资金口径: 每个虚拟货币独立 {args.initial_cash:.2f} USDT 模拟本金\n"
         f"单次保证金: {args.margin_per_trade:.2f} USDT，杠杆 {args.leverage:.1f}x\n"
         f"监控币种: {', '.join(args.coins)}\n"
         f"模拟交易名单: {', '.join(sorted(args.trade_coins)) or '空'}\n"
         f"数据源: 本地 {Path(args.data_dir).resolve()}\n"
+        f"开仓入口: DS01/DS03/DS05/DS07/DS08 由挂单监控触发；DS02/DS04/DS06 由主程序确认触发\n"
         f"说明: 首次启动只建立基线，不补发历史信号"
     )
     send_msg(args.feishu_webhook, startup)

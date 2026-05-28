@@ -1,6 +1,6 @@
 # Health check: domestic server FengJi futures/A-share paper trading monitor
 param(
-    [string]$Server = "106.53.107.248",
+    [string]$Server = "domestic-quant",
     [string]$User = "Administrator",
     [int]$StaleMinutes = 5
 )

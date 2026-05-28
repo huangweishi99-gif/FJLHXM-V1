@@ -8,14 +8,29 @@ import pandas as pd
 REQUIRED_COLUMNS = {"date", "open", "high", "low", "close", "volume"}
 
 
-def load_ohlcv_csv(path: str | Path) -> pd.DataFrame:
-    """Load and validate OHLCV data from CSV."""
+def read_csv_strict(path: str | Path) -> pd.DataFrame:
+    """Read CSV; fail clearly on empty/truncated files (common during data sync)."""
     csv_path = Path(path)
     if not csv_path.exists():
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
+    if csv_path.stat().st_size <= 5:
+        raise ValueError(f"CSV file is empty or incomplete: {csv_path}")
+    try:
+        return pd.read_csv(csv_path)
+    except pd.errors.EmptyDataError as exc:
+        raise ValueError(f"CSV file has no parseable columns: {csv_path}") from exc
 
-    frame = pd.read_csv(csv_path)
+
+def load_ohlcv_csv(path: str | Path) -> pd.DataFrame:
+    """Load and validate OHLCV data from CSV."""
+    csv_path = Path(path)
+    frame = read_csv_strict(csv_path)
     frame.columns = [column.strip().lower() for column in frame.columns]
+    if "date" not in frame.columns:
+        for candidate in ["timestamp", "datetime", "time"]:
+            if candidate in frame.columns:
+                frame = frame.rename(columns={candidate: "date"})
+                break
 
     missing = REQUIRED_COLUMNS.difference(frame.columns)
     if missing:

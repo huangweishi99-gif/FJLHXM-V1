@@ -7,9 +7,36 @@
 ## 定式口径
 
 ```text
-DS09 = D1 战略边界 + M15 执行
+DS09 = D1 OS战略阵营 + 昨日D1战略边界 + M15 执行
 副周期 = 15m（禁止再用 5m 旧口径）
 一日一结构：每个 session_date 最多消费一次 DS09
+股票式/A股专属版本 = 当前 DS09 九重天口径，不另立一套A股买卖规则
+```
+
+## 当前冻结逻辑
+
+多头：
+
+```text
+进入当日前已完成的 D1 OS 阵营为红
+昨日 D1 为阴线，昨日 high 为 P1
+今日 M15 第一次 high > P1 只锁定，不入场
+锁定后寻找 lock_idx 之后的第一个 M15 red_peak，作为 P2
+P2 后必须形成 red_ext 防守极 V
+价格二次 high > P2 时，按 max(open, P2) 入场做多
+止损守 red_ext，后续红极只允许上移
+```
+
+空头：
+
+```text
+进入当日前已完成的 D1 OS 阵营为蓝
+昨日 D1 为阳线，昨日 low 为 V1
+今日 M15 第一次 low < V1 只锁定，不入场
+锁定后寻找 lock_idx 之后的第一个 M15 blue_peak，作为向下进攻点
+blue_peak 后必须形成 blue_ext 防守极 P
+价格二次 low < blue_peak 时，按 min(open, blue_peak) 入场做空
+止损守 blue_ext，后续蓝极只允许下移
 ```
 
 ## 数据要求
