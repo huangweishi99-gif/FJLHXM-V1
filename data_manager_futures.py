@@ -24,9 +24,11 @@ for d in ["1d", "1h", "15m"]:
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 DATA_LENGTHS = {
-    "1d": 800,
-    "1h": 2600,
-    "15m": 3000,
+    "1d": int(os.getenv("FUTURES_1D_LENGTH", "800")),
+    "1h": int(os.getenv("FUTURES_1H_LENGTH", "2600")),
+    # DS09 需要更长 M15：默认 12000 根（约 125 个交易日）；天勤上限不足时可调低 FUTURES_15M_LENGTH
+    # GFEX LC 在 tqsdk2 下 data_length>8000 时 15m 曾出现脏数据，默认 8000；需更长可设 FUTURES_15M_LENGTH
+    "15m": int(os.getenv("FUTURES_15M_LENGTH", "8000")),
 }
 TIMEFRAMES = {
     "1d": 86400,
@@ -139,26 +141,61 @@ def normalize_frame(frame: pd.DataFrame) -> pd.DataFrame:
     data = frame.copy()
     if "datetime" not in data.columns:
         raise ValueError("天勤返回数据缺少 datetime 字段")
-    data["date"] = pd.to_datetime(data["datetime"], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
+    numeric = pd.to_numeric(data["datetime"], errors="coerce")
+    if numeric.notna().any() and float(numeric.max(skipna=True)) > 1e14:
+        data["date"] = pd.to_datetime(numeric, unit="ns", errors="coerce")
+    else:
+        data["date"] = pd.to_datetime(data["datetime"], errors="coerce")
+    data["date"] = data["date"].dt.strftime("%Y-%m-%d %H:%M:%S")
     data = data.dropna(subset=["date"]).reset_index(drop=True)
     if data.empty:
         raise ValueError("天勤返回空数据")
     return data
 
 
+def frame_looks_sane(frame: pd.DataFrame) -> bool:
+    if frame.empty or "date" not in frame.columns:
+        return False
+    dates = pd.to_datetime(frame["date"], errors="coerce")
+    recent = dates >= pd.Timestamp("2020-01-01")
+    if recent.sum() < max(10, int(len(frame) * 0.85)):
+        return False
+    for column in ("open", "high", "low", "close"):
+        if column not in frame.columns:
+            return False
+        values = pd.to_numeric(frame[column], errors="coerce")
+        if values.notna().sum() < max(10, int(len(frame) * 0.85)):
+            return False
+    highs = pd.to_numeric(frame["high"], errors="coerce")
+    lows = pd.to_numeric(frame["low"], errors="coerce")
+    return bool((highs > lows).sum() >= max(10, int(len(frame) * 0.85)))
+
+
 def fetch_frame(api: TqApi, tq_code: str, timeframe: str) -> pd.DataFrame:
     last_error: Exception | None = None
     seconds = TIMEFRAMES[timeframe]
     length = DATA_LENGTHS[timeframe]
-    for attempt in range(1, MAX_FETCH_RETRIES + 1):
-        try:
-            frame = api.get_kline_serial(tq_code, seconds, data_length=length)
-            return normalize_frame(frame)
-        except Exception as exc:
-            last_error = exc
-            print(f"[WARN] [{ts()}] {tq_code} {timeframe} 第 {attempt}/{MAX_FETCH_RETRIES} 次抓取失败: {exc}", flush=True)
-            if attempt < MAX_FETCH_RETRIES:
-                time.sleep(RETRY_SLEEP_SECONDS)
+    length_candidates = [length]
+    if timeframe == "15m" and length > 3000:
+        for fallback in (8000, 6000, 4000, 3000):
+            if fallback < length and fallback not in length_candidates:
+                length_candidates.append(fallback)
+    for data_length in length_candidates:
+        for attempt in range(1, MAX_FETCH_RETRIES + 1):
+            try:
+                frame = api.get_kline_serial(tq_code, seconds, data_length=data_length)
+                normalized = normalize_frame(frame)
+                if frame_looks_sane(normalized):
+                    if data_length != length:
+                        log_line(f"[INFO] {tq_code} {timeframe} 使用 data_length={data_length}（原 {length} 校验未通过）")
+                    return normalized
+                log_line(f"[WARN] {tq_code} {timeframe} data_length={data_length} 校验未通过，尝试更短窗口")
+                break
+            except Exception as exc:
+                last_error = exc
+                print(f"[WARN] [{ts()}] {tq_code} {timeframe} 第 {attempt}/{MAX_FETCH_RETRIES} 次抓取失败: {exc}", flush=True)
+                if attempt < MAX_FETCH_RETRIES:
+                    time.sleep(RETRY_SLEEP_SECONDS)
     raise RuntimeError(f"{tq_code} {timeframe} 连续抓取失败: {last_error}")
 
 

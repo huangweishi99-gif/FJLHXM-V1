@@ -15,6 +15,7 @@ from backtest_ds05 import (
     trade_fee,
 )
 from backtest_ds07 import load_frame, read_csv_with_fallback
+from fengji_core.data import load_tq_futures_kline_csv
 from quant.ds07 import add_atr, attach_os_detail, prepare_datetime_ohlcv
 from quant.ds09 import (
     assign_session_date,
@@ -57,6 +58,12 @@ def as_ds05_config(config: DS09BacktestConfig):
 
 
 def load_m15_frame(path: str | Path, atr_window: int) -> pd.DataFrame:
+    path = Path(path)
+    if "datetime" in pd.read_csv(path, nrows=0).columns.str.lower().tolist():
+        try:
+            return add_atr(load_tq_futures_kline_csv(path), atr_window)
+        except ValueError:
+            pass
     raw = None
     for encoding in ["gbk", "gb18030", "utf-8-sig", "utf-8"]:
         try:
@@ -66,6 +73,14 @@ def load_m15_frame(path: str | Path, atr_window: int) -> pd.DataFrame:
             continue
     if raw is None:
         raw = read_csv_with_fallback(path)
+    lowered = [str(column).strip().lower() for column in raw.columns]
+    if "datetime" in lowered:
+        try:
+            return add_atr(load_tq_futures_kline_csv(path), atr_window)
+        except ValueError:
+            pass
+    if "date" in lowered:
+        return add_atr(prepare_datetime_ohlcv(raw), atr_window)
     if len(raw.columns) >= 7:
         first = raw.iloc[:, 0].astype(str).str.strip()
         second = raw.iloc[:, 1].astype(str).str.extract(r"(\d+)", expand=False).fillna("").str.zfill(4)
