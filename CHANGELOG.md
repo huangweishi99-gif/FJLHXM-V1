@@ -2,6 +2,12 @@
 
 ## 2026-05-28
 
+### 国内 LC DS09 夜盘 session 与沙盒（2026-05-28）
+
+- `assign_session_date(futures=True)` 走 `assign_cn_futures_session_date`（21:00 归次日；天勤 LC 夜盘多为次日 01:00–06:00）。
+- `scripts/verify_ds09_lc_session.py` / `run_lc_ds09_domestic.ps1`：国内 690 D1、298 授权 session；当前 15m 仅约 3000 根，窗口内无刺穿边界故 0 笔成交。
+- 沙盒：`results/sandbox/lc_ds09/LC_DS09_session_overview.png`（LC 授权日示意）+ `ETH_DS09_trade*_reference.png`（成交标注参考）。
+
 ### DS09 九重天接入雷达与挂单器（第 3 步）
 
 - 复述口径与 `docs/DS09_CALIBRATION.md` 一致：D1 已完成 OS 阵营 + 昨日阴阳线授权边界；M15 第一次刺穿只锁定；第一进攻峰 → 第一防守极 → 二次攻击入场；一日一结构。
