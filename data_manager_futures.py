@@ -171,31 +171,66 @@ def frame_looks_sane(frame: pd.DataFrame) -> bool:
     return bool((highs > lows).sum() >= max(10, int(len(frame) * 0.85)))
 
 
+def _length_candidates(timeframe: str, target: int) -> list[int]:
+    if timeframe == "1d":
+        extras = (1200, 1000, 800, 600, 400, 300)
+    elif timeframe == "15m":
+        extras = (12000, 11000, 10000, 9500, 9000, 8500, 8000, 6000, 4000, 3000)
+    else:
+        return [target]
+    ordered = [target, *extras]
+    min_len = 300 if timeframe == "1d" else 3000
+    seen: set[int] = set()
+    out: list[int] = []
+    for value in ordered:
+        if value < min_len or value in seen:
+            continue
+        if timeframe in ("1d", "1h") and value > target:
+            continue
+        seen.add(value)
+        out.append(value)
+    return sorted(out, reverse=True)
+
+
 def fetch_frame(api: TqApi, tq_code: str, timeframe: str) -> pd.DataFrame:
     last_error: Exception | None = None
     seconds = TIMEFRAMES[timeframe]
     length = DATA_LENGTHS[timeframe]
-    length_candidates = [length]
-    if timeframe == "15m" and length > 3000:
-        for fallback in (8000, 6000, 4000, 3000):
-            if fallback < length and fallback not in length_candidates:
-                length_candidates.append(fallback)
-    for data_length in length_candidates:
+    pick_longest = (timeframe == "15m" and length > 8000) or (timeframe == "1d" and length > 800)
+    best: pd.DataFrame | None = None
+    best_len = 0
+    best_data_length = length
+
+    for data_length in _length_candidates(timeframe, length):
         for attempt in range(1, MAX_FETCH_RETRIES + 1):
             try:
                 frame = api.get_kline_serial(tq_code, seconds, data_length=data_length)
                 normalized = normalize_frame(frame)
-                if frame_looks_sane(normalized):
-                    if data_length != length:
-                        log_line(f"[INFO] {tq_code} {timeframe} 使用 data_length={data_length}（原 {length} 校验未通过）")
-                    return normalized
-                log_line(f"[WARN] {tq_code} {timeframe} data_length={data_length} 校验未通过，尝试更短窗口")
-                break
+                if not frame_looks_sane(normalized):
+                    log_line(f"[WARN] {tq_code} {timeframe} data_length={data_length} 校验未通过")
+                    break
+                row_count = len(normalized)
+                if pick_longest:
+                    if row_count > best_len:
+                        best = normalized
+                        best_len = row_count
+                        best_data_length = data_length
+                    continue
+                if data_length != length:
+                    log_line(f"[INFO] {tq_code} {timeframe} 使用 data_length={data_length}（原 {length}）")
+                return normalized
             except Exception as exc:
                 last_error = exc
                 print(f"[WARN] [{ts()}] {tq_code} {timeframe} 第 {attempt}/{MAX_FETCH_RETRIES} 次抓取失败: {exc}", flush=True)
                 if attempt < MAX_FETCH_RETRIES:
                     time.sleep(RETRY_SLEEP_SECONDS)
+        stop_at = 8000 if timeframe == "15m" else 400
+        if pick_longest and best is not None and data_length <= stop_at:
+            break
+
+    if best is not None:
+        log_line(f"[INFO] {tq_code} {timeframe} 选用 data_length={best_data_length} rows={best_len}")
+        return best
     raise RuntimeError(f"{tq_code} {timeframe} 连续抓取失败: {last_error}")
 
 

@@ -1,7 +1,8 @@
 # 国内服务器：加长抓取 LC 的 1d/1h/15m（供 DS09 回测/沙盒）
 param(
     [string]$SshHost = "domestic-quant",
-    [int]$M15Length = 8000
+    [int]$M15Length = 12000,
+    [int]$D1Length = 800
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,6 +28,7 @@ Write-Host "Sync files ..." -ForegroundColor Cyan
 $remoteRun = @"
 Set-Location '$RemoteRoot'
 `$env:FUTURES_15M_LENGTH = '$M15Length'
+`$env:FUTURES_1D_LENGTH = '$D1Length'
 `$py = 'C:\Users\Administrator\AppData\Local\Programs\Python\Python310\python.exe'
 & `$py scripts/backfill_lc_on_server.py
 "@
