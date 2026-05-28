@@ -85,6 +85,7 @@ def assign_session_date(m15_df: pd.DataFrame, d1_df: pd.DataFrame, *, futures: b
 
 
 def assign_cn_futures_session_date(m5_df: pd.DataFrame, d1_df: pd.DataFrame) -> pd.DataFrame:
+    """国内期货 M15：21:00 及以后归下一交易日；天勤等源常把夜盘标在次日 01:00–06:00，则 normalize 当日即可。"""
     out = m5_df.copy()
     d1_dates = sorted(pd.to_datetime(d1_df["date"]).dt.normalize().drop_duplicates().tolist())
     d1_set = set(d1_dates)

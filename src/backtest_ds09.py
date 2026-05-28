@@ -17,7 +17,7 @@ from backtest_ds05 import (
 from backtest_ds07 import load_frame, read_csv_with_fallback
 from quant.ds07 import add_atr, attach_os_detail, prepare_datetime_ohlcv
 from quant.ds09 import (
-    assign_cn_futures_session_date,
+    assign_session_date,
     audit_ds09_structure,
     build_prev_day_boundary_map,
     check_stop,
@@ -98,7 +98,7 @@ def load_m5_frame(path: str | Path, atr_window: int) -> pd.DataFrame:
 
 
 def run_ds09_backtest(d1_df: pd.DataFrame, m15_df: pd.DataFrame, config: DS09BacktestConfig, symbol: str = "") -> dict:
-    m15_with_session = assign_cn_futures_session_date(m15_df, d1_df)
+    m15_with_session = assign_session_date(m15_df, d1_df, futures=bool(config.futures_mode))
     m15_os, m15_engine = build_os_detail_frame(m15_with_session, config.gap)
     d1_os, d1_engine = build_os_detail_frame(d1_df, config.gap)
     boundary_map = build_prev_day_boundary_map(d1_os)
