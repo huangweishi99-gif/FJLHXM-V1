@@ -11,12 +11,14 @@ from typing import Any
 import pandas as pd
 
 from fengji_core.os_state_store import find_data_file, market_symbol, normalize_symbol as os_normalize_symbol
+from fengji_feishu_notify import close_notify_key, fill_notify_key, send_feishu_once
 from fengji_pending_order_monitor import (
     append_csv,
     append_jsonl,
     cancel_conflicting_orders,
     load_json,
     now_text,
+    notify_claims_dir,
     order_setup_key,
     read_orders,
     safe_float,
@@ -401,7 +403,6 @@ def close_position_on_stop(
     append_csv(Path(args.trade_csv), record)
     append_csv(Path(args.out_dir) / "closed_trades.csv", record)
     append_jsonl(Path(args.out_dir) / "events.jsonl", {"event_type": "close", **record})
-    send_msg(args.feishu_webhook, format_stop_exit(symbol, position, stop, pnl, bar))
     return record
 
 
@@ -418,7 +419,29 @@ def process_open_position_stops(args: argparse.Namespace, paper_state: dict[str,
         still_open: list[dict[str, Any]] = []
         for position in active_positions(symbol_state.get("open_positions", [])):
             if stop_crossed(position, bar):
-                closed.append(close_position_on_stop(args, paper_state, normalize_symbol(symbol), symbol_state, position, bar))
+                record = close_position_on_stop(args, paper_state, normalize_symbol(symbol), symbol_state, position, bar)
+                closed.append(record)
+                notify_key = close_notify_key(
+                    display_name(normalize_symbol(symbol)),
+                    str(position.get("order_id", position.get("key", ""))),
+                    str(position.get("entry_time", "")),
+                    str(position.get("strategy_id", "")),
+                )
+                if args.paper_state_file and not args.no_paper_state_update:
+                    save_json(Path(args.paper_state_file), paper_state)
+                send_feishu_once(
+                    notify_claims_dir(args),
+                    notify_key,
+                    args.feishu_webhook,
+                    format_stop_exit(
+                        normalize_symbol(symbol),
+                        position,
+                        float(record["exit_price"]),
+                        {"net_pnl": float(record["net_pnl"])},
+                        bar,
+                    ),
+                    send_msg,
+                )
             else:
                 still_open.append(position)
         symbol_state["open_positions"] = still_open
@@ -509,7 +532,13 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
             save_json(Path(args.paper_state_file), paper_state)
             append_open_trade(args, order, position, risk_rule)
         append_jsonl(Path(args.out_dir) / "events.jsonl", record)
-        send_msg(args.feishu_webhook, format_fill(order, fill_price, bar, risk_rule))
+        send_feishu_once(
+            notify_claims_dir(args),
+            fill_notify_key(order_id),
+            args.feishu_webhook,
+            format_fill(order, fill_price, bar, risk_rule),
+            send_msg,
+        )
 
         for cancel in cancel_conflicting_orders(state, order, orders):
             cancelled_ids.add(str(cancel.get("order_id", "")))
@@ -549,6 +578,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--slippage-rate", type=float, default=0.0002)
     parser.add_argument("--enforce-valid-until", action="store_true")
     parser.add_argument("--no-paper-state-update", action="store_true")
+    parser.add_argument("--notify-claims-dir", default="runtime/feishu_notify_claims")
     parser.add_argument("--once", action="store_true")
     return parser.parse_args()
 

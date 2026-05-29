@@ -27,7 +27,7 @@ Get-CimInstance Win32_Process | Where-Object {
 Start-Sleep -Seconds 2
 
 $hookSet = if ($hook) { "set `"FENGJI_FEISHU_WEBHOOK=$hook`"&& " } else { "" }
-$cmd = "cmd.exe /d /c cd /d `"$root`" && set PYTHONPATH=src;packages/fengji_core&& set PYTHONIOENCODING=utf-8&& set PYTHONUTF8=1&& ${hookSet}`"$py`" -u `"$paper`" >> `"runtime\logs\paper_futures_run.log`" 2>> `"runtime\logs\paper_futures_err.log`""
+$cmd = "cmd.exe /d /c cd /d `"$root`" && set `"PYTHONPATH=src;packages/fengji_core`"&& set FENGJI_MARKET=futures&& set PYTHONIOENCODING=utf-8&& set PYTHONUTF8=1&& ${hookSet}`"$py`" -u `"$paper`" >> `"runtime\logs\paper_futures_run.log`" 2>> `"runtime\logs\paper_futures_err.log`""
 $r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmd; CurrentDirectory = $root }
 Write-Host "Create ReturnValue=$($r.ReturnValue) PID=$($r.ProcessId)"
 Start-Sleep -Seconds 4

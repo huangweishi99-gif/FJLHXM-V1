@@ -85,7 +85,14 @@ def main() -> None:
     args = parse_args()
     root = Path(__file__).resolve().parents[1]
     env = os.environ.copy()
-    env["PYTHONPATH"] = f"{root / 'src'}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    py_paths = [str(root / "src")]
+    core_pkg = root / "packages" / "fengji_core"
+    if core_pkg.is_dir():
+        py_paths.append(str(core_pkg))
+    extra = env.get("PYTHONPATH", "").strip()
+    if extra:
+        py_paths.append(extra)
+    env["PYTHONPATH"] = os.pathsep.join(py_paths)
     python = sys.executable
     radar_json = Path(args.radar_dir) / "radar.json"
     lock_path = Path(args.radar_dir) / ".radar_refresh.lock"

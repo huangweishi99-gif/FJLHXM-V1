@@ -1,32 +1,32 @@
-# 国内模拟盘运行时重启（2核4G：雷达周期 600s，K 线 tail 收敛，飞书 webhook 不落命令行）
+# 国内全链路重启：数据泵 + 模拟盘 + 雷达循环 + 期货挂单监控
 $ErrorActionPreference = "Stop"
 $root = "C:\Users\Administrator\quant_futures"
 $py = "C:\Users\Administrator\AppData\Local\Programs\Python\Python310\python.exe"
 . (Join-Path $PSScriptRoot "load_feishu_webhook.ps1")
+. (Join-Path $PSScriptRoot "resolve_domestic_paper.ps1")
 $hook = Get-FeishuWebhook -Root $root
 if ($hook) { $env:FENGJI_FEISHU_WEBHOOK = $hook }
 
 Set-Location $root
 New-Item -ItemType Directory -Force -Path runtime\logs | Out-Null
 
-$patterns = "峰极总定式01-08国内期货A股模拟实盘|模拟实盘|fengji_radar_order_loop|fengji_futures_pending_order_monitor"
-Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match $patterns } | ForEach-Object {
-    try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {}
-}
-Start-Sleep -Seconds 2
+& (Join-Path $PSScriptRoot "stop_domestic_futures_runtime.ps1")
+Start-Sleep -Seconds 1
 
-$paper = (Get-ChildItem -File -Filter "*模拟实盘.py" | Select-Object -First 1).FullName
-if (-not $paper) { throw "Domestic paper script (*模拟实盘.py) not found under $root" }
+$paper = Get-DomesticPaperScript -Root $root
+Write-Host "paper_script=$paper"
 
 $symbols = "SA,FG,RB,PG,FU,CJ,OI,SP,LH,JD,SI,PP,SH,EB,NI,SR,EG,AO,JM,EC,RU,BR,SF,M,MA,P,V,TA,UR,CF,LC,AU,AG,SC"
 $hookSet = if ($hook) { "set FENGJI_FEISHU_WEBHOOK=$hook&& " } else { "" }
-$prefix = "cmd.exe /d /c cd /d `"$root`" && set PYTHONPATH=src;packages/fengji_core&& set FENGJI_MARKET=futures&& set PYTHONIOENCODING=utf-8&& set PYTHONUTF8=1&& $hookSet"
+$prefix = "cmd.exe /d /c cd /d `"$root`" && set `"PYTHONPATH=src;packages/fengji_core`"&& set FENGJI_MARKET=futures&& set PYTHONIOENCODING=utf-8&& set PYTHONUTF8=1&& $hookSet"
 $stateFile = "runtime\fengji_pending_orders\futures_pending_state.json"
 
 function New-DetachedProcess([string]$cmd) {
     $result = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmd; CurrentDirectory = $root }
     "CREATE ReturnValue=$($result.ReturnValue) PID=$($result.ProcessId)"
 }
+
+& (Join-Path $PSScriptRoot "restart_domestic_data_manager.ps1")
 
 New-DetachedProcess ($prefix + "`"$py`" -u `"$paper`" >> `"runtime\logs\paper_futures_run.log`" 2>> `"runtime\logs\paper_futures_err.log`"")
 New-DetachedProcess ($prefix + "`"$py`" -u `"src\fengji_radar_order_loop.py`" --data-dir data --symbols `"$symbols`" --radar-dir runtime\fengji_radar --pending-dir runtime\fengji_pending_orders --monitor-state `"$stateFile`" --include-triggered --loop-seconds 600 --daily-tail 400 --h1-tail 2400 --top-n 40 >> `"runtime\logs\futures_radar_order_loop.log`" 2>> `"runtime\logs\futures_radar_order_loop_err.log`"")

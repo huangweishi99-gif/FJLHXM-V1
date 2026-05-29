@@ -30,5 +30,6 @@ $args = @(
 $logOut = Join-Path $root "runtime\logs\futures_pending_order_monitor.log"
 $logErr = Join-Path $root "runtime\logs\futures_pending_order_monitor_err.log"
 $argLine = ($args | ForEach-Object { if ($_ -match '\s') { "`"$_`"" } else { $_ } }) -join ' '
-$cmd = "cmd.exe /d /c cd /d `"$root`" && `"$py`" $argLine >> `"$logOut`" 2>> `"$logErr`""
+$pp = "src;packages/fengji_core"
+$cmd = "cmd.exe /d /c cd /d `"$root`" && set `"PYTHONPATH=$pp`"&& set FENGJI_MARKET=futures&& set PYTHONIOENCODING=utf-8&& set PYTHONUTF8=1&& `"$py`" $argLine >> `"$logOut`" 2>> `"$logErr`""
 Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmd; CurrentDirectory = $root } | Out-Null
