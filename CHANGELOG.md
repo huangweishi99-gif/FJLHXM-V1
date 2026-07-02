@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-07-02（PR #6 merged）
+
+### follow-up PR #6 合并 + Phase 0 签收
+
+- PR #6 `pr/b1-followup-core-compat` merged（`c929b71`）：`STRATEGY_DISPLAY_NAMES` · `ds07` optional `df` · `test_core_post_merge_compat.py`。
+- 合并后复验：pytest **38 passed** · OpenAPI **38 paths** · overseas fill audit **invalid_new=0**。
+- Phase 0 完成文档：`docs/PLAN_B_PHASE0_COMPLETE.md`。
+- HYPE #28：已 sync paper_state + promote 1d（07-01 close 更新为 63.533）· 仍 `STOP_PENDING_MONITOR_BAR` · 待 07-02 D1。
+
 ## 2026-07-02
 
 ### 方案 B Phase 0 · PR #1–#5 全部合并

@@ -1,6 +1,6 @@
 # 方案 B · Phase 0 启动清单
 
-生成：2026-07-02 · 在方案 A 收口后 · **只读/API 层 · 不改定式/OS**
+生成：2026-07-02 · **Phase 0 完成** · 见 `docs/PLAN_B_PHASE0_COMPLETE.md`
 
 > 评估摘要：`docs/PLAN_B_PHASE0_ASSESSMENT.md` · 默认 **B0-b** 直至用户确认 **B0-a**
 
@@ -26,7 +26,7 @@
 | B0-1 | 导出 OpenAPI · `docs/api/openapi.json` | ✅ **38 paths** · `scripts/export_openapi_snapshot.py` |
 | B0-2 | `market_data_coverage.csv` → instruments API 对账 | 🔄 **已跑** · CRYPTO/A股 ✅ · **FUTURES 缺 5m** · `scripts/assess_instruments_vs_coverage.py` |
 | B0-3 | Pencil 9 屏 · MCP 截图验收（或标记待连） | ✅ **9/9 截图** · `plan_b_b03_pencil_acceptance/B03_ACCEPTANCE.md` |
-| B0-4 | Web 提交分桶计划（core / web / data 分离） | ✅ 5 PR 已推送 · `docs/PLAN_B_PR_MERGE_HANDOFF.md` |
+| B0-4 | Web 提交分桶计划（core / web / data 分离） | ✅ PR #1–#6 merged · `docs/PLAN_B_PR_MERGE_HANDOFF.md` |
 
 ## 并行 T0（不阻塞 B0）
 

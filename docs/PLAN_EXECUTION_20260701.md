@@ -24,7 +24,8 @@
 
 | ID | 任务 | 负责 | 状态 |
 |----|------|------|------|
-| S1 | 运维 **r61+**：哈希 · promote 1d · 15m sync · OPEN 跟进 · pytest | 自动 | 🔄 |
+| S1 | 运维 **r70+**：哈希 · promote 1d · 15m sync · OPEN 跟进 · pytest | 自动 | 🔄 |
+| S0 | **方案 B Phase 0** PR #1–#6 + 签收 | 自动 | ✅ `docs/PLAN_B_PHASE0_COMPLETE.md` |
 | S2 | **OP #29** CLOSE 签收（+5.05） | 用户 | ✅ 2026-07-01 |
 | S3 | **#30–#34** 五笔 DS01 OPEN 签收 | 用户 | ✅ **5/5 VALID** 2026-07-01 |
 | S4 | **HYPE #28** 07-02 复核 07-01 D1 stop | 自动+用户 | 🔄 stop 64.259 |

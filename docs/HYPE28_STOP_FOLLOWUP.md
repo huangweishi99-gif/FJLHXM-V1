@@ -1,6 +1,12 @@
 # HYPE #28 止损跟进（DS05 D1 long）
 
-更新：2026-07-02
+更新：2026-07-02 16:54（paper_state sync + promote 1d）
+
+## 数据同步
+
+- `sync_overseas_paper_state.ps1`：✅ 2026-07-02
+- `promote_overseas_1d_new10.py`：HYPE 等 10 品种已 promote
+- 本地 D1 末根：**2026-07-01**（close 63.533，low 61.777 不变）
 
 ## 持仓
 

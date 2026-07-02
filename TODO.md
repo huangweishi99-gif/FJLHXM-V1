@@ -1,13 +1,13 @@
 # TODO
 
-更新时间：2026-07-02
+更新时间：2026-07-02（PR #6 merged）
 
-## 2026-07-02 · 方案 B Phase 0 PR 已合并
+## 2026-07-02 · 方案 B Phase 0 完成
 
-- [x] **PR #1–#5 全部 merge 到 `main`**（fill_supervision、ops audit、OpenAPI、Phase0 文档、Pencil 脚本）。
-- [x] **合并后验收**：`results/post_merge_acceptance_20260702/ACCEPTANCE.md`（pytest 33 passed · audit invalid_new=0 · OpenAPI 38 paths）。
-- [ ] **follow-up PR #6**：`pr/b1-followup-core-compat` 已 push · [开 PR](https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b1-followup-core-compat) · 待 merge。
-- [ ] **HYPE #28**：见 `docs/HYPE28_STOP_FOLLOWUP.md` · 07-01 breach · 待 **07-02 D1** 入库后 monitor 触停。
+- [x] **PR #1–#6 全部 merge 到 `main`**（含 follow-up core 兼容 · `c929b71`）。
+- [x] **Phase 0 签收**：`docs/PLAN_B_PHASE0_COMPLETE.md` · pytest **38 passed** · audit **invalid_new=0** · OpenAPI **38 paths**。
+- [ ] **Phase 1 入口**：`services/` 分桶入库 · FUTURES 5m 缺口 · Web 6 fail 分桶修。
+- [ ] **HYPE #28**：见 `docs/HYPE28_STOP_FOLLOWUP.md` · 07-01 breach · 待 **07-02 D1** 收盘入库后 monitor 触停。
 - [ ] **stash@{0}**：含 os_engine / web / services WIP · **勿整包 pop** · 按桶 cherry-pick。
 
 ## 已完成 / 待复查（2026-05-28 LC DS09 与数据）
