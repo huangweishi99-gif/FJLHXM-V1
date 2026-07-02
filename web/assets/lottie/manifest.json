@@ -1,0 +1,19 @@
+{
+  "version": 5,
+  "refinement": "o1_n_breakthrough_v4",
+  "storyboard": "N字突破04：前峰金线→折线突破→启动棍底贴线→止损",
+  "strategies": [
+    "DS01",
+    "DS02",
+    "DS03",
+    "DS04",
+    "DS05",
+    "DS06",
+    "DS07",
+    "DS08",
+    "DS09",
+    "TOTAL"
+  ],
+  "source": "build_strategy_lottie_illustrations.py",
+  "drop_in": "Replace DSxx.json with designer export (160x88, 30fps, 300f) then rerun run_o1_lottie_placeholder_acceptance.py"
+}

@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-06-01 15:28:00",
+  "source": "demo",
+  "market_scope": "CRYPTO",
+  "note": "海外 paper_state 不可达时的演示数据；同步后自动切换真数据",
+  "positions": [
+    {
+      "position_id": "demo|bnb-ds03",
+      "symbol": "BNBUSDT",
+      "code": "BNB",
+      "display_name": "币安币(BNBUSDT)",
+      "market": "CRYPTO",
+      "strategy_id": "DS03",
+      "direction": "short",
+      "direction_label": "做空",
+      "entry_time": "2026-06-11 08:00:00",
+      "entry_price": 602.79,
+      "current_stop": 618.5,
+      "lots": null,
+      "multiplier": 1,
+      "amount_cny": 400,
+      "setup": "假峰突破",
+      "timeframe": "1d",
+      "paper_origin": "overseas"
+    }
+  ]
+}

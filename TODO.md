@@ -8,7 +8,8 @@
 - [x] **Phase 0 签收**：`docs/PLAN_B_PHASE0_COMPLETE.md` · pytest **38 passed** · audit **invalid_new=0** · OpenAPI **38 paths**。
 - [x] **Phase 1 PR #7**：services + migrations merged · `1a0bc86`
 - [x] **Phase 1 PR #8**：chart_bundle + context merged · `2db2a62`
-- [ ] **Phase 1 PR #9**：`pr/b3-api-deploy-scripts` — W17 deploy / paper-state / smoke（待 merge）
+- [x] **Phase 1 PR #9**：W17 deploy scripts merged · `4eac339`
+- [ ] **Phase 1 PR #10**：`pr/b2-web-phase1` — web/ + static tests（待 merge）
 - [ ] **HYPE #28**：见 `docs/HYPE28_STOP_FOLLOWUP.md` · 07-01 breach · 待 **07-02 D1** 收盘入库后 monitor 触停。
 - [ ] **stash@{0}**：含 os_engine / web / services WIP · **勿整包 pop** · 按桶 cherry-pick。
 

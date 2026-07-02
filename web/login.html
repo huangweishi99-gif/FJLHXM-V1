@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0b10">
+  <title>峰极量化 · 登录</title>
+  <link rel="stylesheet" href="css/apple.css">
+</head>
+<body class="auth-page" data-theme="dark">
+  <div id="navMount"></div>
+  <main class="auth-main">
+    <section class="auth-card bt-card">
+      <header class="auth-head">
+        <h1 class="auth-title">峰极量化</h1>
+        <p class="auth-sub" id="authSub">登录后使用回测、模拟监测与订阅功能</p>
+      </header>
+
+      <div class="auth-tabs segmented" id="authTabs">
+        <button type="button" class="active" data-mode="login">登录</button>
+        <button type="button" data-mode="register">注册</button>
+      </div>
+
+      <form class="auth-form" id="authForm" autocomplete="on">
+        <div class="field">
+          <label for="authAccount">手机号 / 邮箱</label>
+          <input class="input bt-control" id="authAccount" type="text" placeholder="请输入手机号或邮箱" required>
+        </div>
+        <div class="field">
+          <label for="authPassword">密码</label>
+          <input class="input bt-control" id="authPassword" type="password" placeholder="请输入密码" required>
+        </div>
+        <div class="field auth-field-register" id="confirmWrap" hidden>
+          <label for="authConfirm">确认密码</label>
+          <input class="input bt-control" id="authConfirm" type="password" placeholder="请再次输入密码">
+        </div>
+        <p class="auth-hint" id="authHint">V1 演示：提交后仅本地记录登录态，不连接真实支付。</p>
+        <div class="auth-submit-row">
+          <button class="btn btn-primary auth-submit" type="submit" id="authSubmit">登录</button>
+        </div>
+      </form>
+
+      <footer class="auth-foot">
+        <a href="pricing.html">查看订阅说明</a>
+        <span>·</span>
+        <a href="community.html">加入 QQ 群</a>
+        <span>·</span>
+        <a href="backtest.html">先体验回测</a>
+      </footer>
+    </section>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    FengJiApp.initShell("login.html");
+
+    const params = new URLSearchParams(location.search);
+    let mode = params.get("mode") === "register" ? "register" : "login";
+    const intent = params.get("intent");
+    const returnUrl = FengJiApp.normalizeLocalPagePath(params.get("return"));
+
+    const tabsEl = document.getElementById("authTabs");
+    const formEl = document.getElementById("authForm");
+    const confirmWrap = document.getElementById("confirmWrap");
+    const authSub = document.getElementById("authSub");
+    const authSubmit = document.getElementById("authSubmit");
+    const authHint = document.getElementById("authHint");
+
+    if (intent === "free") {
+      mode = "register";
+    }
+
+    function setMode(next) {
+      mode = next;
+      tabsEl.querySelectorAll("button").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.mode === mode);
+      });
+      const isRegister = mode === "register";
+      confirmWrap.hidden = !isRegister;
+      authSubmit.textContent = isRegister ? "注册并开启试用" : "登录";
+      authSub.textContent = isRegister
+        ? "注册后可享免费 7 天试用（定式 01–03）"
+        : "登录后使用回测、模拟监测与订阅功能";
+      authHint.textContent = isRegister
+        ? "免费试用仅含定式 01–03；标准/专业档请从订阅页进入扫码流程。"
+        : returnUrl && returnUrl.includes("pay=")
+          ? "登录后将返回微信扫码付款页完成订阅。"
+          : "V1：优先连接后端 JWT 登录；API 不可用时回退本地演示态。";
+      document.getElementById("authConfirm").required = isRegister;
+    }
+
+    tabsEl.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => setMode(btn.dataset.mode));
+    });
+
+    setMode(mode);
+
+    formEl.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const account = document.getElementById("authAccount").value.trim();
+      const password = document.getElementById("authPassword").value;
+      const confirm = document.getElementById("authConfirm").value;
+      if (!account || !password) return;
+      if (mode === "register" && password !== confirm) {
+        authHint.textContent = "两次输入的密码不一致";
+        authHint.style.color = "var(--apple-red)";
+        return;
+      }
+      authSubmit.disabled = true;
+      try {
+        if (mode === "register") {
+          await FengJiApp.authRegister(account, password);
+          authHint.textContent = "注册成功 · 免费 7 天试用已开启";
+        } else {
+          await FengJiApp.authLogin(account, password);
+          authHint.textContent = "登录成功";
+        }
+        authHint.style.color = "";
+      } catch (err) {
+        if (mode === "register") {
+          localStorage.setItem("fj-user", account);
+          FengJiApp.setSubscriptionPlan("free");
+          authHint.textContent = "API 不可用，已回退本地演示注册";
+        } else {
+          localStorage.setItem("fj-user", account);
+          authHint.textContent = "API 不可用，已回退本地演示登录";
+        }
+        authHint.style.color = "var(--apple-orange, #c77d2a)";
+      } finally {
+        authSubmit.disabled = false;
+      }
+      setTimeout(() => {
+        if (returnUrl) {
+          location.href = returnUrl;
+          return;
+        }
+        if (mode === "register") {
+          location.href = FengJiApp.getPlanFlow("free")?.afterRegister || "backtest.html";
+          return;
+        }
+        location.href = FengJiApp.getPlanHomeHref(FengJiApp.getSubscriptionPlan());
+      }, 600);
+    });
+  </script>
+</body>
+</html>

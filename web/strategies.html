@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0b10">
+  <title>峰极定式动画演示</title>
+  <link rel="stylesheet" href="css/apple.css">
+</head>
+<body class="strategies-page" data-theme="dark">
+  <div id="navMount"></div>
+  <main class="page strategies-page-main">
+    <header class="strategies-hero">
+      <h1 class="strategies-page-title">峰极定式动画演示</h1>
+      <p class="strategies-page-sub">九大定式 · Lottie/SVG 约 10 秒循环示意（阵营 · 峰极折线 · 触发 · 止损）</p>
+    </header>
+
+    <div class="strategy-card-grid" id="strategyList"></div>
+    <p class="disclaimer strategies-disclaimer">示意动画非真实 K 线回放；规则口径以 峰极OS_九大定式规则总纲.md 与 CANONICAL_RULES 为准。</p>
+  </main>
+
+  <div class="strategy-anim-modal" id="strategyAnimModal" hidden>
+    <div class="strategy-anim-modal-backdrop" id="strategyAnimBackdrop"></div>
+    <div class="strategy-anim-modal-panel" role="dialog" aria-modal="true" aria-labelledby="strategyAnimModalTitle">
+      <header class="strategy-anim-modal-head">
+        <h2 class="strategy-anim-modal-title" id="strategyAnimModalTitle">定式动画</h2>
+        <div class="strategy-anim-modal-actions">
+          <button class="btn btn-secondary" type="button" id="strategyAnimPauseBtn">暂停</button>
+          <button class="btn btn-secondary" type="button" id="strategyAnimCloseBtn">关闭</button>
+        </div>
+      </header>
+      <div class="strategy-anim-modal-stage" id="strategyAnimModalStage"></div>
+      <p class="admin-hint" style="margin:10px 0 0;font-size:11px;" id="strategyAnimModalHint"></p>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/strategy_animations.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    FengJiApp.initShell("strategies.html");
+    const meta = FengJiApp.CFG.STRATEGY_META;
+    const subCfg = FengJiApp.getSubscriptionConfig();
+    const allowed = new Set(subCfg.strategies || []);
+    const order = ["DS01", "DS02", "DS03", "DS04", "DS05", "DS06", "DS07", "DS08", "DS09"];
+    if (allowed.has("TOTAL")) order.push("TOTAL");
+    const escapeHtml = FengJiApp.escapeHtml;
+    const anim = window.FengJiStrategyAnim;
+    let modalPaused = false;
+    let modalStrategyId = null;
+
+    const modal = document.getElementById("strategyAnimModal");
+    const modalStage = document.getElementById("strategyAnimModalStage");
+    const modalTitle = document.getElementById("strategyAnimModalTitle");
+    const modalHint = document.getElementById("strategyAnimModalHint");
+    const pauseBtn = document.getElementById("strategyAnimPauseBtn");
+
+    function formatPlan(plan) {
+      const label = FengJiApp.CFG?.SUBSCRIPTION_PLANS?.[plan]?.label;
+      return label ? `${label} (${plan})` : (plan || "—");
+    }
+
+    function renderCard(id) {
+      const m = meta[id] || {};
+      const locked = !allowed.has(id);
+      const previewInner = locked
+        ? `<span class="strategy-animate-icon">🔒</span><span class="strategy-animate-label">订阅后解锁</span>`
+        : `<div class="strategy-animate-stage" data-strategy="${escapeHtml(id)}"></div>`;
+      return `
+        <article class="card strategy-card-module${locked ? " strategy-card-locked" : ""}" data-strategy-id="${escapeHtml(id)}">
+          <div class="card-body">
+            <header class="strategy-card-title-row">
+              <span class="strategy-id">${escapeHtml(id)}</span>
+              <h2 class="strategy-name">${escapeHtml(m.alias || id)}</h2>
+              <span class="strategy-animate-badge">${locked ? "需升级" : "10s 循环"}</span>
+            </header>
+            <p class="strategy-desc">${escapeHtml(locked ? "当前订阅档不可用，请升级标准档或专业档。" : (m.desc || ""))}</p>
+            <div class="strategy-animate-preview" tabindex="${locked ? "-1" : "0"}" role="${locked ? "presentation" : "button"}" aria-label="${locked ? "订阅后解锁" : `${id} 定式动画，点击放大预览`}">
+              ${previewInner}
+            </div>
+          </div>
+        </article>`;
+    }
+
+    document.getElementById("strategyList").innerHTML = order.map(renderCard).join("");
+
+    document.querySelectorAll(".strategy-animate-stage[data-strategy]").forEach((el) => {
+      anim.mountStage(el, el.dataset.strategy, { paused: false, large: false });
+    });
+
+    function openModal(strategyId) {
+      if (!allowed.has(strategyId)) return;
+      modalStrategyId = strategyId;
+      modalPaused = false;
+      pauseBtn.textContent = "暂停";
+      const m = meta[strategyId] || {};
+      modalTitle.textContent = `${strategyId} · ${m.alias || strategyId}`;
+      modalHint.textContent = `示意动画 · ${anim.DURATION_SEC}s 循环 · engine ${anim.ENGINE_VERSION}`;
+      anim.mountStage(modalStage, strategyId, { paused: false, large: true });
+      modal.hidden = false;
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+      modalStrategyId = null;
+      modalStage.innerHTML = "";
+    }
+
+    function togglePause() {
+      modalPaused = !modalPaused;
+      pauseBtn.textContent = modalPaused ? "播放" : "暂停";
+      if (!modalStrategyId) return;
+      anim.mountStage(modalStage, modalStrategyId, { paused: modalPaused, large: true });
+    }
+
+    document.getElementById("strategyList").addEventListener("click", (ev) => {
+      const card = ev.target.closest(".strategy-card-module:not(.strategy-card-locked)");
+      if (!card) return;
+      openModal(card.dataset.strategyId);
+    });
+
+    document.getElementById("strategyList").addEventListener("keydown", (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      const preview = ev.target.closest(".strategy-animate-preview[role='button']");
+      if (!preview) return;
+      ev.preventDefault();
+      const card = preview.closest(".strategy-card-module");
+      if (card) openModal(card.dataset.strategyId);
+    });
+
+    pauseBtn.addEventListener("click", togglePause);
+    document.getElementById("strategyAnimCloseBtn").addEventListener("click", closeModal);
+    document.getElementById("strategyAnimBackdrop").addEventListener("click", closeModal);
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && !modal.hidden) closeModal();
+    });
+
+    function applyDeepLink() {
+      const params = new URLSearchParams(window.location.search);
+      const sid = FengJiApp.normalizeStrategyId(params.get("strategy"));
+      if (!sid) return;
+      document.querySelector(`[data-strategy-id="${sid}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if ((params.get("open") === "1" || params.has("strategy")) && allowed.has(sid)) {
+        openModal(sid);
+      }
+    }
+    applyDeepLink();
+  </script>
+</body>
+</html>

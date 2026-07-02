@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0b10">
+  <title>峰极量化 · 品种详情</title>
+  <link rel="stylesheet" href="css/apple.css">
+  <script src="https://unpkg.com/lightweight-charts@4.1.4/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body class="symbol-page" data-theme="dark">
+  <div id="navMount"></div>
+
+  <main class="symbol-page-main">
+    <header class="symbol-page-head">
+      <div class="symbol-head-top">
+        <a class="symbol-back" href="monitor.html">← 返回模拟监测</a>
+        <span class="symbol-quota" id="quotaHint">—</span>
+      </div>
+      <div class="symbol-head-main">
+        <h1 class="symbol-title" id="pageTitle"><span class="symbol-code" id="pageSymbol">—</span><span class="symbol-kind"> · 品种详情</span></h1>
+        <div class="symbol-tf symbol-tf-head segmented" id="tfSeg">
+          <button type="button" class="active" data-tf="1d">1D</button>
+          <button type="button" data-tf="1h">1H</button>
+          <button type="button" data-tf="15m">15m</button>
+        </div>
+      </div>
+      <p class="symbol-sub" id="pageSub">—</p>
+    </header>
+
+    <article class="symbol-chart-card bt-card">
+      <div class="symbol-toolbar">
+        <div class="symbol-toolbar-meta">
+          <span id="delayHint">—</span>
+          <button class="btn btn-ghost btn-sm" type="button" id="refreshBtn">刷新</button>
+        </div>
+      </div>
+      <p class="symbol-tf-note" id="tfNote">K 线 · 峰极线 · 阵营色带 · 守护止损（V1 监测详情以日线为主）。</p>
+      <div class="symbol-chart-area" id="chartPanel"></div>
+    </article>
+
+    <section class="symbol-detail bt-card" id="detailPanel">
+      <div class="symbol-detail-grid">
+        <div class="detail-cell">
+          <span class="detail-label">状态</span>
+          <span class="detail-value" id="dStatus">—</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-label">方向 / 定式</span>
+          <span class="detail-value" id="dDirection">—</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-label">开仓时间</span>
+          <span class="detail-value" id="dTime">—</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-label">开仓价</span>
+          <span class="detail-value" id="dEntry">—</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-label">现价</span>
+          <span class="detail-value" id="dNow">—</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-label">守护止损</span>
+          <span class="detail-value val-stop" id="dStop">—</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-label">信号强弱</span>
+          <span class="detail-value" id="dTier">—</span>
+          <span class="detail-sub" id="dTierMeta">—</span>
+        </div>
+        <div class="detail-cell">
+          <span class="detail-label">净盈亏</span>
+          <span class="detail-value" id="dPnl">—</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="symbol-actions">
+      <a class="btn btn-primary" id="backtestBtn" href="backtest.html">查看历史回测</a>
+      <a class="btn btn-secondary strategy-help-link" id="strategyHelpLink" href="strategies.html" hidden>定式帮助</a>
+      <button class="btn btn-secondary" type="button" id="removeBtn">移除自选</button>
+    </footer>
+
+    <p class="disclaimer symbol-disclaimer">V1 只读模拟监测，不向交易所发单。数据延迟取决于订阅档与 paper_state 同步。</p>
+  </main>
+
+  <script src="js/config.js?v=20260612"></script>
+  <script src="js/app.js?v=20260612"></script>
+  <script src="js/monitor-chart.js?v=20260612"></script>
+  <script>
+    FengJiApp.initShell("monitor.html");
+    FengJiApp.setTheme("dark");
+
+    const params = new URLSearchParams(location.search);
+    const subCfg = FengJiApp.getSubscriptionConfig();
+    const quotes = FengJiApp.CFG.MONITOR_DEMO_QUOTES || {};
+
+    let symbol = (params.get("symbol") || "").trim().toUpperCase();
+    let market = (params.get("market") || "").trim().toUpperCase();
+    let watchEntry = symbol ? FengJiApp.findWatchlistEntry(symbol) : null;
+    let timeframe = "1d";
+    let livePosition = null;
+    let latestQuote = null;
+    let refreshTimer = null;
+    let loadingChart = false;
+    let chartRequestId = 0;
+    let liveRequestId = 0;
+
+    const gateMsg = FengJiApp.planGateMessage();
+    if (gateMsg) {
+      document.querySelector(".symbol-page-main").innerHTML =
+        `<p class="symbol-gate">${gateMsg} <a href="pricing.html">升级订阅</a></p>`;
+    } else if (!symbol) {
+      location.replace("monitor.html");
+    } else {
+    (function run() {
+
+    if (!market) {
+      market = watchEntry?.market || FengJiApp.catalogEntry(symbol)?.market || "FUTURES";
+    }
+
+    function displayName() {
+      const name = watchEntry?.name || FengJiApp.catalogEntry(symbol)?.name || livePosition?.display_name || "";
+      return name ? `${symbol} · ${name}` : symbol;
+    }
+
+    function fmtPrice(v) {
+      if (v == null || v === "") return "—";
+      const n = Number(v);
+      if (!Number.isFinite(n)) return "—";
+      if (market === "A_STOCK") return n.toFixed(2);
+      return n >= 1000 ? n.toFixed(0) : n.toFixed(2);
+    }
+
+    function tierLabel(tier) {
+      return ({ STRONG: "强", MEDIUM: "中", WEAK: "弱", INSUFFICIENT_DATA: "样本不足" })[tier] || tier || "—";
+    }
+
+    function updateStrategyHelpLink(strategyId) {
+      const helpEl = document.getElementById("strategyHelpLink");
+      if (!helpEl) return;
+      const sid = FengJiApp.normalizeStrategyId(strategyId);
+      if (sid && FengJiApp.isStrategyAllowed(sid)) {
+        helpEl.hidden = false;
+        helpEl.href = FengJiApp.strategyAnimPageUrl(sid);
+        helpEl.textContent = `${sid} 定式帮助`;
+      } else {
+        helpEl.hidden = true;
+      }
+    }
+
+    function demoNowPrice(entryPrice) {
+      if (latestQuote?.ok && latestQuote.current_price != null) {
+        const n = Number(latestQuote.current_price);
+        if (Number.isFinite(n)) return n;
+      }
+      const q = quotes[String(symbol).toUpperCase()];
+      if (q != null) return Number(q);
+      const ep = Number(entryPrice);
+      return Number.isFinite(ep) ? ep : null;
+    }
+
+    function yearsForTf(tf) {
+      if (tf === "1d") return Math.min(2, ...(subCfg.years || [1]));
+      return 1;
+    }
+
+    function strategyForChart() {
+      const sid = livePosition?.strategy_id;
+      if (sid && FengJiApp.isStrategyAllowed(sid)) return sid;
+      return FengJiApp.defaultMonitorStrategy();
+    }
+
+    document.getElementById("pageSymbol").textContent = symbol;
+    document.title = `峰极量化 · ${symbol} 品种详情`;
+    document.getElementById("pageSub").textContent =
+      `${subCfg.label}订阅 · 模拟监测详情 · ${FengJiApp.symbolQuotaHint()}`;
+    document.getElementById("quotaHint").textContent = FengJiApp.symbolQuotaHint();
+    document.getElementById("delayHint").textContent = `延迟 ${subCfg.monitorDelay || "—"}`;
+
+    const backtestBtn = document.getElementById("backtestBtn");
+    const btQ = new URLSearchParams({ market, symbol, strategy: strategyForChart() });
+    backtestBtn.href = `backtest.html?${btQ}`;
+    if (!watchEntry) {
+      document.getElementById("removeBtn").textContent = "返回监测";
+    }
+
+    function fillDetailEmpty() {
+      document.getElementById("dStatus").textContent = "观察中";
+      document.getElementById("dDirection").textContent = "—";
+      updateStrategyHelpLink("");
+      document.getElementById("dTime").textContent = "—";
+      document.getElementById("dEntry").textContent = "—";
+      document.getElementById("dNow").textContent = fmtPrice(demoNowPrice());
+      document.getElementById("dStop").textContent = "—";
+      document.getElementById("dTier").textContent = "—";
+      document.getElementById("dTierMeta").textContent = watchEntry ? "暂无持仓" : "非自选持仓详情";
+      document.getElementById("dPnl").textContent = "—";
+    }
+
+    function fillDetailFromPosition(p) {
+      const nowPx = demoNowPrice(p.entry_price);
+      document.getElementById("dStatus").textContent = "持仓";
+      document.getElementById("dDirection").textContent = `${p.direction_label || p.direction || "—"} · ${p.strategy_id || "—"}`;
+      updateStrategyHelpLink(p.strategy_id);
+      document.getElementById("dTime").textContent = p.entry_time || "—";
+      document.getElementById("dEntry").textContent = fmtPrice(p.entry_price);
+      document.getElementById("dNow").textContent = fmtPrice(nowPx);
+      document.getElementById("dStop").textContent = fmtPrice(p.current_stop);
+      document.getElementById("dTier").textContent = "—";
+      document.getElementById("dTierMeta").textContent = "读取中…";
+      const ep = Number(p.entry_price);
+      const np = Number(nowPx);
+      if (Number.isFinite(ep) && Number.isFinite(np)) {
+        const dir = p.direction === "short" ? -1 : 1;
+        const pnl = (np - ep) * dir;
+        const pnlEl = document.getElementById("dPnl");
+        pnlEl.textContent = FengJiApp.formatNum(pnl);
+        pnlEl.className = `detail-value ${pnl >= 0 ? "val-up" : "val-down"}`;
+      }
+      loadSignalTier(p);
+    }
+
+    async function loadSignalTier(p) {
+      const tierEl = document.getElementById("dTier");
+      const metaEl = document.getElementById("dTierMeta");
+      const tid = p.trade_id;
+      if (!tid) {
+        tierEl.textContent = "样本不足";
+        metaEl.textContent = "持仓未关联 trade_id";
+        return;
+      }
+      try {
+        const s = await FengJiApp.fetchSignalStrength(tid);
+        tierEl.textContent = tierLabel(s.signal_tier);
+        tierEl.className = `detail-value ${FengJiApp.tierClass(s.signal_tier)}`;
+        metaEl.textContent = `评分 ${s.signal_score != null ? Number(s.signal_score).toFixed(2) : "—"} · 桶样本 ${s.bucket_count ?? "—"}`;
+      } catch (e) {
+        tierEl.textContent = "—";
+        metaEl.textContent = e.message || "信号不可用";
+      }
+    }
+
+    async function loadChart(quiet = false) {
+      const requestId = ++chartRequestId;
+      loadingChart = true;
+      const panel = document.getElementById("chartPanel");
+      if (!quiet) {
+        panel.innerHTML = '<div class="empty-state compact"><span class="spinner"></span> 加载 K 线…</div>';
+      }
+
+      const pos = livePosition || {
+        symbol,
+        market,
+        strategy_id: strategyForChart(),
+        entry_time: "",
+        entry_price: 0,
+        current_stop: 0,
+        direction: "long",
+      };
+
+      const q = new URLSearchParams({
+        symbol: pos.code || pos.symbol || symbol,
+        market: pos.market || market,
+        strategy_id: strategyForChart(),
+        direction: pos.direction || "long",
+        years: String(yearsForTf(timeframe)),
+        _t: String(Date.now()),
+      });
+      if (pos.entry_time) q.set("entry_time", pos.entry_time);
+      const entryPrice = Number(pos.entry_price);
+      if (Number.isFinite(entryPrice) && entryPrice > 0) q.set("entry_price", String(entryPrice));
+      const stopPrice = Number(pos.current_stop);
+      if (Number.isFinite(stopPrice) && stopPrice > 0) q.set("current_stop", String(stopPrice));
+
+      try {
+        const { res, data: bundle, throttled } = await FengJiApp.monitorPollFetch(
+          `${FengJiApp.CFG.API_BASE}/api/v1/monitor/domestic/chart?${q}`,
+          { cache: "no-store" }
+        );
+        if (throttled || !res.ok) throw new Error(await res.text());
+        if (requestId !== chartRequestId) return;
+        panel.innerHTML = "";
+        FengJiMonitorChart.render(panel, bundle, livePosition || null);
+      } catch (e) {
+        if (requestId !== chartRequestId) return;
+        FengJiMonitorChart.showMessage(panel, "K 线加载失败，请确认 API 与本地数据");
+        console.warn(e);
+      } finally {
+        if (requestId === chartRequestId) loadingChart = false;
+      }
+    }
+
+    async function refreshQuote() {
+      const q = new URLSearchParams({ symbols: symbol, markets: market });
+      try {
+        const { res, data, throttled } = await FengJiApp.monitorPollFetch(
+          `${FengJiApp.CFG.API_BASE}/api/v1/monitor/quotes?${q}`
+        );
+        if (throttled || !res.ok) return;
+        latestQuote = (data.quotes || [])[0] || null;
+      } catch {
+        latestQuote = null;
+      }
+    }
+
+    async function refreshLive() {
+      const requestId = ++liveRequestId;
+      try {
+        await refreshQuote();
+        const { res, data, throttled } = await FengJiApp.monitorPollFetch(
+          `${FengJiApp.CFG.API_BASE}/api/v1/monitor/domestic/latest-opens`,
+          { cache: "no-store" }
+        );
+        if (throttled || !res.ok) throw new Error("api");
+        if (requestId !== liveRequestId) return;
+        livePosition =
+          (data.positions || []).find(
+            (p) => {
+              const ps = String(p.symbol || "").toUpperCase();
+              const pc = String(p.code || "").toUpperCase();
+              const s = String(symbol || "").toUpperCase();
+              return ps === s || pc === s || ps.replace(/USDT$/, "") === s.replace(/USDT$/, "");
+            },
+          ) || null;
+        if (livePosition?.market) market = livePosition.market;
+        if (livePosition?.symbol) symbol = String(livePosition.symbol).toUpperCase();
+        if (!watchEntry) watchEntry = FengJiApp.findWatchlistEntry(symbol);
+        document.getElementById("pageSymbol").textContent = symbol;
+        document.title = `峰极量化 · ${symbol} 品种详情`;
+        if (livePosition) {
+          fillDetailFromPosition(livePosition);
+        } else {
+          fillDetailEmpty();
+        }
+        await loadChart(true);
+      } catch {
+        if (requestId !== liveRequestId) return;
+        await refreshQuote();
+        livePosition = null;
+        fillDetailEmpty();
+        await loadChart(true);
+      }
+    }
+
+    document.querySelectorAll("#tfSeg button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#tfSeg button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        timeframe = btn.dataset.tf;
+        loadChart();
+      });
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", refreshLive);
+
+    document.getElementById("removeBtn").addEventListener("click", () => {
+      if (!watchEntry) {
+        location.href = "monitor.html";
+        return;
+      }
+      const list = FengJiApp.loadWatchlist().filter((item) => {
+        const key =
+          item && typeof item === "object" ? String(item.symbol || "").toUpperCase() : String(item || "").toUpperCase();
+        return key !== symbol;
+      });
+      FengJiApp.saveWatchlist(list);
+      location.href = "monitor.html";
+    });
+
+    refreshLive();
+    refreshTimer = setInterval(refreshLive, FengJiApp.monitorRefreshMs());
+    window.addEventListener("beforeunload", () => {
+      if (refreshTimer) clearInterval(refreshTimer);
+    });
+    })();
+    }
+  </script>
+</body>
+</html>
