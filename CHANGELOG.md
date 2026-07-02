@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-07-02（Phase 1 · PR #8 merged）
+
+- PR #8 merged：chart_bundle · chart_line · context · phase2 manifest。
+- 验收：`docs/POST_MERGE_ACCEPTANCE_PR8_20260702.md`。
+
+## 2026-07-02（Phase 1 · PR #9 deploy）
+
+- 分支 `pr/b3-api-deploy-scripts`：`sync_deploy_fengji_api.ps1` · paper-state sync · W17 smoke/remote · phase3 manifest。
+- 全量 `fengji_api_deploy_manifest.txt` 本地文件齐 · `test_fengji_api_phase3_manifest` 全绿。
+
 ## 2026-07-02（Phase 1 · PR #7 merged）
 
 - PR #7 merged（`1a0bc86`）：services · migrations · auth tests · OpenAPI 38 paths。

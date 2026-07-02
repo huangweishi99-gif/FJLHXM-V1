@@ -1,46 +1,35 @@
 # 方案 B · Phase 1 · services/API 分桶
 
-生成：2026-07-02 · Phase 0（PR #1–#6）完成后
+生成：2026-07-02
 
-## 目标
+## 分 PR 状态
 
-将 `services/` 与 chart/context 依赖纳入版本库，使 OpenAPI、auth 与 chart_bundle 可在 CI/`main` 上复现，**不**混入定式/OS 逻辑变更。
+| PR | 分支 | 状态 |
+|----|------|------|
+| **#7** | `pr/b2-services-api-phase1` | ✅ merged |
+| **#8** | `pr/b2-chart-bundle-deps` | ✅ merged |
+| **#9** | `pr/b3-api-deploy-scripts` | 🔄 待 merge |
+| **#10** | `pr/b2-web-tests` | 待办 |
 
-## 分 PR 策略
-
-| PR | 分支 | 状态 | 范围 |
-|----|------|------|------|
-| **#7 MVP** | `pr/b2-services-api-phase1` | ✅ merged | `services/` · migrations · alembic · docker-compose |
-| **#8 chart** | `pr/b2-chart-bundle-deps` | 🔄 | chart_bundle · chart_line · symbol_names · context_* |
-| **#9 ops** | `pr/b3-api-deploy-scripts` | 待办 | sync_deploy · W17 remote（脱敏） |
-| **#10 web** | `pr/b2-web-tests` | 待办 | web/ · feature_gate_api / w17 |
-
-**PR #8 开 PR**：https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b2-chart-bundle-deps
+**PR #9 开 PR**：https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b3-api-deploy-scripts
 
 ## Manifest 层级
 
-| 文件 | 说明 |
-|------|------|
-| `fengji_api_phase1_manifest.txt` | PR #7 · services + migrations |
-| `fengji_api_phase2_manifest.txt` | PR #8 · chart + context 增量 |
-| `fengji_api_deploy_manifest.txt` | 全量 W17（随 #9 逐步绿） |
+| 文件 | PR |
+|------|-----|
+| `fengji_api_phase1_manifest.txt` | #7 |
+| `fengji_api_phase2_manifest.txt` | #8 |
+| `fengji_api_phase3_manifest.txt` | #9 |
+| `fengji_api_deploy_manifest.txt` | 全量（#9 后应全绿） |
 
-## PR #8 提交前检查
+## PR #9 验收
 
 ```powershell
-python -m pytest tests/test_chart_line.py tests/test_chart_bundle.py tests/test_fengji_api_phase2_manifest.py tests/test_fengji_api_phase1_manifest.py -q
-python scripts/export_openapi_snapshot.py
+python -m pytest tests/test_fengji_api_phase3_manifest.py tests/test_w17_remote_acceptance.py -q
+# 6+ passed · auto_server 需本地 PG（无 PG 时 skip 或 auth 失败属预期）
 ```
-
-## 已知缺口
-
-| 项 | 说明 |
-|----|------|
-| FUTURES **5m** | `assess_instruments_vs_coverage.py` |
-| HYPE #28 | 待 07-02 D1 · `docs/HYPE28_STOP_FOLLOWUP.md` |
-| 期货 chart 黄金测试 | 需 `runtime/fengji_os_state/{NI,AG,SC}_1d.json` · 无则 skip |
 
 ## 引用
 
-- `docs/PLAN_B_PHASE0_COMPLETE.md`
 - `docs/POST_MERGE_ACCEPTANCE_PR7_20260702.md`
+- `docs/POST_MERGE_ACCEPTANCE_PR8_20260702.md`
