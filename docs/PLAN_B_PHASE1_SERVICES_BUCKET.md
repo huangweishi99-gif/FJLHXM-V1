@@ -11,6 +11,8 @@
 | PR | 分支建议 | 范围 | 验收 |
 |----|----------|------|------|
 | **#7 MVP** | `pr/b2-services-api-phase1` | `services/` · `migrations/` · `alembic.ini` · `docker-compose.yml` · Phase1 manifest · auth 相关 tests | pytest phase1 · `export_openapi_snapshot.py` |
+
+**开 PR**：https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b2-services-api-phase1
 | **#8 chart** | `pr/b2-chart-bundle-deps` | `src/chart_bundle.py` · `chart_line.py` · `symbol_names.py` · context_* | manifest 全量 · chart smoke |
 | **#9 ops** | `pr/b3-api-deploy-scripts` | `sync_deploy_fengji_api.ps1` · health · alembic upgrade · W17 remote（脱敏） | deploy manifest 全绿 |
 | **#10 web** | `pr/b2-web-tests` | `web/` · feature_gate_api / w17 失败项 | 分桶修 6 fail |
