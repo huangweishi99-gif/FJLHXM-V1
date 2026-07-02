@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-07-02（Phase 1 · services MVP）
+
+### PR #7 准备 · services/API 分桶
+
+- 分支 `pr/b2-services-api-phase1`：`services/` · `migrations/` · alembic · docker-compose · Phase1 manifest（67 文件）。
+- 新增 `scripts/fengji_api_phase1_manifest.txt` · `tests/test_fengji_api_phase1_manifest.py` · `docs/PLAN_B_PHASE1_SERVICES_BUCKET.md`。
+- 验证：pytest phase1 **24 passed** · OpenAPI **38 paths**。
+
 ## 2026-07-02（PR #6 merged）
 
 ### follow-up PR #6 合并 + Phase 0 签收
