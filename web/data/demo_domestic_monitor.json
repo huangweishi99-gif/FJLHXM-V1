@@ -1,0 +1,58 @@
+{
+  "generated_at": "2026-06-01 15:28:00",
+  "source": "demo",
+  "note": "国内服务器 paper_state 不可达时的演示数据；连接后自动切换真数据",
+  "positions": [
+    {
+      "position_id": "pending|lc-ds09-001",
+      "symbol": "LC",
+      "code": "LC",
+      "display_name": "碳酸锂(LC)",
+      "market": "FUTURES",
+      "strategy_id": "DS09",
+      "direction": "long",
+      "direction_label": "做多",
+      "entry_time": "2026-05-30 09:35:00",
+      "entry_price": 98520,
+      "current_stop": 96200,
+      "lots": 2,
+      "amount_cny": 197040,
+      "setup": "M15二次攻击",
+      "timeframe": "1d"
+    },
+    {
+      "position_id": "pending|000021-ds03",
+      "symbol": "000021",
+      "code": "000021",
+      "display_name": "深科技(000021)",
+      "market": "A_STOCK",
+      "strategy_id": "DS03",
+      "direction": "long",
+      "direction_label": "做多",
+      "entry_time": "2026-05-29 14:55:00",
+      "entry_price": 18.62,
+      "current_stop": 17.85,
+      "lots": null,
+      "amount_cny": 186200,
+      "setup": "假峰突破",
+      "timeframe": "1d"
+    },
+    {
+      "position_id": "pending|cj-ds04",
+      "symbol": "CJ",
+      "code": "CJ",
+      "display_name": "红枣(CJ)",
+      "market": "FUTURES",
+      "strategy_id": "DS04",
+      "direction": "short",
+      "direction_label": "做空",
+      "entry_time": "2026-05-28 21:10:00",
+      "entry_price": 9270,
+      "current_stop": 9410,
+      "lots": 3,
+      "amount_cny": 278100,
+      "setup": "夹棍式",
+      "timeframe": "1d"
+    }
+  ]
+}

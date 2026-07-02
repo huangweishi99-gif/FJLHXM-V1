@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>峰极量化 · 订阅</title>
+  <link rel="stylesheet" href="css/apple.css">
+</head>
+<body class="pricing-page" data-theme="dark">
+  <div id="navMount"></div>
+  <main class="page pricing-page-main">
+    <section class="hero pricing-hero">
+      <h1 class="hero-title">峰极量化</h1>
+      <p class="hero-subtitle">按需升级，随时取消。各档权限见下方编号说明。</p>
+    </section>
+
+    <div class="pricing-grid" id="pricingGrid">
+      <noscript>
+        <p class="pricing-noscript">请启用 JavaScript 以查看订阅方案；或直接访问各档说明：免费 7 天（定式 01–03）、标准 ¥99/月、专业 ¥299/月。</p>
+      </noscript>
+    </div>
+
+    <p class="disclaimer">订阅与支付模块属 Phase 4；权限以各卡片说明为准。未登录请先 <a href="login.html">注册或登录</a>；答疑请 <a href="community.html">扫码加入交流群</a>。</p>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    FengJiApp.initShell("pricing.html");
+    FengJiApp.setTheme("dark");
+
+    const escapeHtml = FengJiApp.escapeHtml;
+
+    function renderFeatures(items) {
+      return `<div class="pricing-features-box"><ol class="pricing-feature-list">${(items || []).map((it) => `<li>${escapeHtml(it)}</li>`).join("")}</ol></div>`;
+    }
+
+    const tiers = FengJiApp.CFG.PRICING_TIERS || [];
+    const grid = document.getElementById("pricingGrid");
+    if (!tiers.length) {
+      grid.innerHTML = '<p class="pricing-noscript">订阅方案加载失败，请刷新页面或检查 js/config.js 是否可访问。</p>';
+    } else {
+      grid.innerHTML = tiers.map((tier) => {
+        const suffix = tier.priceSuffix
+          ? `<span>${escapeHtml(tier.priceSuffix)}</span>`
+          : (tier.tagline ? `<span class="pricing-price-sub">${escapeHtml(tier.tagline)}</span>` : "");
+        return `<article class="card pricing-card${tier.featured ? " featured" : ""}">
+          <div class="pricing-card-inner">
+            <header class="pricing-card-head">
+              <div class="pricing-tier">${escapeHtml(tier.name)}</div>
+              <div class="pricing-price">${escapeHtml(tier.price)}${suffix}</div>
+            </header>
+            <div class="pricing-sections">
+              <div class="pricing-desc-wrap">
+              ${tier.trialNote ? `<p class="pricing-trial-note">${escapeHtml(tier.trialNote)}</p>` : ""}
+              ${renderFeatures(tier.features)}
+              </div>
+            </div>
+            <footer class="pricing-card-foot">
+              ${tier.ctaFlowNote ? `<p class="pricing-flow-note">${escapeHtml(tier.ctaFlowNote)}</p>` : ""}
+              <a class="btn btn-primary btn-sm pricing-cta" href="${escapeHtml(tier.ctaHref || "login.html")}">${escapeHtml(tier.cta)}</a>
+            </footer>
+          </div>
+        </article>`;
+      }).join("");
+    }
+  </script>
+</body>
+</html>

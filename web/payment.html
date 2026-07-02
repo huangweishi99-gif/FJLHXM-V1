@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0b10">
+  <title>峰极量化 · 订阅付款</title>
+  <link rel="stylesheet" href="css/apple.css">
+</head>
+<body class="community-page payment-page community-pay-mode" data-theme="dark">
+  <div id="navMount"></div>
+  <main class="page community-page-main payment-page-main">
+    <section class="hero community-hero">
+      <h1 class="hero-title" id="heroTitle">订阅付款</h1>
+      <p class="hero-subtitle" id="heroSub">请确认订阅档位后，使用微信扫码完成付款。</p>
+    </section>
+
+    <div class="community-status" id="payStatusBanner" hidden></div>
+
+    <div class="community-layout community-layout-single" id="paymentLayout">
+      <article class="card community-card community-card-primary community-pay-card" id="payPanel" hidden>
+        <header class="community-card-head">
+          <span class="community-badge" id="payBadge">标准订阅</span>
+          <h2 class="community-card-title">微信订阅收款</h2>
+          <p class="community-title-rule" aria-hidden="true">—</p>
+        </header>
+        <div class="community-wechat-shell">
+          <p class="community-wechat-head">推荐使用微信支付</p>
+          <p class="community-pay-amount" id="payAmountLine">—</p>
+          <figure class="community-wechat-qr">
+            <img
+              src="assets/qr/wechat-pay.png"
+              width="220"
+              height="220"
+              alt="峰极量化微信收款码"
+              loading="lazy"
+            >
+          </figure>
+          <div class="community-wechat-foot">
+            <span class="community-wechat-mark" aria-hidden="true"></span>
+            <span class="community-wechat-label">微信支付</span>
+          </div>
+        </div>
+        <div class="community-card-foot community-pay-foot">
+          <ul class="community-notes">
+            <li>请使用微信扫一扫完成付款</li>
+            <li id="payRemarkHint">付款备注请填写您的登录账号与订阅档位</li>
+          </ul>
+          <p class="community-title-rule community-pay-divider" aria-hidden="true">—</p>
+          <div class="community-pay-actions">
+            <button class="btn btn-primary community-pay-btn" type="button" id="payConfirmBtn">我已完成付款</button>
+            <a class="btn btn-secondary community-pay-btn" href="pricing.html" id="payCancelLink">返回订阅页</a>
+          </div>
+          <p class="community-pay-hint" id="payStatusHint"></p>
+        </div>
+      </article>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    FengJiApp.initShell("pricing.html");
+    FengJiApp.setTheme("dark");
+
+    const payPlan = FengJiApp.resolveCommunityPayPlan();
+    const payPanel = document.getElementById("payPanel");
+    const payStatusBanner = document.getElementById("payStatusBanner");
+    const paymentLayout = document.getElementById("paymentLayout");
+    const heroTitle = document.getElementById("heroTitle");
+    const heroSub = document.getElementById("heroSub");
+    const payBadge = document.getElementById("payBadge");
+    const payRemarkHint = document.getElementById("payRemarkHint");
+    const payStatusHint = document.getElementById("payStatusHint");
+    const payConfirmBtn = document.getElementById("payConfirmBtn");
+    const payAmountLine = document.getElementById("payAmountLine");
+
+    function showBanner(text, kind) {
+      payStatusBanner.hidden = false;
+      payStatusBanner.className = `community-status community-status-${kind || "info"}`;
+      payStatusBanner.textContent = text;
+    }
+
+    function bootPayFlow() {
+      if (!payPlan) {
+        heroTitle.textContent = "订阅入口不适用";
+        heroSub.textContent = "请从订阅页选择标准档或专业档。";
+        showBanner("无效的订阅链接。请从订阅页选择标准档或专业档。", "warn");
+        const a = document.createElement("a");
+        a.className = "btn btn-primary community-status-cta";
+        a.href = "pricing.html";
+        a.textContent = "返回订阅页";
+        payStatusBanner.appendChild(document.createElement("br"));
+        payStatusBanner.appendChild(a);
+        return;
+      }
+
+      const user = FengJiApp.getCurrentUser();
+      const returnPath = FengJiApp.communityPayUrl(payPlan);
+      if (!user) {
+        location.replace(FengJiApp.loginUrlWithReturn(returnPath, { mode: "login" }));
+        return;
+      }
+
+      const intent = FengJiApp.validatePayIntent(payPlan);
+      const planCfg = FengJiApp.CFG.SUBSCRIPTION_PLANS[payPlan];
+      const flow = FengJiApp.getPlanFlow(payPlan);
+
+      if (intent.state === "invalid" || intent.state === "blocked_downgrade") {
+        heroTitle.textContent = "订阅入口不适用";
+        heroSub.textContent = intent.message;
+        showBanner(intent.message, "warn");
+        const a = document.createElement("a");
+        a.className = "btn btn-primary community-status-cta";
+        a.href = intent.landingHref || "pricing.html";
+        a.textContent = intent.state === "blocked_downgrade" ? "进入专业档功能页" : "返回订阅页";
+        payStatusBanner.appendChild(document.createElement("br"));
+        payStatusBanner.appendChild(a);
+        return;
+      }
+
+      if (intent.state === "already_active") {
+        heroTitle.textContent = `${planCfg.label} · 已开通`;
+        heroSub.textContent = intent.message;
+        showBanner(`${planCfg.label}已生效，无需再次扫码。`, "ok");
+        const a = document.createElement("a");
+        a.className = "btn btn-primary community-status-cta";
+        a.href = intent.landingHref;
+        a.textContent =
+          payPlan === "standard" ? "进入模拟监测（标准档）" : "进入历史回测（专业档）";
+        payStatusBanner.appendChild(document.createElement("br"));
+        payStatusBanner.appendChild(a);
+        return;
+      }
+
+      payPanel.hidden = false;
+      paymentLayout.classList.add("community-layout-single");
+      const tierMeta = FengJiApp.CFG.PRICING_TIER_META[payPlan] || {};
+      const amountText = `${tierMeta.price || ""}${tierMeta.priceSuffix || ""}`.trim() || "见订阅页";
+      if (payAmountLine) {
+        payAmountLine.textContent = `应付金额 ${amountText}`;
+      }
+      payBadge.textContent = flow?.label || `${planCfg.label}订阅`;
+      payRemarkHint.textContent = `付款金额 ${amountText} · 备注：${user} · ${planCfg.label}`;
+
+      FengJiApp.fetchSubscriptionPaymentConfig().then((payConfig) => {
+        const mode = payConfig?.confirm_button_mode || "demo_only";
+        const hint = payConfig?.message || "";
+        if (hint) payStatusHint.textContent = hint;
+        if (mode === "manual_confirm") {
+          payConfirmBtn.hidden = false;
+          payConfirmBtn.disabled = false;
+        } else if (mode === "webhook_pending") {
+          payConfirmBtn.hidden = true;
+          showBanner(hint || "付款后请等待系统自动开通。", "info");
+        } else if (mode === "redeem_only") {
+          payConfirmBtn.hidden = true;
+          showBanner(hint || "当前仅支持兑换码开通。", "warn");
+        } else {
+          payConfirmBtn.hidden = false;
+          payConfirmBtn.disabled = true;
+          payConfirmBtn.textContent = "支付通道未配置";
+          showBanner(hint || "支付通道未配置，请联系管理员。", "warn");
+        }
+      });
+
+      payConfirmBtn.addEventListener("click", async () => {
+        payConfirmBtn.disabled = true;
+        const result = await FengJiApp.confirmPaidSubscription(payPlan);
+        if (!result.ok) {
+          payStatusHint.textContent = result.message || "无法完成订阅，请从订阅页重新选择档位。";
+          payConfirmBtn.disabled = false;
+          return;
+        }
+        payStatusHint.textContent = result.message;
+        setTimeout(() => {
+          location.href = result.landingHref;
+        }, 700);
+      });
+    }
+
+    bootPayFlow();
+  </script>
+</body>
+</html>

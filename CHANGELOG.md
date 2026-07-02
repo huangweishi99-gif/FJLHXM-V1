@@ -5,7 +5,12 @@
 - PR #8 merged：chart_bundle · chart_line · context · phase2 manifest。
 - 验收：`docs/POST_MERGE_ACCEPTANCE_PR8_20260702.md`。
 
-## 2026-07-02（Phase 1 · PR #9 deploy）
+## 2026-07-02（Phase 1 · PR #10 web）
+
+- 分支 `pr/b2-web-phase1`：`web/` 全量 · feature_gate_api 无 PG mock 修复 · 静态页测试。
+- manifest：`scripts/fengji_web_phase1_manifest.txt`。
+
+## 2026-07-02（Phase 1 · PR #9 merged）
 
 - 分支 `pr/b3-api-deploy-scripts`：`sync_deploy_fengji_api.ps1` · paper-state sync · W17 smoke/remote · phase3 manifest。
 - 全量 `fengji_api_deploy_manifest.txt` 本地文件齐 · `test_fengji_api_phase3_manifest` 全绿。

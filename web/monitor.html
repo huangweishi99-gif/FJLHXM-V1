@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0b10">
+  <title>峰极量化</title>
+  <link rel="stylesheet" href="css/apple.css?v=20260614c">
+</head>
+<body class="monitor-page" data-theme="dark">
+  <div id="navMount"></div>
+
+  <main class="monitor-page-main">
+    <header class="monitor-page-head">
+      <h1 class="monitor-page-title">峰极量化</h1>
+      <p class="monitor-page-sub" id="planHint">—</p>
+    </header>
+
+    <div class="monitor-notifications" id="monitorNotifications" hidden aria-live="polite"></div>
+
+    <article class="monitor-paper-card bt-card" id="paperAccountCard" hidden>
+      <div class="monitor-paper-head">
+        <h2 class="monitor-paper-title">观察账户</h2>
+        <span class="monitor-paper-tag" id="paperAccountMode">只读模拟</span>
+      </div>
+      <div class="monitor-paper-view-tabs segmented" id="paperViewTabs" hidden role="tablist" aria-label="账户视图">
+        <button type="button" class="active" data-paper-view="scoped" aria-selected="true">平台参考</button>
+        <button type="button" data-paper-view="execution" aria-selected="false">我的模拟</button>
+      </div>
+      <div class="monitor-paper-grid">
+        <div class="monitor-paper-stat">
+          <span class="label">虚拟权益</span>
+          <strong id="paperEquity">—</strong>
+        </div>
+        <div class="monitor-paper-stat">
+          <span class="label">自选</span>
+          <strong id="paperWatchlist">—</strong>
+        </div>
+        <div class="monitor-paper-stat">
+          <span class="label">观察中</span>
+          <strong id="paperRuntime">—</strong>
+        </div>
+        <div class="monitor-paper-stat">
+          <span class="label">相关持仓</span>
+          <strong id="paperPositions">—</strong>
+        </div>
+      </div>
+      <p class="monitor-paper-note" id="paperAccountNote">—</p>
+      <p class="monitor-paper-shadow" id="paperShadowHint" hidden></p>
+      <div class="monitor-paper-exec" id="paperExecPanel" hidden>
+        <div class="monitor-paper-exec-head">
+          <strong>我的模拟明细</strong>
+          <span id="paperExecMeta">—</span>
+        </div>
+        <ul class="monitor-paper-exec-list" id="paperExecList"></ul>
+        <p class="monitor-paper-exec-empty" id="paperExecEmpty" hidden>暂无独立模拟持仓或挂单</p>
+      </div>
+    </article>
+
+    <article class="monitor-ledger-card bt-card" id="ledgerPanel">
+      <button type="button" class="monitor-ledger-toggle" id="ledgerToggle" aria-expanded="false">
+        <span>拒单明细</span>
+        <span class="monitor-ledger-count" id="ledgerCount">0</span>
+        <span class="monitor-ledger-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="monitor-ledger-body" id="ledgerBody" hidden>
+        <ul class="monitor-ledger-list" id="ledgerList"></ul>
+        <p class="monitor-ledger-empty" id="ledgerEmpty">暂无拒单记录</p>
+      </div>
+    </article>
+
+    <article class="monitor-watch-card bt-card">
+      <div class="monitor-add-bar">
+        <div class="monitor-add-field">
+          <div class="monitor-search-row">
+            <label for="symbolSearch">品种搜索</label>
+            <div class="monitor-search-controls">
+              <select class="select bt-control monitor-market-filter" id="marketFilter" aria-label="市场筛选">
+                <option value="ALL">全部市场</option>
+                <option value="FUTURES">期货</option>
+                <option value="A_STOCK">A股</option>
+                <option value="CRYPTO">虚拟货币</option>
+                <option value="US_STOCK">美股</option>
+              </select>
+              <div class="symbol-search-wrap monitor-symbol-search">
+                <input class="input bt-control" id="symbolSearch" type="search" placeholder="输入代码或名称，如 000021、PVC、AAPL" autocomplete="off">
+                <ul class="symbol-search-list" id="symbolSearchList" hidden></ul>
+              </div>
+            </div>
+          </div>
+          <label for="symbolPick">添加品种</label>
+          <div class="monitor-add-row">
+            <select class="select bt-control" id="symbolPick"></select>
+            <button class="btn btn-primary" id="addBtn" type="button">添加</button>
+          </div>
+        </div>
+        <p class="monitor-add-hint" id="addHint">全库任选，最多添加当前档名额（与回测共享）</p>
+      </div>
+
+      <div class="monitor-market-tabs-bar">
+        <div class="monitor-market-tabs segmented" id="marketTabs" role="tablist" aria-label="分市场查看">
+          <button type="button" role="tab" class="active" data-market="ALL" aria-selected="true">全部</button>
+          <button type="button" role="tab" data-market="FUTURES" aria-selected="false">期货</button>
+          <button type="button" role="tab" data-market="A_STOCK" aria-selected="false">A股</button>
+          <button type="button" role="tab" data-market="CRYPTO" aria-selected="false">虚拟币</button>
+          <button type="button" role="tab" data-market="US_STOCK" aria-selected="false">美股</button>
+        </div>
+        <span class="monitor-market-tabs-hint" id="marketTabHint">—</span>
+      </div>
+
+      <div class="monitor-table-wrap">
+        <table class="monitor-table" id="watchTable">
+          <colgroup>
+            <col class="monitor-col-symbol">
+            <col class="monitor-col-strategy">
+            <col class="monitor-col-time">
+            <col class="monitor-col-price">
+            <col class="monitor-col-price">
+            <col class="monitor-col-tier">
+            <col class="monitor-col-status">
+            <col class="monitor-col-pnl">
+            <col class="monitor-col-action">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>品种</th>
+              <th>开仓定式</th>
+              <th>开仓时间</th>
+              <th>开仓价格</th>
+              <th>目前价格</th>
+              <th>信号强弱</th>
+              <th>状态</th>
+              <th>净盈亏</th>
+              <th class="monitor-th-action">操作</th>
+            </tr>
+          </thead>
+          <tbody id="watchBody">
+            <tr class="monitor-empty-row">
+              <td colspan="9">
+                <div class="empty-state compact"><p>请从上方添加订阅品种</p></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="monitor-table-foot">
+        <span id="watchMeta">—</span>
+        <span id="refreshMeta">—</span>
+      </footer>
+    </article>
+
+    <p class="disclaimer monitor-page-disclaimer">V1 仅模拟观察，不向交易所发单。全站合规文案：模拟实盘、不构成投资建议。</p>
+  </main>
+
+  <script src="js/config.js?v=20260614c"></script>
+  <script src="js/app.js?v=20260614c"></script>
+  <script>
+    FengJiApp.initShell("monitor.html");
+
+    const subCfg = FengJiApp.getSubscriptionConfig();
+    const demoQuotes = FengJiApp.CFG.MONITOR_DEMO_QUOTES || {};
+    let symbolCatalog = (FengJiApp.getMonitorCatalog() || []).map((row) => ({
+      market: row.market,
+      symbol: row.symbol,
+      symbol_name: row.name || "",
+      display_symbol: row.name ? `${row.symbol} · ${row.name}` : row.symbol,
+      has_chart_data: true,
+      trade_count: 0,
+    }));
+    let watchlist = [];
+    let livePositions = [];
+    let runtimeWatchItems = [];
+    let runtimeCacheMeta = null;
+    let quoteMap = new Map();
+    let refreshRequestId = 0;
+    let pollingTimer = null;
+    let monitorSocket = null;
+    let wsReconnectTimer = null;
+    let wsConnected = false;
+    let wsReconnectEnabled = true;
+    let selectedCatalogRow = null;
+    let symbolFilterQuery = "";
+    let tableMarketTab = "ALL";
+    let ledgerItems = [];
+    let ledgerExpanded = false;
+    let knownLedgerKeys = new Set();
+    let monitorNotifications = [];
+    let paperAccountData = null;
+    let paperViewMode = (localStorage.getItem("fj-paper-view") || "scoped").toLowerCase();
+    if (paperViewMode !== "execution") paperViewMode = "scoped";
+    let paperExecItems = [];
+
+    const marketFilterEl = document.getElementById("marketFilter");
+    const marketTabsEl = document.getElementById("marketTabs");
+    const marketTabHintEl = document.getElementById("marketTabHint");
+    const symbolSearchEl = document.getElementById("symbolSearch");
+    const symbolSearchListEl = document.getElementById("symbolSearchList");
+    const symbolPickEl = document.getElementById("symbolPick");
+    const addBtnEl = document.getElementById("addBtn");
+    const watchBodyEl = document.getElementById("watchBody");
+    const planHintEl = document.getElementById("planHint");
+    const addHintEl = document.getElementById("addHint");
+    const watchMetaEl = document.getElementById("watchMeta");
+    const refreshMetaEl = document.getElementById("refreshMeta");
+    const monitorNotificationsEl = document.getElementById("monitorNotifications");
+    const paperAccountCardEl = document.getElementById("paperAccountCard");
+    const paperEquityEl = document.getElementById("paperEquity");
+    const paperWatchlistEl = document.getElementById("paperWatchlist");
+    const paperRuntimeEl = document.getElementById("paperRuntime");
+    const paperPositionsEl = document.getElementById("paperPositions");
+    const paperAccountNoteEl = document.getElementById("paperAccountNote");
+    const paperShadowHintEl = document.getElementById("paperShadowHint");
+    const paperAccountModeEl = document.getElementById("paperAccountMode");
+    const paperViewTabsEl = document.getElementById("paperViewTabs");
+    const paperExecPanelEl = document.getElementById("paperExecPanel");
+    const paperExecListEl = document.getElementById("paperExecList");
+    const paperExecEmptyEl = document.getElementById("paperExecEmpty");
+    const paperExecMetaEl = document.getElementById("paperExecMeta");
+    const ledgerToggleEl = document.getElementById("ledgerToggle");
+    const ledgerBodyEl = document.getElementById("ledgerBody");
+    const ledgerListEl = document.getElementById("ledgerList");
+    const ledgerCountEl = document.getElementById("ledgerCount");
+    const ledgerEmptyEl = document.getElementById("ledgerEmpty");
+
+    planHintEl.textContent = `${subCfg.label}订阅 · 最多 ${subCfg.maxWatchlist} 个自选 · 延迟 ${subCfg.monitorDelay || "—"}`;
+    const gateMsg = FengJiApp.planGateMessage();
+    if (gateMsg) {
+      planHintEl.textContent = gateMsg;
+      addBtnEl.disabled = true;
+    }
+    function normalizeSymbol(value) {
+      let sym = String(value || "").trim().toUpperCase();
+      if (/^\d+$/.test(sym) && sym.length < 6) sym = sym.padStart(6, "0");
+      return sym;
+    }
+
+    function inferMarket(symbol) {
+      const sym = normalizeSymbol(symbol);
+      const row = FengJiApp.lookupSymbolCatalogRow(symbolCatalog, sym, null);
+      if (row?.market) return row.market;
+      const entry = FengJiApp.catalogEntry(sym);
+      if (entry?.market) return entry.market;
+      if (/^\d{6}$/.test(sym)) return "A_STOCK";
+      if (sym.endsWith("USDT")) return "CRYPTO";
+      return "FUTURES";
+    }
+
+    function resolveWatchEntry(symbol, marketHint) {
+      return FengJiApp.resolveWatchEntryInput(
+        symbolCatalog,
+        symbol,
+        marketHint && marketHint !== "ALL" ? marketHint : marketFilterEl.value,
+      );
+    }
+
+    function catalogRowMatchesPickQuery(row, q) {
+      return FengJiApp.catalogRowMatchesQuery(row, q);
+    }
+
+    function normalizeWatchItem(item) {
+      const rawSymbol = item && typeof item === "object" ? item.symbol : item;
+      const symbol = normalizeSymbol(rawSymbol);
+      if (!symbol) return null;
+      const hintMarket = item && typeof item === "object" && item.market ? item.market : null;
+      const resolved = resolveWatchEntry(symbol, hintMarket);
+      if (!resolved) return null;
+      const name = item && typeof item === "object" && item.name ? item.name : resolved.name || "";
+      return { symbol: resolved.symbol, market: resolved.market, name };
+    }
+
+    function normalizeWatchlist(items) {
+      const seen = new Set();
+      const normalized = [];
+      for (const item of items || []) {
+        const row = normalizeWatchItem(item);
+        const ident = row ? symbolIdentity(row.symbol, row.market) : "";
+        if (!row || seen.has(ident)) continue;
+        seen.add(ident);
+        normalized.push(row);
+      }
+      return normalized.slice(0, subCfg.maxWatchlist || normalized.length);
+    }
+
+    watchlist = normalizeWatchlist(FengJiApp.loadWatchlist());
+    FengJiApp.saveWatchlist(watchlist);
+    const escapeHtml = FengJiApp.escapeHtml;
+
+    function updateCatalogHint() {
+      const total = symbolCatalog.length;
+      const quota = subCfg.maxWatchlist;
+      if (!total) {
+        addHintEl.textContent = `目录未加载，仅演示品种可用 · 最多 ${quota} 个自选（与回测共享名额）`;
+        return;
+      }
+      addHintEl.textContent = `全库 ${total} 个品种 · 最多 ${quota} 个自选（与回测共享名额，满额需先移除）`;
+    }
+
+    function countRowsByMarket(rows) {
+      const counts = { ALL: rows.length, FUTURES: 0, A_STOCK: 0, CRYPTO: 0, US_STOCK: 0 };
+      for (const item of rows) {
+        const m = String(item.market || inferMarket(item.symbol)).toUpperCase();
+        if (m in counts) counts[m] += 1;
+      }
+      return counts;
+    }
+
+    function filterRowsForTableTab(rows) {
+      if (!tableMarketTab || tableMarketTab === "ALL") return rows;
+      return rows.filter((item) => String(item.market || inferMarket(item.symbol)).toUpperCase() === tableMarketTab);
+    }
+
+    function marketTabLabel(market) {
+      const map = { ALL: "全部", FUTURES: "期货", A_STOCK: "A股", CRYPTO: "虚拟币", US_STOCK: "美股" };
+      return map[String(market || "ALL").toUpperCase()] || market;
+    }
+
+    function renderMarketTabs(counts) {
+      if (!marketTabsEl) return;
+      marketTabsEl.querySelectorAll("button[data-market]").forEach((btn) => {
+        const m = String(btn.dataset.market || "ALL").toUpperCase();
+        const n = counts[m] ?? 0;
+        const active = m === tableMarketTab;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+        const base = marketTabLabel(m);
+        btn.textContent = m === "ALL" ? `${base} (${n})` : `${base} (${n})`;
+      });
+      if (marketTabHintEl) {
+        const shown = tableMarketTab === "ALL" ? counts.ALL : (counts[tableMarketTab] ?? 0);
+        marketTabHintEl.textContent = tableMarketTab === "ALL"
+          ? `共 ${counts.ALL} 条`
+          : `${marketTabLabel(tableMarketTab)} ${shown} 条`;
+      }
+    }
+
+    function setMarketView(market) {
+      const m = String(market || "ALL").toUpperCase();
+      tableMarketTab = m;
+      if (marketFilterEl && marketFilterEl.value !== m) {
+        marketFilterEl.value = m;
+      }
+      renderTable();
+    }
+
+    function catalogRowsForFilter() {
+      const filter = marketFilterEl.value;
+      if (!filter || filter === "ALL") return symbolCatalog;
+      return symbolCatalog.filter((row) => String(row.market || "").toUpperCase() === filter);
+    }
+
+    function symbolRowStats(row) {
+      const trades = Number(row.trade_count || 0);
+      if (trades > 0) return `${trades} 笔 · ${row.strategy_count || 0} 定式`;
+      if (row.has_chart_data === false) return "缺K线";
+      return "K线可查";
+    }
+
+    function catalogRowsForPick() {
+      const q = symbolFilterQuery.trim().toUpperCase();
+      const used = new Set(watchlist.map((w) => symbolIdentity(w.symbol, w.market)));
+      const liveUsed = new Set(livePositions.map((p) => symbolIdentity(p.symbol, p.market)));
+      const filtered = catalogRowsForFilter().filter((row) => {
+        const ident = symbolIdentity(row.symbol, row.market);
+        if (used.has(ident) || liveUsed.has(ident)) return false;
+        return catalogRowMatchesPickQuery(row, q);
+      });
+      return FengJiApp.sliceCatalogRows(
+        FengJiApp.sortCatalogRowsByQuery(filtered, q),
+        200,
+        marketFilterEl.value,
+        Boolean(q),
+      );
+    }
+
+    function pickOptionLabel(row) {
+      return FengJiApp.catalogDisplayLabel(row, { includeMarket: true });
+    }
+
+    function renderPickOptions() {
+      const rows = catalogRowsForPick();
+      if (!rows.length) {
+        symbolPickEl.innerHTML = '<option value="">无匹配品种</option>';
+        symbolPickEl.disabled = true;
+        addBtnEl.disabled = Boolean(gateMsg) || watchlist.length >= subCfg.maxWatchlist;
+        const q = symbolFilterQuery.trim();
+        if (q) {
+          addHintEl.textContent = `未在目录中找到「${q}」，可在搜索框回车或点「添加」按代码添加`;
+        } else {
+          updateCatalogHint();
+        }
+        return;
+      }
+      symbolPickEl.disabled = false;
+      addBtnEl.disabled = Boolean(gateMsg) || watchlist.length >= subCfg.maxWatchlist;
+      symbolPickEl.innerHTML = rows.map((row) => {
+        const entry = FengJiApp.catalogRowToWatchEntry(row);
+        return `<option value="${escapeHtml(entry.symbol)}" data-market="${escapeHtml(entry.market)}">${escapeHtml(pickOptionLabel(row))}</option>`;
+      }).join("");
+      const q = symbolFilterQuery.trim();
+      if (q) {
+        addHintEl.textContent = `找到 ${rows.length} 个匹配 · 最多 ${subCfg.maxWatchlist} 个自选`;
+      } else {
+        updateCatalogHint();
+      }
+    }
+
+    function renderSymbolList(query = "") {
+      const q = query.trim().toUpperCase();
+      const used = new Set(watchlist.map((w) => symbolIdentity(w.symbol, w.market)));
+      const liveUsed = new Set(livePositions.map((p) => symbolIdentity(p.symbol, p.market)));
+      const filtered = catalogRowsForFilter().filter((row) => {
+        const ident = symbolIdentity(row.symbol, row.market);
+        if (used.has(ident) || liveUsed.has(ident)) return false;
+        return catalogRowMatchesPickQuery(row, q);
+      });
+      const ranked = FengJiApp.sortCatalogRowsByQuery(filtered, q);
+      const rows = q ? ranked.slice(0, 80) : FengJiApp.sliceCatalogRows(ranked, 80, marketFilterEl.value, false);
+      if (!rows.length) {
+        if (q) {
+          const draft = FengJiApp.resolveWatchEntryInput(symbolCatalog, q, marketFilterEl.value);
+          if (draft?.symbol) {
+            const mkt = FengJiApp.marketLabel(draft.market);
+            const title = draft.name ? `${draft.symbol} · ${draft.name}` : draft.symbol;
+            symbolSearchListEl.innerHTML = `<li><button type="button" data-symbol="${escapeHtml(draft.symbol)}" data-market="${escapeHtml(draft.market)}" data-manual="1">
+              <span class="sym">添加 ${escapeHtml(title)}</span>
+              <span class="meta">${escapeHtml(mkt)} · 按代码添加</span>
+            </button></li>`;
+            symbolSearchListEl.hidden = false;
+            symbolSearchListEl.querySelector("button[data-manual]")?.addEventListener("click", () => {
+              symbolSearchEl.value = draft.symbol;
+              selectedCatalogRow = FengJiApp.lookupSymbolCatalogRow(
+                symbolCatalog,
+                draft.symbol,
+                draft.market,
+              );
+              addSelectedSymbol();
+            });
+            return;
+          }
+        }
+        symbolSearchListEl.innerHTML = q
+          ? '<li class="symbol-search-empty">无匹配品种（可回车或点「添加」按代码添加）</li>'
+          : '<li class="symbol-search-empty">暂无可添加品种</li>';
+        symbolSearchListEl.hidden = !q;
+        return;
+      }
+      symbolSearchListEl.innerHTML = rows.map((row) => {
+        const entry = FengJiApp.catalogRowToWatchEntry(row);
+        const stats = symbolRowStats(row);
+        const mkt = FengJiApp.marketLabel(row.market);
+        return `<li><button type="button" data-symbol="${escapeHtml(entry.symbol)}" data-market="${escapeHtml(entry.market)}">
+          <span class="sym">${escapeHtml(FengJiApp.symbolSummaryRowLabel(row))}</span>
+          <span class="meta">${escapeHtml(mkt)} · ${escapeHtml(stats)}</span>
+        </button></li>`;
+      }).join("");
+      symbolSearchListEl.hidden = false;
+      symbolSearchListEl.querySelectorAll("button[data-symbol]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedCatalogRow = FengJiApp.lookupSymbolCatalogRow(
+            symbolCatalog,
+            btn.dataset.symbol,
+            btn.dataset.market || null,
+          );
+          const row = selectedCatalogRow;
+          symbolSearchEl.value = row
+            ? FengJiApp.catalogDisplayLabel(row)
+            : btn.dataset.symbol;
+          symbolSearchListEl.hidden = true;
+          renderPickOptions();
+          symbolPickEl.value = btn.dataset.symbol;
+        });
+      });
+      renderPickOptions();
+    }
+
+    async function loadSymbolCatalog() {
+      if (gateMsg) {
+        updateCatalogHint();
+        return;
+      }
+      addHintEl.textContent = "加载品种目录…";
+      try {
+        const rows = await FengJiApp.fetchAllSymbolSummary(500);
+        if (rows.length) {
+          symbolCatalog = rows;
+          watchlist = normalizeWatchlist(watchlist);
+          FengJiApp.saveWatchlist(watchlist);
+        }
+      } catch {
+        /* keep fallback catalog */
+      }
+      updateCatalogHint();
+      renderSymbolList("");
+      renderPickOptions();
+    }
+
+    function fmtTime(v) {
+      if (!v) return "—";
+      const s = String(v);
+      return s.length >= 16 ? s.slice(0, 16).replace("T", " ") : s.slice(0, 10);
+    }
+
+    function fmtAge(seconds) {
+      const n = Number(seconds);
+      if (!Number.isFinite(n)) return "—";
+      if (n < 60) return `${Math.round(n)}秒`;
+      if (n < 3600) return `${Math.round(n / 60)}分钟`;
+      return `${Math.round(n / 3600)}小时`;
+    }
+
+    function runtimeCacheText(meta) {
+      if (!meta || meta.source !== "file") return "";
+      const age = fmtAge(meta.age_seconds);
+      if (meta.stale || meta.status === "hit_stale") return `观察缓存过期 ${age}`;
+      if (meta.status === "hit") return `观察缓存 ${age}`;
+      return "";
+    }
+
+    function ledgerItemKey(item) {
+      return [
+        item?.source || "",
+        item?.symbol || "",
+        item?.strategy_id || "",
+        item?.status || "",
+        item?.event_time || "",
+        item?.order_id || "",
+      ].join("|");
+    }
+
+    function pushMonitorNotification(message, severity = "info") {
+      const text = String(message || "").trim();
+      if (!text) return;
+      const entry = { message: text, severity, at: Date.now() };
+      monitorNotifications = [entry, ...monitorNotifications.filter((n) => n.message !== text)].slice(0, 4);
+      renderMonitorNotifications();
+    }
+
+    function renderMonitorNotifications() {
+      if (!monitorNotificationsEl) return;
+      if (!monitorNotifications.length) {
+        monitorNotificationsEl.hidden = true;
+        monitorNotificationsEl.innerHTML = "";
+        return;
+      }
+      monitorNotificationsEl.hidden = false;
+      monitorNotificationsEl.innerHTML = monitorNotifications.map((n) => {
+        const cls = n.severity === "warn" ? "warn" : n.severity === "error" ? "error" : "info";
+        return `<div class="monitor-notification ${cls}">${escapeHtml(n.message)}</div>`;
+      }).join("");
+    }
+
+    function badAuditsForItem(item) {
+      const preview = item?.signal_preview;
+      const metrics = preview?.metrics || {};
+      const n = Number(metrics.bad_audits ?? preview?.bad_audits ?? 0);
+      return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+    }
+
+    function auditBadgeHtml(count) {
+      if (!count || count <= 0) return "";
+      return `<span class="monitor-audit-badge" title="结构不合格审计 ${count} 条，不进统计池">结构 ${count}</span>`;
+    }
+
+    function canUseExecutionView() {
+      return FengJiApp.isPaidPlan(FengJiApp.getSubscriptionPlan());
+    }
+
+    function syncPaperViewTabs() {
+      if (!paperViewTabsEl) return;
+      const show = canUseExecutionView();
+      paperViewTabsEl.hidden = !show;
+      if (!show) {
+        paperViewMode = "scoped";
+        if (paperExecPanelEl) paperExecPanelEl.hidden = true;
+        return;
+      }
+      paperViewTabsEl.querySelectorAll("button[data-paper-view]").forEach((btn) => {
+        const active = btn.getAttribute("data-paper-view") === paperViewMode;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      if (paperExecPanelEl) paperExecPanelEl.hidden = paperViewMode !== "execution";
+    }
+
+    function setPaperViewMode(mode) {
+      paperViewMode = mode === "execution" && canUseExecutionView() ? "execution" : "scoped";
+      localStorage.setItem("fj-paper-view", paperViewMode);
+      syncPaperViewTabs();
+      refreshPaperAccount();
+    }
+
+    function renderPaperExecPanel() {
+      if (!paperExecPanelEl || !paperExecListEl) return;
+      if (paperViewMode !== "execution") {
+        paperExecPanelEl.hidden = true;
+        return;
+      }
+      paperExecPanelEl.hidden = false;
+      const positions = paperExecItems.filter((x) => x.kind === "position");
+      const pending = paperExecItems.filter((x) => x.kind === "pending");
+      if (paperExecMetaEl) {
+        paperExecMetaEl.textContent = `持仓 ${positions.length} · 挂单 ${pending.length}`;
+      }
+      if (!paperExecItems.length) {
+        paperExecListEl.innerHTML = "";
+        if (paperExecEmptyEl) paperExecEmptyEl.hidden = false;
+        return;
+      }
+      if (paperExecEmptyEl) paperExecEmptyEl.hidden = true;
+      paperExecListEl.innerHTML = paperExecItems.slice(0, 20).map((item) => {
+        const label = item.kind === "pending" ? "挂单" : "持仓";
+        const sym = escapeHtml(item.symbol || "—");
+        const sid = escapeHtml(item.strategy_id || "—");
+        const detail = item.kind === "pending"
+          ? `触发 ${escapeHtml(item.trigger_price ?? "—")} · 止损 ${escapeHtml(item.stop_price ?? "—")}`
+          : `入场 ${escapeHtml(item.entry_price ?? "—")} · 止损 ${escapeHtml(item.current_stop ?? "—")}`;
+        return `<li class="monitor-paper-exec-item"><strong>${sym}</strong> · ${sid} · ${label}<div>${detail}</div></li>`;
+      }).join("");
+    }
+
+    function renderPaperAccount(data) {
+      paperAccountData = data || null;
+      if (!paperAccountCardEl) return;
+      const user = FengJiApp.getCurrentUser();
+      if (!user) {
+        paperAccountCardEl.hidden = true;
+        return;
+      }
+      paperAccountCardEl.hidden = false;
+      if (!data || !data.authenticated) {
+        paperEquityEl.textContent = "—";
+        paperWatchlistEl.textContent = `${watchlist.length} / ${subCfg.maxWatchlist}`;
+        paperRuntimeEl.textContent = "—";
+        paperPositionsEl.textContent = "—";
+        paperAccountNoteEl.textContent = "登录态读取中或未连接 API";
+        return;
+      }
+      const equity = data.equity != null ? FengJiApp.formatNum(data.equity) : "—";
+      const localCount = data.watchlist?.local_count ?? watchlist.length;
+      const pgTotal = data.watchlist?.pg_total ?? 0;
+      paperEquityEl.textContent = equity;
+      paperWatchlistEl.textContent = `${localCount} / ${subCfg.maxWatchlist}${pgTotal ? ` · PG ${pgTotal}` : ""}`;
+      paperRuntimeEl.textContent = String(data.watchlist?.pg_runtime_pending ?? 0);
+      paperPositionsEl.textContent = String(data.open_positions ?? 0);
+      if (paperAccountModeEl) {
+        const modeLabel = data.paper_account_view === "execution"
+          ? "我的模拟"
+          : (data.storage_backend === "pg" ? "PG 账户" : (data.account_mode === "per_user_pg_v1_1" ? "PG 投影" : "只读模拟"));
+        paperAccountModeEl.textContent = modeLabel;
+      }
+      paperAccountNoteEl.textContent = data.disclaimer || "只读模拟账户摘要";
+      if (paperShadowHintEl) {
+        const shadow = data.shadow_comparison;
+        if (shadow && data.paper_mode_global === "shadow") {
+          const d = shadow.delta || {};
+          const gap = d.equity_gap != null ? FengJiApp.formatNum(d.equity_gap) : "—";
+          paperShadowHintEl.hidden = false;
+          paperShadowHintEl.textContent =
+            `Shadow 对比 · 权益差 ${gap} · 持仓差 ${d.open_count_gap ?? "—"} · fill ${d.fill_count ?? 0} · stop ${d.stop_count ?? 0} · bad ${d.bad_audits ?? 0}`;
+        } else if (data.paper_mode_global === "per_user_execution") {
+          paperShadowHintEl.hidden = false;
+          paperShadowHintEl.textContent = "已切流至每用户独立模拟（per_user_execution）";
+        } else {
+          paperShadowHintEl.hidden = true;
+          paperShadowHintEl.textContent = "";
+        }
+      }
+      renderPaperExecPanel();
+    }
+
+    function renderLedgerPanel() {
+      if (!ledgerListEl || !ledgerCountEl) return;
+      ledgerCountEl.textContent = String(ledgerItems.length);
+      if (!ledgerItems.length) {
+        ledgerListEl.innerHTML = "";
+        if (ledgerEmptyEl) ledgerEmptyEl.hidden = false;
+        return;
+      }
+      if (ledgerEmptyEl) ledgerEmptyEl.hidden = true;
+      ledgerListEl.innerHTML = ledgerItems.slice(0, 30).map((item) => {
+        const sym = escapeHtml(item.symbol || "—");
+        const sid = escapeHtml(item.strategy_id || "—");
+        const status = escapeHtml(item.status || "—");
+        const reason = escapeHtml(item.reason || status);
+        const when = escapeHtml(fmtTime(item.event_time));
+        const src = item.kind === "radar_blocked" ? "雷达阻断" : "挂单拒单";
+        return `<li class="monitor-ledger-item">
+          <div class="monitor-ledger-main"><strong>${sym}</strong> · ${sid} · ${escapeHtml(src)}</div>
+          <div class="monitor-ledger-meta">${status} · ${when}</div>
+          <div class="monitor-ledger-reason">${reason}</div>
+        </li>`;
+      }).join("");
+    }
+
+    function setLedgerExpanded(open) {
+      ledgerExpanded = Boolean(open);
+      if (ledgerBodyEl) ledgerBodyEl.hidden = !ledgerExpanded;
+      if (ledgerToggleEl) ledgerToggleEl.setAttribute("aria-expanded", ledgerExpanded ? "true" : "false");
+    }
+
+    async function refreshPaperExecutionDetails() {
+      paperExecItems = [];
+      if (paperViewMode !== "execution" || !canUseExecutionView()) {
+        renderPaperExecPanel();
+        return;
+      }
+      try {
+        const [posRes, pendRes] = await Promise.all([
+          FengJiApp.monitorPollFetch(`${FengJiApp.CFG.API_BASE}/api/v1/monitor/paper-account/positions?limit=20`),
+          FengJiApp.monitorPollFetch(`${FengJiApp.CFG.API_BASE}/api/v1/monitor/paper-account/pending?limit=20`),
+        ]);
+        if (posRes.res.ok) {
+          for (const row of posRes.data.items || []) {
+            paperExecItems.push({
+              kind: "position",
+              symbol: row.symbol,
+              strategy_id: row.strategy_id,
+              entry_price: row.entry_price,
+              current_stop: row.current_stop,
+            });
+          }
+        }
+        if (pendRes.res.ok) {
+          for (const row of pendRes.data.items || []) {
+            paperExecItems.push({
+              kind: "pending",
+              symbol: row.symbol,
+              strategy_id: row.strategy_id,
+              trigger_price: row.trigger_price,
+              stop_price: row.stop_price,
+            });
+          }
+        }
+      } catch {
+        paperExecItems = [];
+      }
+      renderPaperExecPanel();
+    }
+
+    async function refreshPaperAccount() {
+      syncPaperViewTabs();
+      const user = FengJiApp.getCurrentUser();
+      if (!user) {
+        renderPaperAccount(null);
+        return;
+      }
+      const params = new URLSearchParams({
+        local_watchlist_count: String(watchlist.length),
+        local_symbols: watchlist.map((w) => w.symbol).join(","),
+      });
+      if (canUseExecutionView()) {
+        params.set("paper_mode", paperViewMode);
+      }
+      try {
+        const { res, data, throttled } = await FengJiApp.monitorPollFetch(
+          `${FengJiApp.CFG.API_BASE}/api/v1/monitor/paper-account?${params}`
+        );
+        if (throttled || !res.ok) {
+          renderPaperAccount({ authenticated: true, equity: null, watchlist: { local_count: watchlist.length } });
+          return;
+        }
+        renderPaperAccount(data);
+        await refreshPaperExecutionDetails();
+      } catch {
+        renderPaperAccount({ authenticated: true, equity: null, watchlist: { local_count: watchlist.length } });
+      }
+    }
+
+    async function refreshLedger() {
+      try {
+        const { res, data, throttled } = await FengJiApp.monitorPollFetch(
+          `${FengJiApp.CFG.API_BASE}/api/v1/monitor/ledger/recent?limit=30`
+        );
+        if (throttled || !res.ok) return;
+        const items = data.items || [];
+        const newKeys = [];
+        for (const item of items) {
+          const key = ledgerItemKey(item);
+          if (!knownLedgerKeys.has(key)) newKeys.push(key);
+        }
+        if (knownLedgerKeys.size && newKeys.length) {
+          pushMonitorNotification(`新增 ${newKeys.length} 条拒单明细`, "warn");
+        }
+        for (const item of items) knownLedgerKeys.add(ledgerItemKey(item));
+        ledgerItems = items;
+        renderLedgerPanel();
+      } catch {
+        /* keep previous ledger */
+      }
+    }
+
+    ledgerToggleEl?.addEventListener("click", () => setLedgerExpanded(!ledgerExpanded));
+
+    function tierLabel(tier) {
+      return ({
+        STRONG: "强",
+        MEDIUM: "中",
+        WEAK: "弱",
+        INSUFFICIENT_DATA: "样本不足",
+        PREVIEW_SIGNAL: "预览信号",
+        PREVIEW_READY: "观察中",
+      })[tier] || tier || "—";
+    }
+
+    function displaySymbol(row) {
+      if (row.displayLabel) return row.displayLabel;
+      if (row.display_name) return row.display_name;
+      const catalogRow = FengJiApp.lookupSymbolCatalogRow(symbolCatalog, row.symbol, row.market);
+      if (catalogRow) return FengJiApp.catalogDisplayLabel(catalogRow);
+      const name = String(row.name || "").trim();
+      const sym = String(row.symbol || "").trim();
+      if (name && name !== sym) return `${sym} · ${name}`;
+      return sym || name || "—";
+    }
+
+    function quoteKey(symbol, market) {
+      return `${normalizeSymbol(symbol)}|${String(market || inferMarket(symbol)).toUpperCase()}`;
+    }
+
+    function setQuoteMapFromRows(rows) {
+      quoteMap = new Map();
+      for (const q of rows || []) {
+        quoteMap.set(quoteKey(q.symbol, q.market), q);
+      }
+    }
+
+    function symbolIdentity(symbol, market) {
+      const sym = normalizeSymbol(symbol);
+      const mkt = String(market || inferMarket(sym)).toUpperCase();
+      return mkt === "FUTURES" ? sym.replace(/USDT$/, "") : sym;
+    }
+
+    function currentPrice(symbol, entryPrice, pos, market) {
+      const quote = quoteMap.get(quoteKey(symbol, market));
+      if (quote?.ok && quote.current_price != null) {
+        const n = Number(quote.current_price);
+        if (Number.isFinite(n)) return n;
+      }
+      const q = demoQuotes[normalizeSymbol(symbol)];
+      if (q != null) return Number(q);
+      const ep = Number(entryPrice);
+      return Number.isFinite(ep) && ep !== 0 ? ep : null;
+    }
+
+    function rowStatus(symbol, pos, market) {
+      if (pos) return "持仓";
+      const runtime = runtimeWatchItems.find((item) => symbolIdentity(item.symbol, item.market) === symbolIdentity(symbol, market));
+      if (runtime) return runtime.runtime_status === "ready" ? "观察候选" : "数据待补";
+      const quote = quoteMap.get(quoteKey(symbol, market));
+      if (!quote || quote.ok === false) return "无数据";
+      const ident = symbolIdentity(symbol, market);
+      const inList = watchlist.some((w) => symbolIdentity(w.symbol, w.market) === ident);
+      return inList ? "观察" : "空仓";
+    }
+
+    function calcNetPnl(pos, entryPrice, nowPx) {
+      if (!pos || entryPrice == null || nowPx == null) return null;
+      const ep = Number(entryPrice);
+      const np = Number(nowPx);
+      if (!Number.isFinite(ep) || !Number.isFinite(np)) return null;
+      const lots = Number(pos.lots) || 1;
+      const mult = Number(pos.multiplier) || 1;
+      const dir = pos.direction === "short" ? -1 : 1;
+      return (np - ep) * dir * lots * mult;
+    }
+
+    function itemFromPosition(pos) {
+      const symbol = normalizeSymbol(pos.symbol);
+      const market = pos.market || inferMarket(symbol);
+      const contract = pos.main_contract_actual || pos.main_contract_display || "";
+      const displayName = pos.display_name || symbol;
+      return {
+        symbol,
+        market,
+        name: displayName,
+        displayLabel: contract ? `${displayName} · ${contract}` : displayName,
+        source: "position",
+      };
+    }
+
+    function itemFromRuntime(runtime) {
+      const symbol = normalizeSymbol(runtime.symbol);
+      const market = runtime.market || inferMarket(symbol);
+      const label = runtime.name ? `${symbol} · ${runtime.name}` : symbol;
+      return {
+        watchlist_id: runtime.watchlist_id,
+        symbol,
+        market,
+        name: runtime.name || "",
+        displayLabel: label,
+        source: "runtime",
+        runtime_status: runtime.runtime_status,
+        latest_time: runtime.latest_time,
+        current_price: runtime.current_price,
+        signal_preview: runtime.signal_preview || null,
+        signal_tier: runtime.signal_preview?.latest_signal ? "PREVIEW_SIGNAL" : "PREVIEW_READY",
+      };
+    }
+
+    function monitorRows() {
+      const rows = watchlist.map((item) => ({ ...item, source: "watchlist" }));
+      const seen = new Set(rows.map((item) => symbolIdentity(item.symbol, item.market)));
+      for (const pos of livePositions) {
+        const item = itemFromPosition(pos);
+        const ident = symbolIdentity(item.symbol, item.market);
+        if (!item.symbol || seen.has(ident)) continue;
+        seen.add(ident);
+        rows.push(item);
+      }
+      for (const runtime of runtimeWatchItems) {
+        const item = itemFromRuntime(runtime);
+        const ident = symbolIdentity(item.symbol, item.market);
+        if (!item.symbol || seen.has(ident)) continue;
+        seen.add(ident);
+        rows.push(item);
+      }
+      return rows;
+    }
+
+    function openingStrategyLabel(pos, item) {
+      const sid = String(
+        pos?.strategy_id
+        || item?.signal_preview?.latest_signal?.strategy_id
+        || item?.signal_preview?.strategy_id
+        || "",
+      ).trim().toUpperCase();
+      if (!sid) return { id: "", label: "—", empty: true };
+      return { id: sid, label: FengJiApp.strategyDisplayName(sid), empty: false };
+    }
+
+    function mergeRow(item) {
+      const ident = symbolIdentity(item.symbol, item.market);
+      const pos = livePositions.find(
+        (p) => symbolIdentity(p.symbol, p.market) === ident,
+      );
+      const entryTime = pos?.entry_time || item.entry_time || item.latest_time || "—";
+      const entryPrice = pos?.entry_price ?? item.entry_price ?? null;
+      const nowPx = item.source === "runtime" && item.current_price != null
+        ? Number(item.current_price)
+        : currentPrice(item.symbol, entryPrice, pos, item.market);
+      const tier = tierLabel(item.signal_tier || (pos ? "MEDIUM" : "INSUFFICIENT_DATA"));
+      const tierCls = FengJiApp.tierClass(item.signal_tier || "MEDIUM");
+      const status = rowStatus(item.symbol, pos, item.market);
+      const statusCls = status === "持仓"
+        ? "status-hold"
+        : status === "观察" || status === "观察候选"
+          ? "status-watch"
+          : status === "数据待补"
+            ? "status-pending"
+            : "status-flat";
+      const netPnl = calcNetPnl(pos, entryPrice, nowPx);
+      const strategy = openingStrategyLabel(pos, item);
+      const badAudits = badAuditsForItem(item);
+
+      return {
+        item,
+        pos,
+        entryTime,
+        entryPrice,
+        nowPx,
+        tier,
+        tierCls,
+        status,
+        statusCls,
+        netPnl,
+        strategy,
+        badAudits,
+      };
+    }
+
+    function addSelectedSymbol() {
+      if (watchlist.length >= subCfg.maxWatchlist) {
+        addHintEl.textContent = `已达 ${subCfg.maxWatchlist} 个上限，请移除后再添加`;
+        return;
+      }
+      const picked = symbolPickEl.value;
+      const marketHint = symbolPickEl.selectedOptions[0]?.dataset?.market || null;
+      const searchText = symbolFilterQuery.trim() || symbolSearchEl.value.trim();
+      const entry = picked
+        ? resolveWatchEntry(picked, marketHint)
+        : (selectedCatalogRow
+          ? FengJiApp.catalogRowToWatchEntry(selectedCatalogRow)
+          : resolveWatchEntry(searchText, null));
+      if (!entry?.symbol) {
+        addHintEl.textContent = "请先搜索、选择或输入品种";
+        return;
+      }
+      const ident = symbolIdentity(entry.symbol, entry.market);
+      if (watchlist.some((w) => symbolIdentity(w.symbol, w.market) === ident)) {
+        addHintEl.textContent = `${entry.symbol} 已在自选列表中`;
+        symbolSearchListEl.hidden = true;
+        return;
+      }
+      watchlist.push(entry);
+      FengJiApp.saveWatchlist(watchlist);
+      selectedCatalogRow = null;
+      symbolSearchEl.value = "";
+      symbolFilterQuery = "";
+      symbolSearchListEl.hidden = true;
+      addHintEl.textContent = `已添加 ${entry.symbol}`;
+      updateCatalogHint();
+      renderTable();
+    }
+
+    function renderTable() {
+      const allRows = monitorRows();
+      const counts = countRowsByMarket(allRows);
+      renderMarketTabs(counts);
+      const rows = filterRowsForTableTab(allRows);
+
+      if (!allRows.length) {
+        watchBodyEl.innerHTML = `<tr class="monitor-empty-row"><td colspan="9"><div class="empty-state compact"><p>暂无模拟持仓，请从上方添加订阅品种</p></div></td></tr>`;
+        watchMetaEl.textContent = `0 / ${subCfg.maxWatchlist} 自选 · 0 持仓`;
+        addBtnEl.disabled = Boolean(gateMsg) || watchlist.length >= subCfg.maxWatchlist;
+        renderSymbolList("");
+        renderPickOptions();
+        return;
+      }
+
+      if (!rows.length) {
+        watchBodyEl.innerHTML = `<tr class="monitor-empty-row"><td colspan="9"><div class="empty-state compact"><p>${escapeHtml(marketTabLabel(tableMarketTab))} 暂无品种，请切换分栏或从上方添加</p></div></td></tr>`;
+        watchMetaEl.textContent = `${watchlist.length} / ${subCfg.maxWatchlist} 自选 · ${livePositions.length} 持仓 · ${marketTabLabel(tableMarketTab)} 0 条`;
+        addBtnEl.disabled = Boolean(gateMsg) || watchlist.length >= subCfg.maxWatchlist;
+        renderSymbolList("");
+        renderPickOptions();
+        return;
+      }
+
+      watchBodyEl.innerHTML = rows.map((item, i) => {
+        const row = mergeRow(item);
+        const ep = row.entryPrice != null ? FengJiApp.formatNum(row.entryPrice) : "—";
+        const np = row.nowPx != null ? FengJiApp.formatNum(row.nowPx) : "—";
+        const pnl = row.netPnl;
+        const pnlText = pnl != null && Number.isFinite(pnl) ? FengJiApp.formatNum(pnl) : "—";
+        const pnlCls = pnl != null && Number.isFinite(pnl) ? (pnl >= 0 ? "val-up" : "val-down") : "";
+        const removeBtn = item.source === "watchlist"
+          ? `<button type="button" class="btn btn-ghost btn-sm monitor-remove" data-symbol="${escapeHtml(item.symbol)}">移除</button>`
+          : "";
+        const cancelBtn = item.source === "runtime" && item.watchlist_id
+          ? `<button type="button" class="btn btn-ghost btn-sm monitor-cancel-runtime" data-watchlist-id="${escapeHtml(item.watchlist_id)}">取消观察</button>`
+          : "";
+        const strategyCls = row.strategy.empty ? "monitor-td-strategy monitor-td-strategy-empty" : "monitor-td-strategy";
+        const strategyCell = row.strategy.empty
+          ? escapeHtml(row.strategy.label)
+          : FengJiApp.strategyHelpLinkHtml(row.strategy.id, { className: "monitor-strategy-help strategy-anim-link" });
+        const tierCell = `<span class="${row.tierCls}">${escapeHtml(row.tier)}</span>${auditBadgeHtml(row.badAudits)}`;
+        return `<tr data-index="${i}">
+          <td class="monitor-td-symbol"><a class="monitor-symbol-link" href="${escapeHtml(FengJiApp.symbolPageUrl(item.symbol, item.market))}">${escapeHtml(displaySymbol(item))}</a></td>
+          <td class="${strategyCls}" title="${escapeHtml(row.strategy.id || "")}">${strategyCell}</td>
+          <td class="monitor-td-time">${escapeHtml(fmtTime(row.entryTime))}</td>
+          <td>${escapeHtml(ep)}</td>
+          <td>${escapeHtml(np)}</td>
+          <td class="monitor-td-tier">${tierCell}</td>
+          <td><span class="monitor-status ${row.statusCls}">${escapeHtml(row.status)}</span></td>
+          <td class="${pnlCls}">${escapeHtml(pnlText)}</td>
+          <td class="monitor-td-action">
+            <div class="monitor-action-group">
+              <a class="btn btn-ghost btn-sm monitor-action-link" href="${escapeHtml(FengJiApp.symbolPageUrl(item.symbol, item.market))}">详情</a>
+              ${removeBtn}
+              ${cancelBtn}
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+
+      watchMetaEl.textContent = `${watchlist.length} / ${subCfg.maxWatchlist} 自选 · ${livePositions.length} 持仓 · ${marketTabLabel(tableMarketTab)} ${rows.length} 条 · ${subCfg.label}档`;
+      addBtnEl.disabled = Boolean(gateMsg) || watchlist.length >= subCfg.maxWatchlist;
+      renderSymbolList("");
+      renderPickOptions();
+
+      watchBodyEl.querySelectorAll(".monitor-remove").forEach((btn) => {
+        btn.addEventListener("click", () => {
+      const sym = normalizeSymbol(btn.dataset.symbol);
+      const idx = watchlist.findIndex((item) => normalizeSymbol(item.symbol) === sym);
+          if (idx < 0) return;
+          watchlist.splice(idx, 1);
+          FengJiApp.saveWatchlist(watchlist);
+          renderTable();
+        });
+      });
+      watchBodyEl.querySelectorAll(".monitor-cancel-runtime").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const watchlistId = btn.dataset.watchlistId;
+          if (!watchlistId) return;
+          btn.disabled = true;
+          btn.textContent = "取消中";
+          try {
+            await FengJiApp.updatePaperWatchlistStatus(watchlistId, "cancelled");
+            await refreshLive();
+          } catch (err) {
+            btn.disabled = false;
+            btn.textContent = "取消观察";
+            addHintEl.textContent = err?.message || "取消观察失败";
+          }
+        });
+      });
+    }
+
+    async function refreshQuotes(items) {
+      const dedup = [];
+      const seen = new Set();
+      for (const item of items || []) {
+        const symbol = normalizeSymbol(item.symbol);
+        const market = String(item.market || inferMarket(symbol)).toUpperCase();
+        const key = quoteKey(symbol, market);
+        if (!symbol || seen.has(key)) continue;
+        seen.add(key);
+        dedup.push({ symbol, market });
+      }
+      quoteMap = new Map();
+      if (!dedup.length) return;
+      const params = new URLSearchParams({
+        symbols: dedup.map((item) => item.symbol).join(","),
+        markets: dedup.map((item) => item.market).join(","),
+      });
+      try {
+        const { res, data, throttled, retryAfterSeconds } = await FengJiApp.monitorPollFetch(
+          `${FengJiApp.CFG.API_BASE}/api/v1/monitor/quotes?${params}`
+        );
+        if (throttled) {
+          return;
+        }
+        if (!res.ok) return;
+        setQuoteMapFromRows(data.quotes || []);
+      } catch {
+        /* keep demo fallback */
+      }
+    }
+
+    async function refreshRuntimeWatchlist() {
+      runtimeWatchItems = [];
+      runtimeCacheMeta = null;
+      if (!FengJiApp.getCurrentUser()) return;
+      try {
+        const data = await FengJiApp.fetchPaperWatchlistRuntime({
+          status: "pending_runtime",
+          limit: 100,
+          includeSignalPreview: true,
+          preferRuntimeCache: true,
+        });
+        runtimeWatchItems = data.items || [];
+        runtimeCacheMeta = data.runtime_cache || null;
+      } catch {
+        runtimeWatchItems = [];
+        runtimeCacheMeta = null;
+      }
+    }
+
+    function monitorSourceLabel(sources) {
+      const parts = [];
+      if (sources?.domestic_positions === "paper_state") parts.push("国内");
+      if (sources?.overseas_positions === "paper_state") parts.push("海外crypto");
+      if (!parts.length) return "只读监测";
+      return `${parts.join("+")}实盘同步`;
+    }
+
+    async function refreshLive() {
+      const requestId = ++refreshRequestId;
+      const keepReconnectMeta = Boolean(wsReconnectTimer);
+      if (!keepReconnectMeta) {
+        refreshMetaEl.textContent = "刷新中…";
+      }
+      try {
+        const apiBase = FengJiApp.CFG.API_BASE;
+        const [domesticResult, overseasResult] = await Promise.all([
+          FengJiApp.monitorPollFetch(`${apiBase}/api/v1/monitor/domestic/latest-opens`),
+          FengJiApp.monitorPollFetch(`${apiBase}/api/v1/monitor/overseas/latest-opens`),
+        ]);
+        const throttled = domesticResult.throttled || overseasResult.throttled;
+        if (throttled) {
+          if (requestId !== refreshRequestId) return;
+          const retryAfterSeconds = Math.max(
+            domesticResult.retryAfterSeconds || 0,
+            overseasResult.retryAfterSeconds || 0,
+          );
+          pushMonitorNotification(`刷新过快，请 ${retryAfterSeconds > 0 ? retryAfterSeconds : "稍"} 秒后再试`, "warn");
+          if (!keepReconnectMeta) {
+            const wait = retryAfterSeconds > 0 ? retryAfterSeconds : "—";
+            refreshMetaEl.textContent = `刷新过快 · 请 ${wait} 秒后再试（${subCfg.monitorDelay || "档位限制"}）`;
+          }
+          return;
+        }
+        const domesticPositions = domesticResult.res.ok ? (domesticResult.data.positions || []) : [];
+        const overseasPositions = overseasResult.res.ok ? (overseasResult.data.positions || []) : [];
+        if (requestId !== refreshRequestId) return;
+        livePositions = [...domesticPositions, ...overseasPositions];
+        if (!keepReconnectMeta) {
+          const generatedAt = domesticResult.data?.generated_at || overseasResult.data?.generated_at || "—";
+          const domesticOk = domesticResult.res.ok && domesticResult.data?.source === "paper_state";
+          const overseasOk = overseasResult.res.ok && overseasResult.data?.source === "paper_state";
+          const src = domesticOk || overseasOk ? "四市场实盘同步" : "演示数据";
+          refreshMetaEl.textContent = `更新 ${generatedAt} · ${src}`;
+        }
+      } catch {
+        if (requestId !== refreshRequestId) return;
+        livePositions = [];
+        if (!keepReconnectMeta) {
+          refreshMetaEl.textContent = "演示数据";
+        }
+      }
+      await refreshRuntimeWatchlist();
+      if (requestId !== refreshRequestId) return;
+      const cacheText = runtimeCacheText(runtimeCacheMeta);
+      if (cacheText && !keepReconnectMeta) {
+        refreshMetaEl.textContent = `${refreshMetaEl.textContent} · ${cacheText}`;
+      }
+      if (runtimeCacheMeta?.stale) {
+        pushMonitorNotification("观察缓存已过期，数据可能滞后", "warn");
+      }
+      await Promise.all([refreshQuotes(monitorRows()), refreshLedger(), refreshPaperAccount()]);
+      if (requestId !== refreshRequestId) return;
+      renderTable();
+    }
+
+    async function applyMonitorSnapshot(message) {
+      if (!message || message.type !== "monitor.snapshot.v1") return;
+      const payload = message.payload || {};
+      livePositions = payload.positions || [];
+      runtimeWatchItems = payload.runtime?.items || [];
+      runtimeCacheMeta = payload.runtime?.runtime_cache || null;
+      setQuoteMapFromRows(payload.quotes || []);
+      const src = monitorSourceLabel(message.sources);
+      refreshMetaEl.textContent = `WS更新 ${message.generated_at || "—"} · ${src}`;
+      const cacheText = runtimeCacheText(runtimeCacheMeta);
+      if (cacheText) refreshMetaEl.textContent = `${refreshMetaEl.textContent} · ${cacheText}`;
+      if (runtimeCacheMeta?.stale) {
+        pushMonitorNotification("观察缓存已过期，数据可能滞后", "warn");
+      }
+      await Promise.all([refreshQuotes(monitorRows()), refreshLedger(), refreshPaperAccount()]);
+      renderTable();
+    }
+
+    async function applyMonitorDelta(message) {
+      if (!message || message.type !== "monitor.delta.v1") return;
+      const payload = message.payload || {};
+      const changed = message.changed || [];
+      if (changed.includes("positions") && payload.positions) {
+        livePositions = payload.positions;
+      }
+      if (changed.includes("runtime") && payload.runtime) {
+        runtimeWatchItems = payload.runtime.items || [];
+        runtimeCacheMeta = payload.runtime.runtime_cache || null;
+      }
+      if (changed.includes("quotes") && payload.quotes) {
+        setQuoteMapFromRows(payload.quotes);
+      }
+      refreshMetaEl.textContent = `WS增量 ${message.generated_at || "—"} · ${changed.join("+") || "—"}`;
+      const cacheText = runtimeCacheText(runtimeCacheMeta);
+      if (cacheText) refreshMetaEl.textContent = `${refreshMetaEl.textContent} · ${cacheText}`;
+      if (runtimeCacheMeta?.stale) {
+        pushMonitorNotification("观察缓存已过期，数据可能滞后", "warn");
+      }
+      if (!changed.includes("quotes")) {
+        await refreshQuotes(monitorRows());
+      }
+      await Promise.all([refreshLedger(), refreshPaperAccount()]);
+      renderTable();
+    }
+
+    function startPolling(runNow = true) {
+      if (pollingTimer) return;
+      if (runNow) refreshLive();
+      pollingTimer = setInterval(refreshLive, FengJiApp.monitorRefreshMs());
+    }
+
+    function stopPolling() {
+      if (!pollingTimer) return;
+      clearInterval(pollingTimer);
+      pollingTimer = null;
+    }
+
+    function scheduleWsReconnect() {
+      if (wsReconnectTimer || !shouldUseWebSocket()) return;
+      pushMonitorNotification("WebSocket 断开，5 秒后重连；轮询备用已启用", "warn");
+      refreshMetaEl.textContent = "WS断开，轮询备用，5秒后重连";
+      wsReconnectTimer = setTimeout(() => {
+        wsReconnectTimer = null;
+        startMonitorWebSocket();
+      }, 5000);
+    }
+
+    function shouldUseWebSocket() {
+      return String(subCfg.monitorDelay || "").includes("WebSocket")
+        && "WebSocket" in window
+        && Boolean(FengJiApp.getCurrentUser())
+        && wsReconnectEnabled;
+    }
+
+    function startMonitorWebSocket() {
+      if (!shouldUseWebSocket()) return false;
+      if (monitorSocket && (monitorSocket.readyState === WebSocket.OPEN || monitorSocket.readyState === WebSocket.CONNECTING)) {
+        return true;
+      }
+      refreshMetaEl.textContent = "WS连接中…";
+      try {
+        monitorSocket = new WebSocket(FengJiApp.monitorWebSocketUrl({ intervalSeconds: 5 }));
+      } catch {
+        startPolling(true);
+        return false;
+      }
+      monitorSocket.addEventListener("open", () => {
+        wsConnected = true;
+        if (wsReconnectTimer) {
+          clearTimeout(wsReconnectTimer);
+          wsReconnectTimer = null;
+        }
+        pushMonitorNotification("WebSocket 已连接 · 专业档准实时", "info");
+        stopPolling();
+        refreshMetaEl.textContent = "WS已连接 · 专业档准实时";
+      });
+      monitorSocket.addEventListener("message", async (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "monitor.auth_error.v1") {
+            wsReconnectEnabled = false;
+            pushMonitorNotification("WebSocket 权限不足，已切换轮询", "error");
+            refreshMetaEl.textContent = "WS权限不足，已启用轮询备用";
+            startPolling(true);
+            if (monitorSocket) monitorSocket.close();
+            return;
+          }
+          if (message.type === "monitor.error.v1") {
+            refreshMetaEl.textContent = "WS异常，已启用轮询备用";
+            startPolling(true);
+            return;
+          }
+          if (message.type === "monitor.heartbeat.v1") {
+            refreshMetaEl.textContent = `WS心跳 ${message.generated_at || "—"} · 数据未变`;
+            return;
+          }
+          if (message.type === "monitor.delta.v1") {
+            await applyMonitorDelta(message);
+            return;
+          }
+          await applyMonitorSnapshot(message);
+        } catch {
+          refreshMetaEl.textContent = "WS消息异常，已启用轮询备用";
+          startPolling(true);
+        }
+      });
+      monitorSocket.addEventListener("close", (event) => {
+        wsConnected = false;
+        monitorSocket = null;
+        if (event.code === 1008) {
+          wsReconnectEnabled = false;
+          refreshMetaEl.textContent = "WS权限关闭，已启用轮询备用";
+          startPolling(true);
+          return;
+        }
+        scheduleWsReconnect();
+        startPolling(false);
+      });
+      monitorSocket.addEventListener("error", () => {
+        if (monitorSocket) monitorSocket.close();
+      });
+      return true;
+    }
+
+    addBtnEl.addEventListener("click", addSelectedSymbol);
+    addBtnEl.disabled = Boolean(gateMsg) || watchlist.length >= subCfg.maxWatchlist;
+
+    symbolSearchEl.addEventListener("input", () => {
+      selectedCatalogRow = null;
+      symbolFilterQuery = symbolSearchEl.value.trim();
+      renderSymbolList(symbolFilterQuery);
+    });
+    symbolSearchEl.addEventListener("compositionend", () => {
+      symbolFilterQuery = symbolSearchEl.value.trim();
+      renderSymbolList(symbolFilterQuery);
+    });
+    symbolSearchEl.addEventListener("focus", () => {
+      renderSymbolList(symbolFilterQuery || symbolSearchEl.value.trim());
+    });
+    symbolSearchEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        symbolSearchListEl.hidden = true;
+        addSelectedSymbol();
+      }
+      if (e.key === "Escape") symbolSearchListEl.hidden = true;
+    });
+    marketFilterEl.addEventListener("change", () => {
+      selectedCatalogRow = null;
+      setMarketView(marketFilterEl.value);
+    });
+    marketTabsEl?.querySelectorAll("button[data-market]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedCatalogRow = null;
+        setMarketView(btn.dataset.market);
+      });
+    });
+    paperViewTabsEl?.querySelectorAll("button[data-paper-view]").forEach((btn) => {
+      btn.addEventListener("click", () => setPaperViewMode(btn.getAttribute("data-paper-view") || "scoped"));
+    });
+    syncPaperViewTabs();
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".symbol-search-wrap")) symbolSearchListEl.hidden = true;
+    });
+
+    function bootMonitorTransport() {
+      if (!startMonitorWebSocket()) {
+        startPolling(true);
+      }
+    }
+
+    loadSymbolCatalog().finally(() => {
+      renderTable();
+      if (FengJiApp.getAccessToken()) {
+        document.addEventListener("fj-auth-ready", bootMonitorTransport, { once: true });
+        if (localStorage.getItem("fj-auth")) {
+          queueMicrotask(bootMonitorTransport);
+        }
+      } else {
+        bootMonitorTransport();
+      }
+    });
+    updateCatalogHint();
+    renderPickOptions();
+  </script>
+</body>
+</html>

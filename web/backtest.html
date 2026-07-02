@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0b10">
+  <title>峰极量化</title>
+  <link rel="stylesheet" href="css/apple.css?v=20260612e">
+  <script src="https://unpkg.com/lightweight-charts@4.1.4/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body class="backtest-page" data-theme="dark">
+  <div id="navMount"></div>
+
+  <header class="backtest-toolbar bt-card">
+    <div class="backtest-toolbar-grid">
+      <div class="field field-search">
+        <label for="symbolSearch">品种搜索</label>
+        <div class="symbol-search-wrap">
+          <input class="input bt-control" id="symbolSearch" type="search" placeholder="点击浏览全部品种，或输入代码过滤" autocomplete="off">
+          <input type="hidden" id="symbol" value="">
+          <ul class="symbol-search-list" id="symbolSearchList" hidden></ul>
+        </div>
+      </div>
+      <div class="field field-market">
+        <label for="market">市场</label>
+        <select class="select bt-control" id="market">
+          <option value="FUTURES">期货</option>
+          <option value="A_STOCK" selected>A股</option>
+          <option value="CRYPTO">虚拟货币</option>
+          <option value="US_STOCK">美股</option>
+        </select>
+      </div>
+      <div class="field field-strategy">
+        <div class="field-label-row">
+          <label for="strategy">定式</label>
+          <a class="strategy-anim-link" id="strategyAnimLink" href="strategies.html" hidden>定式帮助</a>
+        </div>
+        <select class="select bt-control" id="strategy"></select>
+      </div>
+      <div class="field field-years">
+        <label>回测时间</label>
+        <div class="segmented bt-segmented" id="yearsSeg">
+          <button type="button" data-years="1">1年</button>
+          <button type="button" data-years="3" class="active">3年</button>
+          <button type="button" data-years="5">5年</button>
+        </div>
+      </div>
+      <div class="field field-action">
+        <span class="field-action-label" aria-hidden="true">操作</span>
+        <button class="btn btn-primary bt-load-btn" id="loadBtn" type="button">加载回测</button>
+      </div>
+    </div>
+    <p class="backtest-toolbar-hint" id="marketSummary">选择市场后搜索或点选品种</p>
+    <div class="custom-instrument-panel" id="customInstrumentPanel" hidden>
+      <div class="custom-instrument-copy">
+        <b>自选品种回测</b>
+        <span id="customInstrumentHint">库外品种可提交后台处理并自动回测。</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="customSubmitBtn" type="button">提交自选回测</button>
+      <span class="custom-instrument-status" id="customRequestStatus">—</span>
+    </div>
+  </header>
+
+  <main class="backtest-main">
+    <section class="backtest-left">
+      <article class="bt-card bt-chart-card">
+        <header class="bt-card-head">
+          <h2>历史回测 K 线</h2>
+          <span class="bt-card-meta" id="chartMeta">—</span>
+        </header>
+        <div class="bt-chart-panel" id="chartPanel">
+          <div class="empty-state"><div class="icon">📈</div><p>搜索品种并加载回测</p></div>
+        </div>
+      </article>
+      <article class="bt-card bt-equity-card">
+        <header class="bt-card-head"><h2>收益曲线</h2></header>
+        <div class="bt-equity-panel" id="equityPanel">
+          <div class="empty-state compact"><p>加载后显示权益走势</p></div>
+        </div>
+      </article>
+    </section>
+
+    <aside class="backtest-right">
+      <article class="bt-card bt-summary-card" id="summaryCard">
+        <div class="bt-summary-symbol" id="summarySymbol">—</div>
+        <div class="bt-summary-stats">
+          <div class="bt-summary-stat">
+            <span class="lbl">总收益</span>
+            <span class="val" id="summaryReturn">—</span>
+          </div>
+          <div class="bt-summary-stat">
+            <span class="lbl">胜率</span>
+            <span class="val" id="summaryWinRate">—</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="bt-card bt-trades-card">
+        <header class="bt-card-head bt-card-head-center bt-card-head-actions">
+          <h2>交易明细</h2>
+          <button class="btn btn-ghost btn-sm bt-export-btn" id="exportCsvBtn" type="button" disabled>导出 CSV</button>
+        </header>
+        <div class="bt-trade-detail" id="tradeDetail">
+          <div class="empty-state compact"><p>点击 K 线上的买卖点查看该笔交易</p></div>
+        </div>
+        <div class="bucket-detail backtest-bucket-detail" id="bucketDetail">
+          <div class="bucket-detail-empty">选中一笔交易后显示同桶样本</div>
+        </div>
+        <footer class="bt-status" id="statusBar">就绪</footer>
+      </article>
+    </aside>
+  </main>
+
+  <script src="js/config.js?v=20260612d"></script>
+  <script src="js/app.js?v=20260612d"></script>
+  <script src="js/chart.js"></script>
+  <script>
+    FengJiApp.initShell("backtest.html");
+
+    const params = new URLSearchParams(location.search);
+    let years = Number(params.get("years") || 3);
+    let allTrades = [];
+    let tradeDetailSource = "pg";
+    let lastMarkers = [];
+    let currentBucketTrades = [];
+    let selectedTradeIndex = -1;
+    let symbolCatalog = [];
+    let symbolSummaryRequestId = 0;
+    let backtestLoadRequestId = 0;
+    let customRequestId = 0;
+    let symbolFilterQuery = "";
+
+    const marketEl = document.getElementById("market");
+    const symbolEl = document.getElementById("symbol");
+    const symbolSearchEl = document.getElementById("symbolSearch");
+    const symbolSearchListEl = document.getElementById("symbolSearchList");
+    const strategyEl = document.getElementById("strategy");
+    const strategyAnimLinkEl = document.getElementById("strategyAnimLink");
+    const marketSummaryEl = document.getElementById("marketSummary");
+    const statusBar = document.getElementById("statusBar");
+    const chartMetaEl = document.getElementById("chartMeta");
+    const summarySymbolEl = document.getElementById("summarySymbol");
+    const summaryReturnEl = document.getElementById("summaryReturn");
+    const summaryWinRateEl = document.getElementById("summaryWinRate");
+    const customInstrumentPanel = document.getElementById("customInstrumentPanel");
+    const customInstrumentHintEl = document.getElementById("customInstrumentHint");
+    const customSubmitBtn = document.getElementById("customSubmitBtn");
+    const customRequestStatus = document.getElementById("customRequestStatus");
+
+    let subCfg = FengJiApp.getSubscriptionConfig();
+
+    function resolveChartStrategy(strategy) {
+      const cfg = FengJiApp.getSubscriptionConfig();
+      if (FengJiApp.isStrategyAllowed("TOTAL") && (!strategy || strategy === "TOTAL")) {
+        return "TOTAL";
+      }
+      if (strategy && FengJiApp.isStrategyAllowed(strategy)) return strategy;
+      return cfg.strategies[0] || "DS01";
+    }
+
+    function syncStrategyAnimLink(strategyId) {
+      if (!strategyAnimLinkEl) return;
+      const sid = FengJiApp.normalizeStrategyId(strategyId || strategyEl.value);
+      if (sid && FengJiApp.isStrategyAllowed(sid)) {
+        strategyAnimLinkEl.hidden = false;
+        strategyAnimLinkEl.href = FengJiApp.strategyAnimPageUrl(sid);
+        strategyAnimLinkEl.textContent = `${sid} 定式帮助`;
+      } else {
+        strategyAnimLinkEl.hidden = true;
+      }
+    }
+
+    async function syncSubscriptionUi() {
+      subCfg = FengJiApp.getSubscriptionConfig();
+      marketSummaryEl.textContent = `${subCfg.label}订阅 · 定式 ${subCfg.strategies.length} 项 · 回测 ${subCfg.years.join("/")} 年`;
+      document.querySelectorAll("#yearsSeg button").forEach((btn) => {
+        const y = Number(btn.dataset.years);
+        const ok = subCfg.years.includes(y);
+        btn.disabled = !ok;
+        btn.classList.toggle("disabled", !ok);
+      });
+      if (!subCfg.years.includes(years)) {
+        years = subCfg.years[subCfg.years.length - 1];
+        document.querySelectorAll("#yearsSeg button").forEach((btn) => {
+          btn.classList.toggle("active", Number(btn.dataset.years) === years);
+        });
+      }
+      await initStrategies();
+    }
+
+    document.addEventListener("fj-auth-ready", syncSubscriptionUi);
+
+    const presetMarket = params.get("market") || "A_STOCK";
+    if ([...marketEl.options].some((o) => o.value === presetMarket)) {
+      marketEl.value = presetMarket;
+    }
+
+    marketEl.addEventListener("change", async () => {
+      const m = FengJiApp.CFG.MARKETS.find((x) => x.id === marketEl.value);
+      if (m) pickSymbol({ symbol: m.defaultSymbol });
+      updateCustomPanel();
+      await refreshSymbolSummary({ useDefault: true });
+    });
+    const presetSymbol = (params.get("symbol") || "000021").toUpperCase();
+    symbolEl.value = presetSymbol;
+    symbolSearchEl.value = presetSymbol;
+
+    function setStatus(msg, err) {
+      statusBar.textContent = msg;
+      statusBar.style.color = err ? "var(--apple-red)" : "var(--apple-text-tertiary)";
+    }
+
+    function setCustomStatus(msg, err) {
+      customRequestStatus.textContent = msg;
+      customRequestStatus.style.color = err ? "var(--apple-red)" : "var(--apple-text-tertiary)";
+    }
+
+    function tierLabel(tier) {
+      return ({ STRONG: "强", MEDIUM: "中", WEAK: "弱", INSUFFICIENT_DATA: "样本不足" })[tier] || tier || "—";
+    }
+
+    function formatLots(t) {
+      const lots = t.lots ?? t.quantity ?? t.size;
+      if (lots != null && lots !== "") return `${lots} 手`;
+      return "—";
+    }
+
+    function sideLabel(side) {
+      const s = String(side || "").toLowerCase();
+      if (s === "long" || s === "1") return "做多";
+      if (s === "short" || s === "-1") return "做空";
+      return "—";
+    }
+
+    const BACKTEST_INITIAL_CASH = 100_000;
+
+    function isValidPrice(v) {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0;
+    }
+
+    function isShortSide(side) {
+      const n = Number(side);
+      if (Number.isFinite(n)) return n < 0;
+      const s = String(side || "").toLowerCase();
+      return s === "short" || s === "-1";
+    }
+
+    function resolveEntryPrice(trade) {
+      for (const key of ["entry_price", "avg_entry_price"]) {
+        if (isValidPrice(trade?.[key])) return Number(trade[key]);
+      }
+      const day = FengJiChart.normalizeTimeKey(trade?.entry_time);
+      const marker = lastMarkers.find(
+        (m) => m.kind === "entry" && FengJiChart.normalizeTimeKey(m.t) === day,
+      );
+      return isValidPrice(marker?.price) ? Number(marker.price) : null;
+    }
+
+    function resolveExitPrice(trade) {
+      if (isValidPrice(trade?.exit_price)) return Number(trade.exit_price);
+      const day = FengJiChart.normalizeTimeKey(trade?.exit_time);
+      const marker = lastMarkers.find(
+        (m) => m.kind === "exit" && FengJiChart.normalizeTimeKey(m.t) === day,
+      );
+      return isValidPrice(marker?.price) ? Number(marker.price) : null;
+    }
+
+    function tradeReturnRatio(t) {
+      const entry = resolveEntryPrice(t);
+      const exit = resolveExitPrice(t);
+      if (entry != null && exit != null) {
+        return isShortSide(t?.side) ? (entry - exit) / entry : (exit - entry) / entry;
+      }
+      const pnl = Number(t?.net_pnl);
+      if (Number.isFinite(pnl)) return pnl / BACKTEST_INITIAL_CASH;
+      return null;
+    }
+
+    function formatPnl(t) {
+      const ratio = tradeReturnRatio(t);
+      if (ratio == null || !Number.isFinite(ratio)) return "—";
+      const digits = Math.abs(ratio) < 0.01 ? 2 : 1;
+      return FengJiApp.formatPct(ratio, digits);
+    }
+
+    function pnlSign(t) {
+      const ratio = tradeReturnRatio(t);
+      if (ratio != null && Number.isFinite(ratio)) return ratio;
+      const pnl = Number(t?.net_pnl);
+      return Number.isFinite(pnl) ? pnl : NaN;
+    }
+
+    function formatPrice(v) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return "—";
+      return FengJiApp.formatNum(n);
+    }
+
+    function showTradeDetailEmpty(msg = "点击 K 线上的买卖点查看该笔交易") {
+      selectedTradeIndex = -1;
+      document.getElementById("tradeDetail").innerHTML = `<div class="empty-state compact"><p>${escapeHtml(msg)}</p></div>`;
+      renderBucketDetailEmpty();
+    }
+
+    function formatScore(v) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return "—";
+      return n.toFixed(1);
+    }
+
+    function formatR(v) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return "—";
+      return n.toFixed(2);
+    }
+
+    function csvCell(value) {
+      const s = String(value ?? "");
+      if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    }
+
+    function downloadCsv(filename, rows) {
+      if (!rows.length) {
+        setStatus("暂无可导出的交易数据", true);
+        return;
+      }
+      const cols = [
+        "trade_id",
+        "strategy_id",
+        "market",
+        "symbol",
+        "entry_time",
+        "exit_time",
+        "side",
+        "entry_price",
+        "exit_price",
+        "net_pnl",
+        "r_multiple",
+        "signal_tier",
+        "bucket_count",
+        "bucket_win_rate_smoothed",
+        "bucket_key",
+      ];
+      const csv = [cols.join(",")]
+        .concat(rows.map((row) => cols.map((c) => csvCell(row[c])).join(",")))
+        .join("\r\n");
+      const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus(`已导出 ${rows.length} 条 CSV`);
+    }
+
+    function renderBucketDetailEmpty(msg = "选中一笔交易后显示同桶样本") {
+      currentBucketTrades = [];
+      document.getElementById("bucketDetail").innerHTML = `<div class="bucket-detail-empty">${escapeHtml(msg)}</div>`;
+    }
+
+    function renderBucketPeers(rows, selectedTradeId) {
+      if (!rows.length) return '<div class="bucket-trades-empty">暂无同桶样本</div>';
+      return `<div class="bucket-trades-title">同桶样本</div>
+      <div class="bucket-trades-list">${rows.map((row) => {
+        const pnl = pnlSign(row);
+        const cls = Number.isFinite(pnl) ? (pnl >= 0 ? "val-up" : "val-down") : "";
+        const active = row.trade_id === selectedTradeId ? " active" : "";
+        return `<button class="bucket-trade-row${active}" type="button" data-trade-id="${escapeHtml(row.trade_id)}">
+          <span>${escapeHtml(fmtTime(row.entry_time))}</span>
+          <span>${escapeHtml(row.symbol || "—")}</span>
+          <span>${escapeHtml(sideLabel(row.side))}</span>
+          <span class="${cls}">${escapeHtml(formatPnl(row))}</span>
+          <span>${escapeHtml(tierLabel(row.signal_tier))}</span>
+        </button>`;
+      }).join("")}</div>`;
+    }
+
+    async function renderBucketDetail(trade) {
+      const wrap = document.getElementById("bucketDetail");
+      const bucketKey = trade?.bucket_key;
+      if (!trade || !bucketKey) {
+        renderBucketDetailEmpty("该笔交易暂无桶标签");
+        return;
+      }
+      currentBucketTrades = [];
+      const market = trade.market || marketEl.value;
+      const symbol = trade.symbol || symbolEl.value;
+      const bucketCount = Number(trade.bucket_count || 0);
+      const winRate = FengJiApp.formatPct(trade.bucket_win_rate_smoothed, 0);
+      const score = formatScore(trade.signal_score);
+      const avgR = formatR(trade.bucket_avg_r_smoothed ?? trade.avg_r_smoothed);
+      wrap.innerHTML = `<div class="bucket-detail-title">
+        <span>同桶强弱</span>
+        <span class="${FengJiApp.tierClass(trade.signal_tier)}">${escapeHtml(tierLabel(trade.signal_tier))}</span>
+      </div>
+      <div class="bucket-stats">
+        <div><b>${Number.isFinite(bucketCount) ? bucketCount : 0}</b><span>样本</span></div>
+        <div><b>${escapeHtml(winRate)}</b><span>胜率</span></div>
+        <div><b>${escapeHtml(avgR)}</b><span>平均R</span></div>
+        <div><b>${escapeHtml(score)}</b><span>分数</span></div>
+      </div>
+      <div class="bucket-key">${escapeHtml(bucketKey)}</div>
+      <div class="bucket-actions">
+        <button type="button" id="loadBucketBtn">查看同桶样本</button>
+        <button type="button" id="exportBucketBtn" disabled>导出同桶 CSV</button>
+      </div>
+      <div id="bucketPeers"></div>`;
+
+      document.getElementById("loadBucketBtn")?.addEventListener("click", async () => {
+        const btn = document.getElementById("loadBucketBtn");
+        const peers = document.getElementById("bucketPeers");
+        if (!btn || !peers) return;
+        btn.disabled = true;
+        btn.textContent = "读取中…";
+        peers.innerHTML = '<div class="bucket-trades-empty">读取同桶样本…</div>';
+        try {
+          const rows = await FengJiApp.fetchBucketTrades({
+            strategyId: trade.strategy_id,
+            market,
+            bucketKey,
+            symbol,
+            limit: 20,
+          });
+          currentBucketTrades = rows;
+          peers.innerHTML = renderBucketPeers(rows, trade.trade_id);
+          document.getElementById("exportBucketBtn").disabled = !rows.length;
+          peers.querySelectorAll("button[data-trade-id]").forEach((btn2) => {
+            btn2.addEventListener("click", () => {
+              const peer = currentBucketTrades.find((row) => row.trade_id === btn2.dataset.tradeId);
+              if (peer) renderTradeDetail(peer, -1);
+            });
+          });
+          setStatus(`同桶样本 ${rows.length} 条`);
+        } catch (e) {
+          peers.innerHTML = `<div class="bucket-trades-empty">${escapeHtml(e.message || "同桶样本读取失败")}</div>`;
+          setStatus(e.message || "同桶样本读取失败", true);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "查看同桶样本";
+        }
+      });
+
+      document.getElementById("exportBucketBtn")?.addEventListener("click", () => {
+        downloadCsv(`${market}_${symbol}_${trade.strategy_id}_bucket.csv`, currentBucketTrades);
+      });
+    }
+
+    function renderTradeDetail(trade, index = -1) {
+      selectedTradeIndex = index;
+      const wrap = document.getElementById("tradeDetail");
+      if (!trade) {
+        showTradeDetailEmpty();
+        return;
+      }
+      const tier = tierLabel(trade.signal_tier);
+      const tierCls = FengJiApp.tierClass(trade.signal_tier);
+      const pnl = pnlSign(trade);
+      const pnlCls = Number.isFinite(pnl) ? (pnl >= 0 ? "val-up" : "val-down") : "";
+      const strategyName = FengJiApp.strategyDisplayName(trade.strategy_id || "—");
+      wrap.innerHTML = `<div class="bt-trade-detail-grid">
+        <div class="bt-trade-field"><span class="lbl">定式</span><span class="val tag">${escapeHtml(trade.strategy_id || "—")}</span></div>
+        <div class="bt-trade-field"><span class="lbl">方向</span><span class="val">${escapeHtml(sideLabel(trade.side))}</span></div>
+        <div class="bt-trade-field"><span class="lbl">信号</span><span class="val ${tierCls}">${escapeHtml(tier)}</span></div>
+        <div class="bt-trade-field"><span class="lbl">买入时间</span><span class="val">${escapeHtml(fmtTime(trade.entry_time))}</span></div>
+        <div class="bt-trade-field"><span class="lbl">买入价</span><span class="val">${escapeHtml(formatPrice(resolveEntryPrice(trade)))}</span></div>
+        <div class="bt-trade-field"><span class="lbl">手数</span><span class="val">${escapeHtml(formatLots(trade))}</span></div>
+        <div class="bt-trade-field"><span class="lbl">卖出时间</span><span class="val">${escapeHtml(fmtTime(trade.exit_time))}</span></div>
+        <div class="bt-trade-field"><span class="lbl">平仓价</span><span class="val">${escapeHtml(formatPrice(resolveExitPrice(trade)))}</span></div>
+        <div class="bt-trade-field"><span class="lbl">净盈亏</span><span class="val ${pnlCls}">${escapeHtml(formatPnl(trade))}</span></div>
+      </div>
+      <p class="bt-trade-detail-sub">${escapeHtml(strategyName)}</p>
+      ${FengJiApp.isStrategyAllowed(FengJiApp.normalizeStrategyId(trade.strategy_id))
+        ? `<p class="bt-trade-detail-links">${FengJiApp.strategyHelpLinkHtml(trade.strategy_id, { label: "查看定式帮助 →" })}</p>`
+        : ""}`;
+      renderBucketDetail(trade);
+    }
+
+    function selectTradeByIndex(i) {
+      const trade = allTrades[i];
+      if (!trade) return;
+      renderTradeDetail(trade, i);
+      FengJiChart.scrollToTime(trade.entry_time);
+    }
+
+    function onChartTradeClick(time) {
+      const trade = FengJiChart.findTradeAtTime(time, lastMarkers, allTrades);
+      if (!trade) {
+        setStatus("该位置暂无匹配交易明细", true);
+        return;
+      }
+      const idx = allTrades.indexOf(trade);
+      selectTradeByIndex(idx >= 0 ? idx : -1);
+      if (idx < 0) renderTradeDetail(trade);
+      setStatus(idx >= 0 ? `已选中第 ${idx + 1} / ${allTrades.length} 笔交易` : "已显示该买卖点交易");
+    }
+
+    function fmtTime(v) {
+      if (!v) return "—";
+      const s = String(v);
+      return s.length >= 16 ? s.slice(0, 16).replace("T", " ") : s.slice(0, 10);
+    }
+
+    const escapeHtml = FengJiApp.escapeHtml;
+
+    function symbolRowValue(row) {
+      return String(row?.symbol || FengJiApp.symbolSummaryRowCode(row) || "").trim();
+    }
+
+    function symbolRowLabel(row) {
+      return FengJiApp.symbolSummaryRowLabel(row);
+    }
+
+    function resolveBacktestSymbol(raw) {
+      const text = String(raw || "").trim();
+      if (!text) return null;
+      return FengJiApp.resolveWatchEntryInput(symbolCatalog, text, marketEl.value);
+    }
+
+    function applySymbolEntry(entry) {
+      if (!entry?.symbol) return false;
+      const valid = FengJiApp.validateSymbolMarketPair(entry.symbol, entry.market || marketEl.value);
+      if (!valid.ok) {
+        setStatus(valid.message, true);
+        return false;
+      }
+      if (entry.market && entry.market !== marketEl.value) {
+        marketEl.value = entry.market;
+        void refreshSymbolSummary({ useDefault: false });
+      }
+      symbolEl.value = entry.symbol;
+      const row = FengJiApp.lookupSymbolCatalogRow(symbolCatalog, entry.symbol, entry.market || marketEl.value);
+      symbolSearchEl.value = row
+        ? FengJiApp.catalogDisplayLabel(row)
+        : (entry.name ? `${entry.symbol} · ${entry.name}` : entry.symbol);
+      updateCustomPanel();
+      return true;
+    }
+
+    function pickSymbol(row) {
+      const entry = row?.market
+        ? FengJiApp.catalogRowToWatchEntry(row)
+        : resolveBacktestSymbol(symbolRowValue(row));
+      if (!applySymbolEntry(entry || { symbol: symbolRowValue(row), market: marketEl.value, name: "" })) return;
+      symbolFilterQuery = "";
+      symbolSearchListEl.hidden = true;
+    }
+
+    function symbolNeedsCustomSubmit() {
+      const raw = symbolFilterQuery.trim() || symbolEl.value.trim() || symbolSearchEl.value.trim();
+      if (!raw) return false;
+      const entry = resolveBacktestSymbol(raw);
+      if (!entry?.symbol) return false;
+      const market = entry.market || marketEl.value;
+      const row = FengJiApp.lookupSymbolCatalogRow(symbolCatalog, entry.symbol, market);
+      if (!row) return true;
+      return row.has_chart_data === false;
+    }
+
+    function customInstrumentHintText() {
+      const hints = {
+        CRYPTO: "虚拟货币未入库时，可提交后台拉数并自动回测。",
+        FUTURES: "期货库外品种可提交；有本地 K 线则自动回测，否则登记待拉数。",
+        A_STOCK: "A股库外代码可提交；有本地 K 线则自动回测，否则登记待拉数。",
+        US_STOCK: "美股库外代码可提交；有本地 K 线则自动回测，否则登记待拉数。",
+      };
+      return hints[marketEl.value] || "库外品种可提交后台处理并自动回测。";
+    }
+
+    function updateCustomPanel() {
+      const isPaid = FengJiApp.isPaidPlan(FengJiApp.getSubscriptionPlan());
+      const needsCustom = symbolNeedsCustomSubmit();
+      customInstrumentPanel.hidden = !needsCustom;
+      customSubmitBtn.disabled = !isPaid || !needsCustom;
+      customInstrumentHintEl.textContent = customInstrumentHintText();
+      if (!needsCustom) {
+        customRequestStatus.textContent = "—";
+        return;
+      }
+      if (!isPaid) setCustomStatus("标准/专业档可提交自选回测", true);
+      else setCustomStatus("输入库外品种代码后可提交", false);
+    }
+
+    function renderSymbolList(query = "") {
+      const q = query.trim().toUpperCase();
+      const filtered = symbolCatalog.filter((row) => FengJiApp.catalogRowMatchesQuery(row, q));
+      const rows = (q
+        ? FengJiApp.sortCatalogRowsByQuery(filtered, q).slice(0, 80)
+        : filtered.slice(0, 80));
+      if (!rows.length) {
+        if (q) {
+          const draft = resolveBacktestSymbol(q);
+          if (draft?.symbol) {
+            const mkt = FengJiApp.marketLabel(draft.market);
+            const title = draft.name ? `${draft.symbol} · ${draft.name}` : draft.symbol;
+            symbolSearchListEl.innerHTML = `<li><button type="button" data-symbol="${escapeHtml(draft.symbol)}" data-manual="1">
+              <span class="sym">使用 ${escapeHtml(title)}</span>
+              <span class="meta">${escapeHtml(mkt)} · 按代码回测</span>
+            </button></li>`;
+            symbolSearchListEl.hidden = false;
+            symbolSearchListEl.querySelector("button[data-manual]")?.addEventListener("click", () => {
+              applySymbolEntry(draft);
+              symbolSearchListEl.hidden = true;
+              loadAll();
+            });
+            return;
+          }
+        }
+        symbolSearchListEl.innerHTML = '<li class="symbol-search-empty">无匹配品种（可回车按代码回测）</li>';
+        symbolSearchListEl.hidden = !q;
+        return;
+      }
+      symbolSearchListEl.innerHTML = rows.map((row) => {
+        const stats = Number(row.trade_count || 0) > 0
+          ? `${row.trade_count} 笔 · ${row.strategy_count} 定式`
+          : (row.has_chart_data !== false ? "K线可查 · 暂无回测样本" : "缺K线");
+        const extra = row.has_chart_data === false ? " · 缺K线" : "";
+        const entry = FengJiApp.catalogRowToWatchEntry(row);
+        return (
+        `<li><button type="button" data-symbol="${escapeHtml(entry.symbol)}" data-market="${escapeHtml(entry.market)}">
+          <span class="sym">${escapeHtml(symbolRowLabel(row))}</span>
+          <span class="meta">${stats}${extra}</span>
+        </button></li>`
+      );
+      }).join("");
+      symbolSearchListEl.hidden = false;
+      symbolSearchListEl.querySelectorAll("button[data-symbol]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const row = FengJiApp.lookupSymbolCatalogRow(
+            symbolCatalog,
+            btn.dataset.symbol,
+            btn.dataset.market || marketEl.value,
+          );
+          pickSymbol(row || { symbol: btn.dataset.symbol });
+          loadAll();
+        });
+      });
+      updateCustomPanel();
+    }
+
+    marketSummaryEl.textContent = `${subCfg.label}订阅 · 定式 ${subCfg.strategies.length} 项 · 回测 ${subCfg.years.join("/")} 年`;
+
+    async function refreshSymbolSummary({ useDefault = false } = {}) {
+      const market = marketEl.value;
+      const requestId = ++symbolSummaryRequestId;
+      marketSummaryEl.textContent = "读取样本概览…";
+      try {
+        const rows = await FengJiApp.fetchSymbolSummary(market, 500);
+        if (requestId !== symbolSummaryRequestId || market !== marketEl.value) return;
+        symbolCatalog = rows;
+        const gateMsg = FengJiApp.planGateMessage();
+        if (gateMsg) {
+          marketSummaryEl.textContent = gateMsg;
+          symbolCatalog = [];
+          symbolSearchListEl.hidden = true;
+          return;
+        }
+        const quotaHint = FengJiApp.symbolQuotaHint();
+        const poolHint = quotaHint ? ` · ${quotaHint}` : "";
+        const totalTrades = symbolCatalog.reduce((sum, row) => sum + Number(row.trade_count || 0), 0);
+        marketSummaryEl.textContent = symbolCatalog.length
+          ? `${FengJiApp.marketLabel(market)}${poolHint} · ${symbolCatalog.length} 个品种 · 共 ${totalTrades} 笔 · ${subCfg.label}档`
+          : `${FengJiApp.marketLabel(market)} · 暂无 PG 回测样本 · ${subCfg.label}档`;
+        if (symbolCatalog.length && useDefault) {
+          const current = symbolEl.value.trim().toUpperCase();
+          const match = symbolCatalog.find(
+            (row) => symbolRowValue(row).toUpperCase() === current || String(row.symbol || "").toUpperCase() === current
+          );
+          if (match) {
+            pickSymbol(match);
+          } else {
+            const def = (FengJiApp.CFG.MARKETS.find((x) => x.id === market)?.defaultSymbol || symbolCatalog[0].symbol).toUpperCase();
+            const chartRows = symbolCatalog.filter((row) => row.has_chart_data !== false);
+            const pool = chartRows.length ? chartRows : symbolCatalog;
+            const preferred = pool.find((row) => row.symbol.toUpperCase() === def) || pool[0];
+            pickSymbol(preferred);
+          }
+        }
+        renderSymbolList("");
+        updateCustomPanel();
+      } catch (e) {
+        if (requestId !== symbolSummaryRequestId) return;
+        symbolCatalog = [];
+        marketSummaryEl.textContent = e.message || "样本概览读取失败";
+        symbolSearchListEl.hidden = true;
+      }
+    }
+
+    document.querySelectorAll("#yearsSeg button").forEach((btn) => {
+      const y = Number(btn.dataset.years);
+      if (!subCfg.years.includes(y)) {
+        btn.disabled = true;
+        btn.classList.add("disabled");
+        return;
+      }
+      if (y === years) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        if (btn.disabled) return;
+        document.querySelectorAll("#yearsSeg button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        years = y;
+      });
+    });
+    if (!subCfg.years.includes(years)) {
+      years = subCfg.years[subCfg.years.length - 1];
+      document.querySelectorAll("#yearsSeg button").forEach((btn) => {
+        btn.classList.toggle("active", Number(btn.dataset.years) === years);
+      });
+    }
+
+    async function initStrategies() {
+      const list = await FengJiApp.fetchStrategies();
+      const allowed = new Set(subCfg.strategies);
+      strategyEl.innerHTML = "";
+      const addOption = (sid) => {
+        const o = document.createElement("option");
+        o.value = sid;
+        o.textContent = FengJiApp.strategyDisplayName(sid);
+        strategyEl.appendChild(o);
+      };
+      if (allowed.has("TOTAL")) addOption("TOTAL");
+      else {
+        const o = document.createElement("option");
+        o.value = "";
+        o.disabled = true;
+        o.textContent = `${FengJiApp.strategyDisplayName("TOTAL")}（专业档）`;
+        strategyEl.appendChild(o);
+      }
+      list.forEach((s) => {
+        if (allowed.has(s.strategy_id) && s.strategy_id !== "TOTAL") addOption(s.strategy_id);
+      });
+      allowed.forEach((sid) => {
+        if (sid !== "TOTAL" && !list.some((s) => s.strategy_id === sid)) addOption(sid);
+      });
+      const preset = params.get("strategy");
+      if (preset && allowed.has(preset)) strategyEl.value = preset;
+      else if (allowed.has("TOTAL")) strategyEl.value = "TOTAL";
+      else strategyEl.value = subCfg.strategies[0];
+      syncStrategyAnimLink(strategyEl.value);
+    }
+
+    symbolSearchEl.addEventListener("input", () => {
+      symbolFilterQuery = symbolSearchEl.value.trim().toUpperCase();
+      const entry = resolveBacktestSymbol(symbolSearchEl.value);
+      if (entry?.symbol) symbolEl.value = entry.symbol;
+      else if (symbolFilterQuery) symbolEl.value = symbolFilterQuery;
+      renderSymbolList(symbolFilterQuery);
+      updateCustomPanel();
+    });
+    symbolSearchEl.addEventListener("compositionend", () => {
+      symbolFilterQuery = symbolSearchEl.value.trim().toUpperCase();
+      renderSymbolList(symbolFilterQuery);
+      updateCustomPanel();
+    });
+    symbolSearchEl.addEventListener("focus", () => {
+      renderSymbolList(symbolFilterQuery || symbolSearchEl.value.trim());
+    });
+    symbolSearchEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        symbolSearchListEl.hidden = true;
+        const entry = resolveBacktestSymbol(symbolFilterQuery || symbolSearchEl.value);
+        if (entry) applySymbolEntry(entry);
+        loadAll();
+      }
+      if (e.key === "Escape") symbolSearchListEl.hidden = true;
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".symbol-search-wrap")) symbolSearchListEl.hidden = true;
+    });
+
+    function renderSummary(bundle, symbol) {
+      const m = bundle.metrics || {};
+      summarySymbolEl.textContent = symbol;
+      const ret = m.total_return;
+      summaryReturnEl.textContent = FengJiApp.formatPct(ret);
+      summaryReturnEl.className = `val ${(ret || 0) >= 0 ? "val-up" : "val-down"}`;
+      summaryWinRateEl.textContent = FengJiApp.formatPct(m.win_rate, 0);
+      summaryWinRateEl.className = "val";
+    }
+
+    function tradesFromBundle(bundle, market) {
+      const rows = Array.isArray(bundle?.trades) ? bundle.trades : [];
+      return rows.map((row) => ({ ...row, market: row.market || market }));
+    }
+
+    function resolveTradesForPage(pgTrades, bundle, market) {
+      if (Array.isArray(pgTrades) && pgTrades.length) {
+        return { trades: pgTrades, source: "pg" };
+      }
+      const live = tradesFromBundle(bundle, market);
+      if (live.length) {
+        return { trades: live, source: "live_backtest" };
+      }
+      return { trades: [], source: "none" };
+    }
+
+    function storeTrades(trades, source = "pg") {
+      allTrades = trades;
+      tradeDetailSource = source;
+      currentBucketTrades = [];
+      document.getElementById("exportCsvBtn").disabled = !trades.length;
+      let emptyMsg = "暂无成交或未导入 PG 上下文";
+      if (trades.length) {
+        emptyMsg = source === "live_backtest"
+          ? "当前为实时回测明细（无 PG 同桶统计）；点击 K 线买卖点查看"
+          : "点击 K 线上的买卖点查看该笔交易";
+      }
+      showTradeDetailEmpty(emptyMsg);
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function waitForBacktestJob(jobId, requestId) {
+      for (let i = 0; i < 120; i += 1) {
+        if (requestId !== backtestLoadRequestId) return null;
+        const job = await FengJiApp.fetchBacktestJob(jobId);
+        const shortId = String(job.id || jobId).slice(0, 8);
+        if (job.status === "queued") setStatus(`回测任务排队中 · ${shortId}`);
+        else if (job.status === "running") setStatus(`回测计算中 · ${shortId}`);
+        else if (job.status === "succeeded") return job;
+        else if (job.status === "failed") throw new Error(job.error_message || "回测任务失败");
+        await sleep(500);
+      }
+      throw new Error("回测任务超时");
+    }
+
+    function customStatusLabel(row) {
+      const status = row?.status || "";
+      if (status === "ingesting") return "拉取K线中";
+      if (status === "backtesting") return "回测计算中";
+      if (status === "backtested") return "回测完成";
+      if (status === "paper_enabled") return "已加入模拟观察";
+      if (status === "failed") return row.error_message || "自选回测失败";
+      return status || "已提交";
+    }
+
+    async function waitForCustomRequest(requestId, requestSeq) {
+      for (let i = 0; i < 180; i += 1) {
+        if (requestSeq !== customRequestId) return null;
+        const row = await FengJiApp.fetchCustomInstrumentRequest(requestId);
+        const job = row.backtest_job || {};
+        setCustomStatus(`${customStatusLabel(row)} · ${String(row.id || requestId).slice(0, 8)}`, row.status === "failed");
+        if (row.status === "backtested" || row.status === "paper_enabled") return row;
+        if (row.status === "failed") throw new Error(row.error_message || "自选回测失败");
+        if (job.status === "failed") throw new Error(job.error_message || "回测任务失败");
+        await sleep(1000);
+      }
+      throw new Error("自选回测任务超时");
+    }
+
+    async function submitCustomInstrument() {
+      const requestSeq = ++customRequestId;
+      const raw = symbolFilterQuery.trim() || symbolEl.value.trim() || symbolSearchEl.value.trim();
+      const entry = resolveBacktestSymbol(raw);
+      const market = entry?.market || marketEl.value;
+      const symbol = entry?.symbol || raw.toUpperCase();
+      if (!symbol) {
+        setCustomStatus("请先输入库外品种代码", true);
+        return;
+      }
+      const valid = FengJiApp.validateSymbolMarketPair(symbol, market);
+      if (!valid.ok) {
+        setCustomStatus(valid.message, true);
+        setStatus(valid.message, true);
+        return;
+      }
+      if (!symbolNeedsCustomSubmit()) {
+        setCustomStatus("该品种已在目录中，请直接点「加载回测」", true);
+        return;
+      }
+      if (!FengJiApp.isPaidPlan(FengJiApp.getSubscriptionPlan())) {
+        setCustomStatus("标准/专业档可提交自选回测", true);
+        return;
+      }
+      customSubmitBtn.disabled = true;
+      setCustomStatus("提交自选回测…");
+      try {
+        const row = await FengJiApp.submitCustomInstrumentRequest({
+          market,
+          symbol,
+          strategies: [strategyEl.value || "TOTAL"],
+          years,
+          enablePaper: false,
+        });
+        if (requestSeq !== customRequestId) return;
+        setCustomStatus(`${customStatusLabel(row)} · ${String(row.id || "").slice(0, 8)}`, row.status === "failed");
+        const finalRow = ["backtested", "paper_enabled"].includes(row.status)
+          ? row
+          : await waitForCustomRequest(row.id, requestSeq);
+        if (!finalRow || requestSeq !== customRequestId) return;
+        pickSymbol({ symbol: finalRow.symbol, market: finalRow.market });
+        setCustomStatus(`回测完成 · ${finalRow.symbol}`);
+        await refreshSymbolSummary({ useDefault: false });
+        await loadAll();
+      } catch (e) {
+        if (requestSeq !== customRequestId) return;
+        setCustomStatus(e.message || "自选回测失败", true);
+        setStatus(e.message || "自选回测失败", true);
+      } finally {
+        updateCustomPanel();
+      }
+    }
+
+    async function loadAll() {
+      const requestId = ++backtestLoadRequestId;
+      const gateMsg = FengJiApp.planGateMessage();
+      if (gateMsg) {
+        setStatus(gateMsg, true);
+        return;
+      }
+      const raw = symbolFilterQuery.trim() || symbolEl.value.trim() || symbolSearchEl.value.trim();
+      const entry = resolveBacktestSymbol(raw);
+      const market = entry?.market || marketEl.value;
+      const symbol = entry?.symbol || raw.toUpperCase();
+      let strategy = strategyEl.value || subCfg.strategies[0];
+      if (!symbol) {
+        setStatus("请先搜索并选择品种", true);
+        return;
+      }
+      const valid = FengJiApp.validateSymbolMarketPair(symbol, market);
+      if (!valid.ok) {
+        setStatus(valid.message, true);
+        return;
+      }
+      if (market !== marketEl.value) {
+        marketEl.value = market;
+        await refreshSymbolSummary({ useDefault: false });
+      }
+      const quota = FengJiApp.ensureSymbolInQuota(symbol, market);
+      if (!quota.ok) {
+        setStatus(quota.message, true);
+        return;
+      }
+      if (quota.added) {
+        setStatus(`已加入自选（${FengJiApp.symbolQuotaHint()}），正在加载…`, false);
+      }
+      if (!FengJiApp.isStrategyAllowed(strategy)) {
+        strategy = subCfg.strategies[0];
+        strategyEl.value = strategy;
+        setStatus(`当前 ${subCfg.label}档不可用该定式，已切换为 ${strategy}`, true);
+      }
+      if (!FengJiApp.isYearAllowed(years)) {
+        setStatus(`当前 ${subCfg.label}档仅支持 ${subCfg.years.join("/")} 年回测，请调整年限或升级订阅`, true);
+        return;
+      }
+      symbolEl.value = symbol;
+      const catalogHit = FengJiApp.lookupSymbolCatalogRow(symbolCatalog, symbol, market);
+      symbolSearchEl.value = catalogHit
+        ? FengJiApp.catalogDisplayLabel(catalogHit)
+        : (entry?.name ? `${symbol} · ${entry.name}` : symbol);
+      symbolFilterQuery = "";
+      symbolSearchListEl.hidden = true;
+
+      const chartPanel = document.getElementById("chartPanel");
+      const equityPanel = document.getElementById("equityPanel");
+      chartPanel.innerHTML = '<div class="loading-overlay"><span class="spinner"></span>加载 K 线…</div>';
+      equityPanel.innerHTML = '<div class="loading-overlay"><span class="spinner"></span></div>';
+      setStatus("加载中…");
+
+      const chartStrategy = resolveChartStrategy(strategy);
+      const trQ = new URLSearchParams({ symbol, market, limit: "500" });
+      if (strategy && strategy !== "TOTAL") trQ.set("strategy_id", strategy);
+      else if (chartStrategy !== "TOTAL") trQ.set("strategy_id", chartStrategy);
+
+      try {
+        const [job, trRes] = await Promise.all([
+          FengJiApp.submitBacktestJob({ market, symbol, strategyId: chartStrategy, years }),
+          fetch(`${FengJiApp.CFG.API_BASE}/api/v1/backtests/trades?${trQ}`),
+        ]);
+        if (requestId !== backtestLoadRequestId) return;
+        setStatus(`回测任务已提交 · ${String(job.id || "").slice(0, 8)}`);
+        const finalJob = job.status === "succeeded" ? job : await waitForBacktestJob(job.id, requestId);
+        if (requestId !== backtestLoadRequestId || !finalJob) return;
+        const bundle = finalJob.result?.bundle;
+        if (!bundle) throw new Error("回测任务无图表结果");
+        const pgTrades = trRes.ok ? await trRes.json() : [];
+        if (requestId !== backtestLoadRequestId) return;
+        const { trades, source } = resolveTradesForPage(pgTrades, bundle, market);
+        lastMarkers = bundle.markers || [];
+
+        chartPanel.innerHTML = "";
+        equityPanel.innerHTML = "";
+        storeTrades(trades, source);
+        FengJiChart.render(chartPanel, bundle, {
+          clean: true,
+          trades,
+          onTradeClick: onChartTradeClick,
+        });
+        FengJiChart.renderEquity(equityPanel, bundle.equity_curve || []);
+
+        renderSummary(bundle, symbol);
+        const tradeSourceHint = source === "live_backtest" ? " · 实时回测明细" : "";
+        chartMetaEl.textContent = `${bundle.strategy_id} · ${bundle.bars?.length || 0} 根K线 · ${trades.length} 笔${tradeSourceHint} · 点击买卖点查看明细`;
+
+        const nextParams = new URLSearchParams({ market, symbol, years: String(years) });
+        if (strategy) nextParams.set("strategy", strategy);
+        history.replaceState(null, "", `?${nextParams}`);
+
+        setStatus(`${FengJiApp.marketLabel(market)} · ${symbol} · ${bundle.strategy_id} 已加载`);
+      } catch (e) {
+        if (requestId !== backtestLoadRequestId) return;
+        FengJiChart.showMessage(chartPanel, e.message || "加载失败");
+        FengJiChart.showEquityMessage(equityPanel, "—");
+        setStatus(FengJiApp.formatFeatureGateError(e.message) || e.message || "加载失败", true);
+      }
+    }
+
+    document.getElementById("loadBtn").addEventListener("click", loadAll);
+    strategyEl.addEventListener("change", () => syncStrategyAnimLink(strategyEl.value));
+    customSubmitBtn.addEventListener("click", submitCustomInstrument);
+    document.getElementById("exportCsvBtn").addEventListener("click", () => {
+      const market = marketEl.value;
+      const symbol = symbolEl.value.trim().toUpperCase() || symbolSearchEl.value.trim().toUpperCase() || "symbol";
+      downloadCsv(`${market}_${symbol}_${strategyEl.value || "TOTAL"}_${years}y_trades.csv`, allTrades);
+    });
+
+    async function bootBacktestPage() {
+      try {
+        await FengJiApp.refreshAuthSessionFromApi();
+      } catch {
+        /* noop */
+      }
+      await syncSubscriptionUi();
+      await refreshSymbolSummary({ useDefault: !params.get("symbol") });
+      updateCustomPanel();
+      if (params.get("symbol")) loadAll();
+    }
+    void bootBacktestPage();
+  </script>
+</body>
+</html>
+

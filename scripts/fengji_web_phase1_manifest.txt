@@ -1,0 +1,28 @@
+# FengJi Web — Phase 4 manifest (PR #10)
+# Static web assets + subscription smoke + static tests.
+
+web/index.html
+web/login.html
+web/pricing.html
+web/payment.html
+web/community.html
+web/backtest.html
+web/monitor.html
+web/strategies.html
+web/symbol.html
+web/admin.html
+web/css/apple.css
+web/js/app.js
+web/js/config.js
+web/js/chart.js
+web/js/monitor-chart.js
+web/js/strategy_animations.js
+web/assets/lottie/manifest.json
+
+scripts/smoke_w17_subscription_browser.py
+
+tests/test_web_static.py
+tests/test_feature_gate_api.py
+tests/test_w17_subscription_browser_smoke.py
+tests/test_w15_strategy_animations.py
+tests/test_w16_monitor_browser_smoke.py

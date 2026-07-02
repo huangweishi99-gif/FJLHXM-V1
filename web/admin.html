@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0b10">
+  <title>峰极量化 · 管理后台</title>
+  <link rel="stylesheet" href="css/apple.css">
+  <style>
+    .admin-page-main { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+    .admin-stat { padding: 1rem; border-radius: 12px; background: var(--card-bg, rgba(255,255,255,0.04)); border: 1px solid rgba(255,255,255,0.08); }
+    .admin-stat-label { font-size: 0.85rem; opacity: 0.7; }
+    .admin-stat-value { font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem; }
+    .admin-token-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+    .admin-token-row input { flex: 1; min-width: 200px; }
+    .admin-table-wrap { overflow-x: auto; margin-top: 1rem; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .admin-table th, .admin-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; }
+    .admin-hint { font-size: 0.9rem; opacity: 0.75; line-height: 1.5; }
+    .admin-status-ok { color: #34c759; }
+    .admin-status-warn { color: #ff9f0a; }
+  </style>
+</head>
+<body class="admin-page" data-theme="dark">
+  <div id="navMount"></div>
+  <main class="admin-page-main">
+    <header>
+      <h1 class="hero-title">管理后台</h1>
+      <p class="admin-hint">只读运行概览 · 本地开发用。Token 由 <code>scripts/start_fengji_local.ps1</code> 生成，保存在 <code>runtime/secrets/fengji_local.env</code>。</p>
+    </header>
+
+    <section class="card bt-card" id="loginPanel">
+      <h2>管理员 Token</h2>
+      <div class="admin-token-row">
+        <input class="input bt-control" id="adminTokenInput" type="password" placeholder="粘贴 FENGJI_ADMIN_TOKEN" autocomplete="off">
+        <button class="btn btn-primary" type="button" id="adminLoginBtn">进入</button>
+      </div>
+      <p class="admin-hint" id="loginHint"></p>
+    </section>
+
+    <section class="card bt-card" id="overviewPanel" hidden>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+        <h2>运行概览</h2>
+        <button class="btn btn-secondary" type="button" id="refreshBtn">刷新</button>
+      </div>
+      <div class="admin-grid" id="statsGrid"></div>
+      <h3>最近注册用户</h3>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>账号</th><th>档位</th><th>到期</th><th>注册时间</th></tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+      <h3>最近订阅订单</h3>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>时间</th><th>用户</th><th>档位</th><th>渠道</th><th>状态</th></tr>
+          </thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+      </div>
+      <h3>监测 WS 最近事件</h3>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>时间</th><th>事件</th><th>用户</th><th>详情</th></tr>
+          </thead>
+          <tbody id="wsEventsBody"></tbody>
+        </table>
+      </div>
+      <h3>雷达快照（只读 · C6）</h3>
+      <p class="admin-hint" id="radarHint">signal_tier 来自历史同桶统计，仅复盘展示，不修改 OS/定式/挂单。</p>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>品种</th><th>定式</th><th>方向</th><th>状态</th><th>阵营</th><th>信号强弱</th><th>桶样本</th></tr>
+          </thead>
+          <tbody id="radarBody"></tbody>
+        </table>
+      </div>
+      <p class="admin-hint" style="margin-top:1rem;">V1 只读；品种上下架与任务重跑留待 WAdmin 后续。</p>
+    </section>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    FengJiApp.initShell("index.html");
+
+    const TOKEN_KEY = "fj-admin-token";
+    const loginPanel = document.getElementById("loginPanel");
+    const overviewPanel = document.getElementById("overviewPanel");
+    const adminTokenInput = document.getElementById("adminTokenInput");
+    const loginHint = document.getElementById("loginHint");
+    const statsGrid = document.getElementById("statsGrid");
+    const ordersBody = document.getElementById("ordersBody");
+    const usersBody = document.getElementById("usersBody");
+    const wsEventsBody = document.getElementById("wsEventsBody");
+    const radarBody = document.getElementById("radarBody");
+    const radarHint = document.getElementById("radarHint");
+
+    function tierLabel(tier) {
+      return ({ STRONG: "强", MEDIUM: "中", WEAK: "弱", INSUFFICIENT_DATA: "样本不足" })[tier] || tier || "—";
+    }
+
+    function shortId(value) {
+      const s = String(value || "");
+      if (s.length <= 10) return s;
+      return `${s.slice(0, 6)}…`;
+    }
+
+    function formatPlan(plan) {
+      const label = FengJiApp.CFG?.SUBSCRIPTION_PLANS?.[plan]?.label;
+      return label ? `${label} (${plan})` : (plan || "—");
+    }
+
+    function getAdminToken() {
+      return (sessionStorage.getItem(TOKEN_KEY) || adminTokenInput.value || "").trim();
+    }
+
+    function setAdminToken(token) {
+      sessionStorage.setItem(TOKEN_KEY, token);
+    }
+
+    function statCard(label, value) {
+      return `<article class="admin-stat"><div class="admin-stat-label">${label}</div><div class="admin-stat-value">${value}</div></article>`;
+    }
+
+    async function loadRadarSnapshot() {
+      if (!radarBody) return;
+      radarBody.innerHTML = `<tr><td colspan="7">加载雷达…</td></tr>`;
+      try {
+        const res = await fetch(`${FengJiApp.CFG.API_BASE}/api/v1/monitor/radar/latest?limit=30&include_tier=true`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        const src = data.source_path ? `来源 ${String(data.source_path).split(/[/\\]/).pop()}` : data.source || "—";
+        radarHint.textContent = `${data.tier_disclaimer || ""} · ${src}`;
+        const rows = data.rows || [];
+        if (!rows.length) {
+          radarBody.innerHTML = `<tr><td colspan="7">暂无 radar.csv（本地可运行雷达后刷新）</td></tr>`;
+          return;
+        }
+        radarBody.innerHTML = rows.map((r) => {
+          const tier = r.signal_tier || "INSUFFICIENT_DATA";
+          const tierCls = FengJiApp.tierClass(tier);
+          const n = r.bucket_count != null ? r.bucket_count : "—";
+          return `
+            <tr>
+              <td>${FengJiApp.escapeHtml(r.symbol || "—")}</td>
+              <td>${FengJiApp.escapeHtml(r.strategy_id || "—")}</td>
+              <td>${FengJiApp.escapeHtml(r.side || "—")}</td>
+              <td>${FengJiApp.escapeHtml(r.status || "—")}</td>
+              <td>${FengJiApp.escapeHtml(r.os_camp || "—")}</td>
+              <td><span class="${tierCls}">${FengJiApp.escapeHtml(tierLabel(tier))}</span></td>
+              <td>${FengJiApp.escapeHtml(String(n))}</td>
+            </tr>`;
+        }).join("");
+      } catch (err) {
+        radarBody.innerHTML = `<tr><td colspan="7">雷达不可用：${FengJiApp.escapeHtml(String(err.message || err))}</td></tr>`;
+      }
+    }
+
+    async function loadOverview() {
+      const token = getAdminToken();
+      if (!token) {
+        loginHint.textContent = "请先输入管理 Token。";
+        return;
+      }
+      loginHint.textContent = "加载中…";
+      try {
+        const res = await fetch(`${FengJiApp.CFG.API_BASE}/api/v1/admin/overview`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        loginPanel.hidden = true;
+        overviewPanel.hidden = false;
+        loginHint.textContent = "";
+
+        const jobs = data.backtest_jobs || {};
+        const ws = data.monitor_ws || {};
+        const wsLife = ws.lifetime || {};
+        statsGrid.innerHTML = [
+          statCard("API", data.service?.status === "ok" ? "正常" : "异常"),
+          statCard("注册用户", data.auth_users ?? "—"),
+          statCard("订阅订单", data.subscription_orders_total ?? "—"),
+          statCard("自选请求", data.custom_instrument_requests_total ?? "—"),
+          statCard("回测任务", jobs.total ?? "—"),
+          statCard("WS 连接", ws.active_total ?? "—"),
+          statCard("WS 快照", wsLife.snapshots_sent ?? "—"),
+          statCard("WS 心跳", wsLife.heartbeats_sent ?? "—"),
+          statCard("WS 增量", wsLife.deltas_sent ?? "—"),
+        ].join("");
+
+        const users = data.auth_users_recent || [];
+        if (!users.length) {
+          usersBody.innerHTML = `<tr><td colspan="4">暂无注册用户</td></tr>`;
+        } else {
+          usersBody.innerHTML = users.map((u) => `
+            <tr>
+              <td>${FengJiApp.escapeHtml(u.account || "—")}</td>
+              <td>${FengJiApp.escapeHtml(formatPlan(u.plan_id))}</td>
+              <td>${FengJiApp.escapeHtml((u.plan_expires_at || "—").slice(0, 10))}</td>
+              <td>${FengJiApp.escapeHtml((u.created_at || "—").slice(0, 19))}</td>
+            </tr>
+          `).join("");
+        }
+
+        const orders = data.subscription_orders_recent || [];
+        if (!orders.length) {
+          ordersBody.innerHTML = `<tr><td colspan="5">暂无订阅订单</td></tr>`;
+        } else {
+          ordersBody.innerHTML = orders.map((o) => `
+            <tr>
+              <td>${FengJiApp.escapeHtml((o.created_at || "—").slice(0, 19))}</td>
+              <td>${FengJiApp.escapeHtml(shortId(o.user_id))}</td>
+              <td>${FengJiApp.escapeHtml(o.plan_id || "—")}</td>
+              <td>${FengJiApp.escapeHtml(o.channel || "—")}</td>
+              <td>${FengJiApp.escapeHtml(o.status || "—")}</td>
+            </tr>
+          `).join("");
+        }
+
+        const wsEvents = ws.recent_events || [];
+        if (!wsEvents.length) {
+          wsEventsBody.innerHTML = `<tr><td colspan="4">暂无 WS 事件</td></tr>`;
+        } else {
+          wsEventsBody.innerHTML = wsEvents.map((e) => {
+            const detail = [e.plan, e.seq, e.changed, e.error].filter(Boolean).join(" · ");
+            return `
+            <tr>
+              <td>${FengJiApp.escapeHtml(e.ts || "—")}</td>
+              <td>${FengJiApp.escapeHtml(e.event || "—")}</td>
+              <td>${FengJiApp.escapeHtml(e.user_id || "—")}</td>
+              <td>${FengJiApp.escapeHtml(detail || "—")}</td>
+            </tr>`;
+          }).join("");
+        }
+        await loadRadarSnapshot();
+      } catch (err) {
+        loginHint.textContent = String(err.message || err);
+        overviewPanel.hidden = true;
+        loginPanel.hidden = false;
+      }
+    }
+
+    document.getElementById("adminLoginBtn").addEventListener("click", () => {
+      setAdminToken(adminTokenInput.value.trim());
+      loadOverview();
+    });
+    document.getElementById("refreshBtn")?.addEventListener("click", loadOverview);
+
+    const saved = sessionStorage.getItem(TOKEN_KEY);
+    if (saved) {
+      adminTokenInput.value = saved;
+      loadOverview();
+    }
+  </script>
+</body>
+</html>

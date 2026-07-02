@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#000000">
+  <title>峰极量化</title>
+  <link rel="stylesheet" href="css/apple.css">
+  <script src="https://unpkg.com/lightweight-charts@4.1.4/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body class="monitor-dash" data-theme="dark">
+  <div id="navMount"></div>
+
+  <header class="monitor-header">
+    <div class="monitor-header-left">
+      <span class="live-dot"></span>
+      <h1>峰极量化</h1>
+      <span class="monitor-badge" id="sourceBadge">加载中</span>
+    </div>
+    <div class="monitor-header-right">
+      <span class="monitor-meta" id="updatedAt">—</span>
+      <button class="btn btn-secondary btn-sm" type="button" id="refreshBtn">刷新</button>
+    </div>
+  </header>
+
+  <main class="monitor-main">
+    <aside class="monitor-positions" id="positionList">
+      <div class="monitor-positions-scroll" id="positionScroll">
+        <div class="empty-state compact"><span class="spinner"></span></div>
+      </div>
+    </aside>
+
+    <section class="monitor-center">
+      <div class="monitor-chart-wrap">
+        <div class="monitor-chart-toolbar">
+          <span id="chartSymbol">选择左侧品种</span>
+          <span class="monitor-chart-tag" id="chartStrategy">—</span>
+          <span class="monitor-chart-tag camp" id="chartCamp">峰极 OS</span>
+        </div>
+        <div class="monitor-chart-area" id="chartPanel"></div>
+      </div>
+
+      <section class="monitor-detail" id="detailPanel">
+        <div class="monitor-detail-grid">
+          <div class="detail-cell">
+            <span class="detail-label">品种</span>
+            <span class="detail-value" id="dName">—</span>
+            <span class="detail-sub" id="dMainContract">—</span>
+          </div>
+          <div class="detail-cell">
+            <span class="detail-label">模拟买入</span>
+            <span class="detail-value val-up" id="dDirection">—</span>
+          </div>
+          <div class="detail-cell">
+            <span class="detail-label">开仓时间</span>
+            <span class="detail-value" id="dTime">—</span>
+          </div>
+          <div class="detail-cell">
+            <span class="detail-label">开仓价</span>
+            <span class="detail-value" id="dPrice">—</span>
+          </div>
+          <div class="detail-cell">
+            <span class="detail-label">手数 / 金额</span>
+            <span class="detail-value" id="dSize">—</span>
+          </div>
+          <div class="detail-cell">
+            <span class="detail-label">守护点</span>
+            <span class="detail-value val-stop" id="dStop">—</span>
+          </div>
+          <div class="detail-cell">
+            <span class="detail-label">信号强弱</span>
+            <span class="detail-value" id="dTier">—</span>
+            <span class="detail-sub" id="dTierMeta">—</span>
+          </div>
+          <div class="detail-cell">
+            <span class="detail-label">净盈亏</span>
+            <span class="detail-value val-pnl-muted" id="dPnl">—</span>
+            <span class="detail-sub" id="dPnlMeta">—</span>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <p class="monitor-disclaimer">V1 只读模拟监测国内服务器模拟盘，不向交易所发单。数据延迟取决于 paper_state 同步频率。</p>
+
+  <script src="js/config.js?v=20260612"></script>
+  <script src="js/app.js?v=20260612"></script>
+  <script src="js/monitor-chart.js?v=20260612"></script>
+  <script>
+    FengJiApp.initShell("index.html");
+
+    const positionScroll = document.getElementById("positionScroll");
+    const chartPanel = document.getElementById("chartPanel");
+    const sourceBadge = document.getElementById("sourceBadge");
+    const updatedAt = document.getElementById("updatedAt");
+
+    let positions = [];
+    let activeId = null;
+    let loadingChart = false;
+    let chartRequestId = 0;
+    let opensRequestId = 0;
+    const escapeHtml = FengJiApp.escapeHtml;
+
+    function fmtPrice(v, market) {
+      if (v == null || v === "") return "—";
+      const n = Number(v);
+      if (market === "A_STOCK") return n.toFixed(2);
+      return n >= 1000 ? n.toFixed(0) : n.toFixed(2);
+    }
+
+    function fmtSize(p) {
+      const parts = [];
+      if (p.lots != null) parts.push(`${p.lots} 手`);
+      if (p.amount_cny != null) parts.push(`¥${Number(p.amount_cny).toLocaleString("zh-CN", { maximumFractionDigits: 0 })}`);
+      return parts.length ? parts.join(" · ") : "—";
+    }
+
+    function fmtMoney(v) {
+      if (v == null || Number.isNaN(Number(v))) return "—";
+      const n = Number(v);
+      const sign = n > 0 ? "+" : n < 0 ? "-" : "";
+      return `${sign}¥${Math.abs(n).toLocaleString("zh-CN", { maximumFractionDigits: 0 })}`;
+    }
+
+    function strategyLabel(strategyId) {
+      const sid = String(strategyId || "").toUpperCase();
+      const match = sid.match(/^DS(\d{1,2})$/);
+      return match ? `定式${match[1].padStart(2, "0")}` : (sid || "—");
+    }
+
+    function sourceLabel(src) {
+      if (src === "paper_state") return "国内实盘";
+      if (src === "demo") return "演示数据";
+      return src || "—";
+    }
+
+    function renderPositionList() {
+      if (!positions.length) {
+        positionScroll.innerHTML = `
+          <div class="empty-state compact">
+            <p style="font-size:14px;color:var(--apple-text-secondary)">暂无开仓<br>国内模拟盘运行后将显示最新持仓</p>
+          </div>`;
+        return;
+      }
+      positionScroll.innerHTML = positions.map((p) => {
+        const active = p.position_id === activeId ? " active" : "";
+        const dirCls = p.direction === "long" ? "long" : "short";
+        const mainContractValue = p.main_contract_display || p.main_contract_actual || p.main_contract_code || "";
+        const mainContract = mainContractValue ? `主力合约 ${mainContractValue}` : "主力合约 —";
+        return `
+          <button type="button" class="position-card${active}" data-id="${escapeHtml(p.position_id)}">
+            <div class="position-card-head">
+              <span class="position-name">${escapeHtml(p.display_name || p.symbol)}</span>
+              <span class="position-dir ${dirCls}">${escapeHtml(p.direction_label || "")}</span>
+            </div>
+            <span class="position-main-contract" title="${escapeHtml(p.main_contract_label || mainContract)}">${escapeHtml(mainContract)}</span>
+            <div class="position-card-core">
+              <span class="position-card-price-value">${escapeHtml(fmtPrice(p.entry_price, p.market))}</span>
+            </div>
+            <span class="position-card-price-label">开仓价格</span>
+          </button>`;
+      }).join("");
+
+      positionScroll.querySelectorAll(".position-card").forEach((btn) => {
+        btn.addEventListener("click", () => selectPosition(btn.dataset.id));
+      });
+    }
+
+    function tierLabel(tier) {
+      return ({ STRONG: "强", MEDIUM: "中", WEAK: "弱", INSUFFICIENT_DATA: "样本不足" })[tier] || tier || "—";
+    }
+
+    function applyTierStyle(el, tier) {
+      el.className = "detail-value";
+      if (tier === "STRONG") el.classList.add("val-tier-strong");
+      else if (tier === "MEDIUM") el.classList.add("val-tier-medium");
+      else if (tier === "WEAK") el.classList.add("val-tier-weak");
+      else el.classList.add("val-tier-muted");
+    }
+
+    function updatePnlDisplay(p, lastPrice) {
+      const pnlEl = document.getElementById("dPnl");
+      const metaEl = document.getElementById("dPnlMeta");
+      pnlEl.className = "detail-value";
+      const entry = Number(p.entry_price || 0);
+      const latest = Number(lastPrice || p.current_price || 0);
+      const lots = Number(p.lots || 1);
+      const multiplier = Number(p.multiplier || 1);
+      if (!entry || !latest || !lots || !multiplier) {
+        pnlEl.textContent = "—";
+        pnlEl.classList.add("val-pnl-muted");
+        metaEl.textContent = "缺少最新价";
+        return;
+      }
+      const side = p.direction === "short" ? -1 : 1;
+      const pnl = (latest - entry) * lots * multiplier * side;
+      pnlEl.textContent = fmtMoney(pnl);
+      pnlEl.classList.add(pnl > 0 ? "val-pnl-profit" : pnl < 0 ? "val-pnl-loss" : "val-pnl-muted");
+      metaEl.textContent = `最新价 ${fmtPrice(latest, p.market)}`;
+    }
+
+    async function loadSignalTier(p) {
+      const tierEl = document.getElementById("dTier");
+      const metaEl = document.getElementById("dTierMeta");
+      tierEl.textContent = "—";
+      metaEl.textContent = "读取 PG 上下文…";
+      applyTierStyle(tierEl, "");
+      const tid = p.trade_id;
+      if (!tid) {
+        tierEl.textContent = "样本不足";
+        applyTierStyle(tierEl, "INSUFFICIENT_DATA");
+        metaEl.textContent = "持仓未关联 trade_id";
+        return;
+      }
+      try {
+        const s = await FengJiApp.fetchSignalStrength(tid);
+        const tier = s.signal_tier || "INSUFFICIENT_DATA";
+        tierEl.textContent = tierLabel(tier);
+        applyTierStyle(tierEl, tier);
+        const score = s.signal_score != null ? Number(s.signal_score).toFixed(2) : "—";
+        const n = s.bucket_count != null ? s.bucket_count : "—";
+        metaEl.textContent = `评分 ${score} · 桶样本 ${n}`;
+      } catch (e) {
+        tierEl.textContent = "—";
+        applyTierStyle(tierEl, "");
+        metaEl.textContent = e.message || "信号强弱不可用";
+      }
+    }
+
+    function fillDetail(p) {
+      document.getElementById("dName").textContent = p.display_name || p.symbol;
+      document.getElementById("dMainContract").textContent = p.main_contract_label || "主力合约 —";
+      document.getElementById("dDirection").textContent = `${p.direction_label || ""} · ${p.strategy_id || ""}`;
+      document.getElementById("dTime").textContent = p.entry_time || "—";
+      document.getElementById("dPrice").textContent = fmtPrice(p.entry_price, p.market);
+      document.getElementById("dSize").textContent = fmtSize(p);
+      document.getElementById("dStop").textContent = fmtPrice(p.current_stop, p.market);
+      updatePnlDisplay(p, p.current_price);
+      document.getElementById("chartSymbol").textContent = p.display_name || p.symbol;
+      const sid = FengJiApp.normalizeStrategyId(p.strategy_id);
+      const chartStrategyEl = document.getElementById("chartStrategy");
+      if (sid && FengJiApp.isStrategyAllowed(sid)) {
+        chartStrategyEl.innerHTML = FengJiApp.strategyHelpLinkHtml(
+          sid,
+          `最新开仓：${strategyLabel(sid)} · 定式帮助`,
+          { className: "monitor-chart-tag strategy-anim-link" },
+        );
+      } else {
+        chartStrategyEl.textContent = `最新开仓：${strategyLabel(p.strategy_id)}`;
+        chartStrategyEl.className = "monitor-chart-tag";
+      }
+      loadSignalTier(p);
+    }
+
+    async function loadChart(p, quiet = false) {
+      const requestId = ++chartRequestId;
+      loadingChart = true;
+      if (!quiet) {
+        chartPanel.innerHTML = '<div class="empty-state compact"><span class="spinner"></span> 加载日线…</div>';
+      }
+      const q = new URLSearchParams({
+        symbol: p.code || p.symbol,
+        market: p.market || "FUTURES",
+        strategy_id: p.strategy_id || "TOTAL",
+        entry_time: p.entry_time || "",
+        entry_price: String(p.entry_price || ""),
+        current_stop: String(p.current_stop || ""),
+        direction: p.direction || "long",
+        years: "2",
+        _t: String(Date.now()),
+      });
+      try {
+        const { res, data: bundle, throttled } = await FengJiApp.monitorPollFetch(
+          `${FengJiApp.CFG.API_BASE}/api/v1/monitor/domestic/chart?${q}`,
+          { cache: "no-store" }
+        );
+        if (throttled || !res.ok) throw new Error(await res.text());
+        if (requestId !== chartRequestId) return;
+        chartPanel.innerHTML = "";
+        FengJiMonitorChart.render(chartPanel, bundle, p);
+        const latestBar = bundle.bars?.length ? bundle.bars[bundle.bars.length - 1] : null;
+        updatePnlDisplay(p, latestBar?.c);
+        const segs = bundle.hardened_segments || [];
+        const solid = segs.filter((s) => (s.style || "solid") === "solid").length;
+        const dashed = segs.filter((s) => s.style === "dashed" || s.kind === "provisional").length;
+        const gen = bundle.generated_at ? ` · ${bundle.generated_at}` : "";
+        document.getElementById("chartCamp").textContent = dashed
+          ? `固化 ${solid} 段 · 橡皮筋 ${dashed} 段${gen}`
+          : (solid ? `峰极连线 ${solid} 段${gen}` : `峰极 OS${gen}`);
+      } catch (e) {
+        if (requestId !== chartRequestId) return;
+        FengJiMonitorChart.showMessage(chartPanel, "K 线加载失败，请确认 API 与本地 CSV 数据");
+        console.warn(e);
+      } finally {
+        if (requestId === chartRequestId) loadingChart = false;
+      }
+    }
+
+    function selectPosition(id, quiet = false) {
+      const p = positions.find((x) => x.position_id === id);
+      if (!p) return;
+      activeId = id;
+      renderPositionList();
+      fillDetail(p);
+      loadChart(p, quiet);
+    }
+
+    async function loadOpens() {
+      const requestId = ++opensRequestId;
+      const prevActive = activeId;
+      positionScroll.innerHTML = '<div class="empty-state compact"><span class="spinner"></span></div>';
+      try {
+        const { res, data, throttled } = await FengJiApp.monitorPollFetch(
+          `${FengJiApp.CFG.API_BASE}/api/v1/monitor/domestic/latest-opens`,
+          { cache: "no-store" }
+        );
+        if (throttled || !res.ok) throw new Error("API 不可用");
+        if (requestId !== opensRequestId) return;
+        positions = data.positions || [];
+        sourceBadge.textContent = sourceLabel(data.source);
+        sourceBadge.className = "monitor-badge " + (data.source === "paper_state" ? "live" : "demo");
+        updatedAt.textContent = data.generated_at ? `更新 ${data.generated_at}` : "";
+        renderPositionList();
+        if (positions.length) {
+          const nextId = prevActive && positions.some((p) => p.position_id === prevActive) ? prevActive : positions[0].position_id;
+          selectPosition(nextId, nextId === prevActive);
+        } else {
+          FengJiMonitorChart.showMessage(chartPanel, "暂无持仓");
+        }
+      } catch {
+        if (requestId !== opensRequestId) return;
+        sourceBadge.textContent = "离线";
+        positionScroll.innerHTML = '<div class="empty-state compact"><p>无法连接 API</p></div>';
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", loadOpens);
+    loadOpens();
+    setInterval(loadOpens, FengJiApp.monitorRefreshMs());
+  </script>
+</body>
+</html>
