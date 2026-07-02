@@ -59,6 +59,20 @@ git pull origin main
 # 或按序 cherry-pick 各 PR merge commit
 ```
 
+## 合并完成（2026-07-02）
+
+**PR #1–#5 已全部 merge 到 `main`**（merge commits 含 `09fb52a` B6、`6d128a9` B4 等）。
+
+合并后验收见 `results/post_merge_acceptance_20260702/ACCEPTANCE.md`。
+
+首轮发现 `constants.STRATEGY_DISPLAY_NAMES` 与 `ds07.make_ds07_signal(df=...)` 未随 B1 合入，已在本地最小补丁修复；**建议开 follow-up PR 推 remote**。
+
+验收通过：
+
+- pytest（fill_supervision 等）**33 passed**
+- OpenAPI export **38 paths**
+- overseas fill audit **invalid_new=0** · exit **0**
+
 ## 未纳入 PR（B5 · 默认不提交）
 
 - `data/**/*.csv` · `results/` · `runtime/*.json`
