@@ -1,26 +1,23 @@
 # 方案 B · Phase 1 · services/API/Web 分桶
 
-## 分 PR 状态
+## 状态：✅ Phase 1 完成（2026-07-02）
 
-| PR | 状态 | 范围 |
-|----|------|------|
-| **#7–#9** | ✅ merged | services · chart · deploy |
-| **#10** | 🔄 待 merge | `web/` · web tests · feature_gate_api 无 PG 修复 |
+| PR | 状态 |
+|----|------|
+| #7–#10 | ✅ 全部 merged · `2ead68e` |
 
-**PR #10 开 PR**：https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b2-web-phase1
+签收：`docs/PLAN_B_PHASE1_COMPLETE.md` · PR #10 验收：`docs/POST_MERGE_ACCEPTANCE_PR10_20260702.md`
 
-## PR #10 验收
+## Manifest 层级
 
-```powershell
-python -m pytest tests/test_feature_gate_api.py tests/test_web_static.py tests/test_fengji_web_phase1_manifest.py tests/test_w17_subscription_browser_smoke.py tests/test_w15_strategy_animations.py -q
-# 21 passed, 1 skipped
-```
+| 文件 | PR |
+|------|-----|
+| `fengji_api_phase1_manifest.txt` | #7 |
+| `fengji_api_phase2_manifest.txt` | #8 |
+| `fengji_api_phase3_manifest.txt` | #9 |
+| `fengji_web_phase1_manifest.txt` | #10 |
+| `fengji_api_deploy_manifest.txt` | 全量 ✅ |
 
-## Phase 1 完成标准（#10 merge 后）
+## Phase 2 入口
 
-- OpenAPI 38 paths · deploy manifest 全绿 · **web/** 入库
-- W17 `web_index/login/strategies` 静态检查通过
-
-## 引用
-
-- `docs/POST_MERGE_ACCEPTANCE_PR9_20260702.md`
+见 `docs/PLAN_B_PHASE1_COMPLETE.md` § Phase 2 建议。

@@ -1,14 +1,20 @@
 # CHANGELOG
 
+## 2026-07-02（Phase 1 完成 · PR #10 merged）
+
+- PR #10 merged（`2ead68e`）：`web/` · feature_gate_api · 静态页测试 · W17 subscription smoke 脚本。
+- **方案 B Phase 1 签收**：PR #7–#10 全部完成 · `docs/PLAN_B_PHASE1_COMPLETE.md`。
+- 验收：manifest 全绿 · pytest **18 passed** · OpenAPI **38 paths** · W17 preflight **ok=true**。
+
 ## 2026-07-02（Phase 1 · PR #8 merged）
 
 - PR #8 merged：chart_bundle · chart_line · context · phase2 manifest。
 - 验收：`docs/POST_MERGE_ACCEPTANCE_PR8_20260702.md`。
 
-## 2026-07-02（Phase 1 · PR #10 web）
+## 2026-07-02（Phase 1 · PR #10 merged）
 
-- 分支 `pr/b2-web-phase1`：`web/` 全量 · feature_gate_api 无 PG mock 修复 · 静态页测试。
-- manifest：`scripts/fengji_web_phase1_manifest.txt`。
+- PR #10 merged（`2ead68e`）：`web/` 全量 · feature_gate_api 无 PG mock 修复 · 静态页测试。
+- manifest：`scripts/fengji_web_phase1_manifest.txt` · 验收：`docs/POST_MERGE_ACCEPTANCE_PR10_20260702.md`。
 
 ## 2026-07-02（Phase 1 · PR #9 merged）
 

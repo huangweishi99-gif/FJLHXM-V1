@@ -1,8 +1,22 @@
 # PROJECT_CONTEXT
 
-更新时间：2026-05-28
+更新时间：2026-07-02
 
-## 2026-05-28 LC DS09 与数据管线（最新）
+## 2026-07-02 方案 B Phase 1 完成（最新）
+
+### 本轮状态摘要
+
+- **Git `main`**：`2ead68e` · Phase 0（PR #1–#6）+ Phase 1（PR #7–#10）已全部 merge。
+- **FastAPI / OpenAPI**：`services/api/main.py` · `docs/api/openapi.json` · **38 paths** · `export_openapi_snapshot.py`。
+- **Web**：`web/` 已入库（登录/定价/付款/交流群分离 · `test_web_static`）。
+- **部署**：`sync_deploy_fengji_api.ps1` + `fengji_api_deploy_manifest.txt` 全量文件齐 · W17 preflight ok。
+- **Chart**：`src/chart_bundle.py` · `packages/fengji_core/.../chart_line.py`。
+- **fill_supervision**：海外 audit `invalid_new=0`（见 Phase 0 验收）。
+- **签收文档**：`docs/PLAN_B_PHASE1_COMPLETE.md` · `docs/PLAN_B_PHASE0_COMPLETE.md`。
+- **Phase 2 入口**：本地 PG + W17 全量 acceptance · 国内 deploy 试跑 · FUTURES 5m 数据桶。
+- **HYPE #28**：仍 `STOP_PENDING_MONITOR_BAR` · `docs/HYPE28_STOP_FOLLOWUP.md`。
+
+## 2026-05-28 LC DS09 与数据管线
 
 ### 本轮状态摘要
 

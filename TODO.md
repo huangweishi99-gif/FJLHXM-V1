@@ -1,17 +1,16 @@
 # TODO
 
-更新时间：2026-07-02（PR #6 merged）
+更新时间：2026-07-02（Phase 1 完成 · `2ead68e`）
+
+## 2026-07-02 · 方案 B Phase 1 完成 ✅
+
+- [x] **PR #7–#10 全部 merge**（services · chart · deploy · web）。
+- [x] **Phase 1 签收**：`docs/PLAN_B_PHASE1_COMPLETE.md`（manifest 全绿 · OpenAPI 38 · pytest 18 passed · W17 preflight ok）。
+- [ ] **Phase 2**：本地 PG + W17 全量 acceptance · 国内 `sync_deploy_fengji_api.ps1 -Verify` · FUTURES 5m 数据桶。
+- [ ] **HYPE #28**：`docs/HYPE28_STOP_FOLLOWUP.md` · 待 07-02 D1。
+- [ ] **stash@{0}**：按桶 cherry-pick · 勿整包 pop。
 
 ## 2026-07-02 · 方案 B Phase 0 完成
-
-- [x] **PR #1–#6 全部 merge 到 `main`**（含 follow-up core 兼容 · `c929b71`）。
-- [x] **Phase 0 签收**：`docs/PLAN_B_PHASE0_COMPLETE.md` · pytest **38 passed** · audit **invalid_new=0** · OpenAPI **38 paths**。
-- [x] **Phase 1 PR #7**：services + migrations merged · `1a0bc86`
-- [x] **Phase 1 PR #8**：chart_bundle + context merged · `2db2a62`
-- [x] **Phase 1 PR #9**：W17 deploy scripts merged · `4eac339`
-- [ ] **Phase 1 PR #10**：`pr/b2-web-phase1` — web/ + static tests（待 merge）
-- [ ] **HYPE #28**：见 `docs/HYPE28_STOP_FOLLOWUP.md` · 07-01 breach · 待 **07-02 D1** 收盘入库后 monitor 触停。
-- [ ] **stash@{0}**：含 os_engine / web / services WIP · **勿整包 pop** · 按桶 cherry-pick。
 
 ## 已完成 / 待复查（2026-05-28 LC DS09 与数据）
 
