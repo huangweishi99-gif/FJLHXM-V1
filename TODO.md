@@ -1,6 +1,28 @@
 # TODO
 
-更新时间：2026-05-28
+更新时间：2026-07-02
+
+## 2026-07-02 · 方案 B Phase 0 PR 已合并
+
+- [x] **PR #1–#5 全部 merge 到 `main`**（fill_supervision、ops audit、OpenAPI、Phase0 文档、Pencil 脚本）。
+- [x] **合并后验收**：`results/post_merge_acceptance_20260702/ACCEPTANCE.md`（pytest 33 passed · audit invalid_new=0 · OpenAPI 38 paths）。
+- [ ] **follow-up PR #6**：`pr/b1-followup-core-compat` 已 push · [开 PR](https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b1-followup-core-compat) · 待 merge。
+- [ ] **HYPE #28**：见 `docs/HYPE28_STOP_FOLLOWUP.md` · 07-01 breach · 待 **07-02 D1** 入库后 monitor 触停。
+- [ ] **stash@{0}**：含 os_engine / web / services WIP · **勿整包 pop** · 按桶 cherry-pick。
+
+## 已完成 / 待复查（2026-05-28 LC DS09 与数据）
+
+- [x] **LC 天勤 15m 加长回填**：`backfill_lc_domestic.ps1` 请求 12000 → 实际选用 **10000** 根（校验通过）；1d **800** 根；`data_manager_futures.fetch_frame` 最长 sane 档逻辑（`ec1be47`）。
+- [x] **天勤 CSV 解析**：`load_tq_futures_kline_csv`、`load_m15_frame` 纳秒 `datetime`；避免误用天勤 7 列启发式（`8596374`）。
+- [x] **LC DS09 校验脚本**：`verify_ds09_lc_session.py`、`debug_lc_ds09.py`；真数据 `m15≈9900`、`bad_trades=0`、`locks=0`。
+- [x] **国内流水线**：`run_lc_ds09_domestic.ps1`（`-BuildFrom1h` 仅联调）；`sync_deploy_domestic.ps1` 同步 DS09/雷达；雷达循环已重启。
+- [x] **验收清单**：`docs/LC_DS09_ACCEPTANCE.md`。
+- [x] **沙盒总览图**：`results/sandbox/lc_ds09/LC_DS09_session_overview.png`（真·15m 数据）。
+- [x] **Git 推送**：`8780b1e`、`ec1be47` 等已上 `origin/main`。
+- [x] **LC DS09 0 笔**：用户确认接受（2026-05-28）；`locks=0` 为行情结果，ETH 作引擎对照，勿用 `build_lc_bars_from_1h` 冒充验收。
+- [x] 国内服务器已安装 `matplotlib` 3.10.9（`domestic_install_matplotlib.ps1`，2026-05-28）。
+- [ ] **待复查**：有 `locks>0` 历史时再补 `LC_DS09_trade_*.png`。
+- [ ] **待复查**：`data_manager_futures.py` 中天勤账号默认值是否已迁到环境变量（勿提交密钥）。
 
 ## 2026-05-28 增量 TODO
 
@@ -8,7 +30,7 @@
 - [x] 将 `src/quant/os_engine.py`、`ds01.py`、`ds03.py`、`ds05.py`、`ds07.py` 收敛为 re-export，降低双实现分叉风险。
 - [x] 运行核心测试集，确认 re-export 后 `quant.*` 兼容入口仍正常。
 - [x] 用导入 smoke test 验证 CLI、回测、雷达和挂单链路所依赖的 `quant.*` 兼容导入仍能加载核心包。
-- [x] **2026-05-28 验收**：`pytest tests/` 59 passed；`scripts/plan_a_verify.ps1` 全绿（含 ETH DS01–DS09 smoke，`bad_audits=0`）。
+- [x] **2026-05-28 验收**：`pytest tests/` 59+ passed；`scripts/plan_a_verify.ps1` 全绿（含 ETH DS01–DS09 smoke，`bad_audits=0`）。
 - [x] **运行态巡检**：`check_overseas_runtime_status.ps1` + 新增 `check_domestic_runtime_remote.ps1`（雷达/挂单 15:15–15:19 更新，LC 数据 15:13）。
 - [x] 修正 `tests/test_radar_setup_keys.py` 中 DS03 `setup_key` 断言（`watch` / `peak_key` 新规口径）。
 - [x] 海外 OS 增量：`verify_os_state_overseas.sh` 两轮 radar `--once`，BTC `delta1=2` `delta2=0`，`processed_len=1835` 不变。
@@ -39,6 +61,7 @@
 - [x] DS07《共振式》：核心规则已补齐为同向延续 + 反向并轨；已同步 `docs/DS07_CALIBRATION.md` 和 `docs/DS07_DRAFT.md`，后续继续排查服务器旧逻辑残留。
 - [ ] DS08《否认确定式》：复核五点结构、否认、确定、触发和撤销规则。
 - [x] DS09《股票式 / 九重天》：用户已确认股票式/A股专属版本等同九重天；2026-05-27 已修正为 D1 OS战略阵营 + 昨日D1战略边界 + M15二次攻击点火；缺少 M15 数据时只跳过 DS09，不影响 DS01-DS08。
+- [x] DS09 国内 LC：夜盘 `assign_cn_futures_session_date`、雷达/挂单接入、天勤 15m 回填与验收清单（2026-05-28）；**成交沙盒图**待有 `locks>0` 历史后再补。
 
 ### 阵营转换判断待验证任务
 
@@ -52,7 +75,7 @@
 ### 挂单器待完成任务
 
 - [ ] 明确每日/每轮雷达刷新频率。
-- [x] 补齐 DS09 雷达/挂单器候选生成：D1安全阵营、昨日边界、M15锁定、第一进攻峰、防守极、二次攻击（`add_ds09` + 挂单默认含 DS09；2026-05-28）。
+- [x] 补齐 DS09 雷达/挂单器候选生成：D1安全阵营、昨日边界、M15锁定、第一进攻峰、防守极、二次攻击（`add_ds09` + 挂单默认含 DS09；2026-05-28）。【待复查】国内 LC 当前雷达 DS09 行数常为 0（无结构）。
 - [ ] 明确同品种一个定式触发后，其他定式挂单是否撤销及如何记录。
 - [ ] 确认国内期货/A股挂单器和海外虚拟货币挂单器规则一致，但市场交易时间不同。
 - [ ] 补充挂单触发后的沙盒图自动生成或半自动检查流程。
@@ -61,14 +84,16 @@
 ### 实盘数据待整理任务
 
 - [ ] 梳理虚拟货币数据源、更新频率、失败补偿和数据新鲜度检查。
-- [ ] 梳理国内期货天勤数据源、日盘/夜盘开收盘时间、开盘前自动更新、收盘后停止规则。
+- [x] 梳理国内期货天勤 LC 15m 加长与脏数据边界：`FUTURES_15M_LENGTH`、最长 sane 档、`docs/LC_DS09_ACCEPTANCE.md`（2026-05-28）。【待复查】是否需天勤历史区间 API 突破 10000 根上限。
+- [ ] 梳理国内期货天勤数据源、日盘/夜盘开收盘时间、开盘前自动更新、收盘后停止规则（全品种表）。
 - [ ] 梳理 A股数据源；A股无夜盘。
 - [ ] 补齐或替换 A股 60 分钟历史数据源。
 - [x] 建立独立 `峰极OS_数据与回测说明.md`，交接数据类型、文件位置、字段、5m/60m状态、回测规则和九大定式回测状态。
 
 ### 国内服务器与国外服务器待验证任务
 
-- [ ] 国内服务器：实时检查数据泵、模拟盘、雷达循环、挂单监控、日志、数据新鲜度。
+- [x] 国内全链路重启脚本：`resolve_domestic_paper.ps1` + manifest；`cmd` 内 `PYTHONPATH` 引号修复；`fengji_radar_order_loop` 子进程补 `packages/fengji_core`（2026-05-28）。
+- [ ] 国内服务器：实时检查数据泵、模拟盘、雷达循环、挂单监控、日志、数据新鲜度。【待复查】数据泵偶发双进程，需确认 `start_factory` 是否重复拉起。
 - [ ] 海外服务器：实时检查数据泵、模拟盘、雷达循环、挂单监控、日志、数据新鲜度。
 - [ ] 确认服务器代码版本与本地核心文件一致。
 - [ ] 确认服务器启动脚本使用脱敏配置，不把密钥写入仓库。
@@ -149,7 +174,8 @@
 - [ ] 当前 `src/quant` 与 `packages/fengji_core` 是否完全一致，是否存在双实现不同步。
 - [ ] 国内服务器当前代码是否已经包含 DS01 左30 <=2、DS03 failed peak/low、DS05 K2 可能极、DS07 新逻辑。
 - [ ] 海外服务器当前代码是否已经包含 DS01 左30 <=2、DS03 failed peak/low、DS05 K2 可能极、DS07 新逻辑。
-- [ ] A股板块结果是否已全部归档到 `results\a_stock_sector_archive_ds07_fixed.zip` 或对应目录。
+- [x] **A 股三板块补跑（2026-05-29）**：新能源车 `BK0900`、证券 `BK0473`、互联网金融 `BK0637` → `results/fengji_total_a_stock_sectors_ev_sec_fintech_ds07_fixed`；汇总 `results/a_stock_all_sectors_overview.csv`。
+- [ ] A股板块结果是否已全部归档到 `results\a_stock_sector_archive_ds07_fixed.zip` 或对应目录。【部分】zip 仅含 CPO/算力/半导体/虚拟机器人 4 板块摘要，全量见 `results/fengji_total_a_stock_sectors_*`。
 - [ ] 现有模拟挂单触发是否需要每日开盘前统一刷新，触发一笔后是否撤销同品种其他定式挂单。
 
 ## 已完成但需要复查的内容

@@ -53,6 +53,8 @@ Write-Host "[3/5] sync OS state + radar/pending ..." -ForegroundColor Cyan
     "src/fengji_radar_order_loop.py",
     "src/fengji_pending_orders.py",
     "src/fengji_pending_order_monitor.py",
+    "src/fengji_feishu_notify.py",
+    "scripts/stop_duplicate_pending_overseas.sh",
     "docs/OS_STATE_DATA_STOCK.md"
 ) | ForEach-Object { Sync-RemoteFile $_ }
 Invoke-Remote "cd $RemoteDir && cp -f packages/fengji_core/fengji_core/os_state_store.py src/quant/os_state_store.py 2>/dev/null || true; mkdir -p runtime/fengji_os_state"

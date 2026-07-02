@@ -1,6 +1,26 @@
 # PROJECT_CONTEXT
 
-更新时间：2026-05-27
+更新时间：2026-05-28
+
+## 2026-05-28 LC DS09 与数据管线（最新）
+
+### 本轮状态摘要
+
+- **国内 LC（碳酸锂）DS09**：天勤真·15m 已回填至约 **10000 根**（请求 12000 时 `data_length=10000` 为当前最长校验通过档；12000/11000 常失败）；1d 稳定 **800 根**（LC 日线 >800 常校验失败，勿强求 1200）。
+- **DS09 回测/校验**：`m15_rows≈9900`，`boundary_sessions=298`，`ds09_trades=0`，`ds09_bad_trades=0`；`debug_lc_ds09` 显示 `locks=0`（窗口内无 M15 突破昨日边界，属行情结果，非审计失败）。
+- **天勤 CSV 加载**：`fengji_core.data.load_tq_futures_kline_csv` + `backtest_ds09.load_m15_frame` 优先解析纳秒 `datetime`；`data_manager_futures.fetch_frame` 对 15m 取**最长且校验通过**的 `data_length`。
+- **验收文档**：`docs/LC_DS09_ACCEPTANCE.md`（数据、session、回测、雷达、签收表）。
+- **脚本**：`backfill_lc_domestic.ps1`、`backfill_lc_on_server.py`、`repair_lc_15m_only.py`、`run_lc_ds09_domestic.ps1`（`-BuildFrom1h` 仅联调）、`build_lc_bars_from_1h.py`（禁止作实盘源）、`verify_ds09_lc_session.py`、`debug_lc_ds09.py`。
+- **沙盒**：`results/sandbox/lc_ds09/LC_DS09_session_overview.png`；国内 `runtime/sandbox/lc_ds09/session_check.txt`。
+- **Git**：`main` 已含 `8780b1e`（LC 流水线脚本）、`ec1be47`（加长 15m + 验收清单）等提交。
+- **已签收（2026-05-28）**：用户确认接受 LC `ds09_trades=0`；对照 ETH `plan_a_verify` 区分引擎与行情。国内 **matplotlib** 可用 `scripts/domestic_install_matplotlib.ps1` 安装后补单笔沙盒图（待 `locks>0` 历史）。
+
+### 国内服务器（时间敏感，须 SSH 复验）
+
+- 项目根目录：`C:/Users/Administrator/quant_futures`（SSH 别名常见为 `domestic-quant`，见本机 SSH 配置）。
+- 数据泵：`data_manager_futures.py`（tqsdk2）；`FUTURES_15M_LENGTH` 建议 ≤12000 且依赖自动降档，默认工程默认 **8000**，回填脚本默认请求 **12000**。
+- 雷达：`fengji_radar_order_loop` 已含 LC；`sync_deploy_domestic.ps1` 可同步核心并 `-RestartRadarLoop`。
+- Python：**3.10** 无法 `pip install -e fengji_core`（要求 ≥3.11），运行用 `PYTHONPATH=src;packages/fengji_core`。
 
 ## 2026-05-27 总交接版
 
@@ -53,7 +73,8 @@
 - 需要确认国内服务器、海外服务器当前运行代码已经包含 DS01、DS03、DS05、DS07 最新修正。
 - 需要建立独立的服务器运行手册、数据管线手册、挂单器手册、A股板块回测手册。
 - 需要补齐或替换 A股 60 分钟历史数据源，否则 DS07/DS08 的 A股历史结论不能视为完整。
-- 需要对 DS02、DS04、DS06、DS08、DS09 做同等强度的案例复核、测试和沙盒图验证。
+- DS09 国内 LC 已做 session/回测/雷达冒烟；待在有 `locks>0` 的历史窗口补单笔沙盒图，并对照 ETH `plan_a_verify` 区分引擎与行情。
+- 需要对 DS02、DS04、DS06、DS08 做同等强度的案例复核、测试和沙盒图验证（DS09 规则已校准，LC 为数据与案例覆盖问题）。
 - 需要明确国内期货日盘/夜盘数据泵自动运行表；A股无夜盘。
 - 需要把敏感配置彻底迁移到本地私密配置文件或服务器环境变量，文档中只保留占位符。
 
@@ -73,7 +94,8 @@ C:\Users\guangwan\Documents\New project
 ├── packages/fengji_core/             峰极OS核心包，含 OS 与 DS01-DS09
 ├── results/                          回测结果、沙盒图、归档结果
 ├── runtime/                          运行态产物、远程检查快照、日志
-├── scripts/                          检查、绘图、部署、重启脚本
+├── scripts/                          检查、绘图、部署、重启脚本（含 LC DS09：`backfill_lc_domestic.ps1`、`run_lc_ds09_domestic.ps1`）
+├── docs/LC_DS09_ACCEPTANCE.md        国内 LC DS09 验收清单
 ├── src/                              主程序、回测、雷达、挂单器、模拟盘
 ├── tests/                            pytest 测试
 ├── remote_domestic_optimize/          国内服务器同步/优化包
@@ -147,7 +169,7 @@ C:\Users\guangwan\Documents\New project
 - DS06《外扩峰式》：已纳入工程，需要继续做案例和雷达验证。
 - DS07《共振式》：D1 给战略授权，H1 触发并轨；禁止恢复旧的 H1 必须启动前已同阵营逻辑。
 - DS08《否认确定式》：五点结构和否认确认逻辑已纳入雷达，需要继续做触发与撤销规则验证。
-- DS09《股票式 / 九重天》：已纳入总工程；最新口径为 D1 OS战略阵营 + 昨日D1战略边界 + M15二次攻击点火；缺少 M15 数据时跳过 DS09，但不能把 DS09 从总工程删除。
+- DS09《股票式 / 九重天》：已纳入总工程；最新口径为 D1 OS战略阵营 + 昨日D1战略边界 + M15二次攻击点火；缺少 M15 数据时跳过 DS09，但不能把 DS09 从总工程删除。国内 LC 已接雷达/挂单/回测链路；2026-05-28 真·15m 约 10000 根下仍 0 笔成交（无边界突破），见 `docs/LC_DS09_ACCEPTANCE.md`。
 
 ### 挂单器当前状态
 

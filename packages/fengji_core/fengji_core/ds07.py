@@ -207,7 +207,14 @@ def _make_signal(
     )
 
 
-def make_ds07_signal(row: pd.Series, i: int, used_attack_keys: set[str], symbol: str = "", prev_row: pd.Series | None = None) -> DS07Signal | None:
+def make_ds07_signal(
+    row: pd.Series,
+    i: int,
+    used_attack_keys: set[str],
+    symbol: str = "",
+    prev_row: pd.Series | None = None,
+    df: pd.DataFrame | None = None,
+) -> DS07Signal | None:
     if i < 1 or prev_row is None:
         return None
 

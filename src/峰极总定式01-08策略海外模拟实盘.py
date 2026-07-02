@@ -12,6 +12,8 @@ from typing import Any
 import pandas as pd
 import requests
 
+from fengji_feishu_notify import paper_trade_notify_key, send_feishu_once
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
@@ -631,7 +633,8 @@ def process_symbol(symbol: str, args: argparse.Namespace, root_state: dict, run_
             exit_time = pd.to_datetime(row.get("exit_time"), errors="coerce")
             if not pd.isna(exit_time) and exit_time <= ref_time and key not in symbol_state.get("closed_entries", []):
                 pnl = calc_pnl(row, money)
-                send_msg(args.feishu_webhook, format_exit(clean, row, money, pnl))
+                symbol_state["closed_entries"].append(key)
+                symbol_state["open_position"] = None
                 closed = record_closed_trade(args, root_state, symbol_state, row, pnl)
                 record_event(
                     args,
@@ -645,8 +648,14 @@ def process_symbol(symbol: str, args: argparse.Namespace, root_state: dict, run_
                         "equity_after": closed["equity_after"],
                     },
                 )
-                symbol_state["closed_entries"].append(key)
-                symbol_state["open_position"] = None
+                claims_dir = Path(args.runtime_dir) / "feishu_notify_claims"
+                send_feishu_once(
+                    claims_dir,
+                    paper_trade_notify_key("close", key),
+                    args.feishu_webhook,
+                    format_exit(clean, row, money, pnl),
+                    send_msg,
+                )
                 print(f"[{clean}] 模拟平仓 {row.get('strategy_id')} pnl={float(pnl['crypto_net_pnl']):.2f}")
         return
 
@@ -702,7 +711,14 @@ def process_symbol(symbol: str, args: argparse.Namespace, root_state: dict, run_
             )
             continue
 
-        send_msg(args.feishu_webhook, format_entry(clean, row, money, meta))
+        claims_dir = Path(args.runtime_dir) / "feishu_notify_claims"
+        send_feishu_once(
+            claims_dir,
+            paper_trade_notify_key("open", key),
+            args.feishu_webhook,
+            format_entry(clean, row, money, meta),
+            send_msg,
+        )
         symbol_state["seen_entries"].append(key)
         margin = trade_margin(row, money)
         symbol_state["open_position"] = {

@@ -1,6 +1,35 @@
 # CHANGELOG
 
+## 2026-07-02
+
+### 方案 B Phase 0 · PR #1–#5 全部合并
+
+- GitHub PR #1–#5 已 merge 到 `main`：fill_supervision（B1）、ops audit（#2）、OpenAPI Phase0（#3）、文档 handoff（#4）、Pencil B0-3 脚本（#5）。
+- 合并后验收：`results/post_merge_acceptance_20260702/ACCEPTANCE.md`。
+- 修复合并后 core 版本不一致：`constants.STRATEGY_DISPLAY_NAMES`；`ds07.make_ds07_signal` 增加可选 `df` 参数；新增 `tests/test_core_post_merge_compat.py`。
+- follow-up 分支：`pr/b1-followup-core-compat`（待 merge）。
+- 验证：pytest fill_supervision 相关 **33 passed**；`export_openapi_snapshot.py` **38 paths**；`run_overseas_fill_audit.ps1 -FailOnInvalid` **invalid_new=0** exit **0**。
+
 ## 2026-05-28
+
+### 国内全链路重启与 LC DS09 签收（2026-05-28）
+
+- 用户确认接受 LC `ds09_trades=0`（`locks=0`，引擎 `bad_trades=0`）；`docs/LC_DS09_ACCEPTANCE.md` 签收表已更新。
+- `scripts/resolve_domestic_paper.ps1`：显式解析 `峰极总定式01-08国内期货A股模拟实盘.py`，修复 GBK/SSH 下 `*模拟实盘.py` 通配符匹配失败。
+- `restart_domestic_futures_runtime.ps1`：数据泵 + 模拟盘 + 雷达 + 挂单；`restart_domestic_data_manager.ps1` 补 `PYTHONPATH`。
+- `domestic_install_matplotlib.ps1`：国内沙盒图依赖安装。
+- **cmd `PYTHONPATH`**：`set "PYTHONPATH=src;packages/fengji_core"`（分号在 cmd 中否则被当命令分隔符）。
+- `fengji_radar_order_loop.py`：子进程 `fengji_total_radar.py` 继承 `packages/fengji_core`。
+
+### LC 15m 加长回填与验收清单（2026-05-28 晚）
+
+- `data_manager_futures.fetch_frame`：15m 请求 >8000 时按 12000→…→3000 试探，保留**最长且 `frame_looks_sane` 通过**的一档；1d 仅向下试探且不超过 `FUTURES_1D_LENGTH`。
+- 国内 LC 回填结果：`15m=10000`（`data_length=10000`）、`1d=800`、`1h=2600`；12000/11000 的 15m 与 >800 的 1d 对 LC 常校验失败。
+- `fengji_core/data.py`：`load_tq_futures_kline_csv`、`parse_tq_datetime_series`；`backtest_ds09.load_m15_frame` 优先天勤 CSV。
+- 脚本：`backfill_lc_domestic.ps1`（默认 `M15Length=12000`、`D1Length=800`）、`repair_lc_15m_only.py`、`build_lc_bars_from_1h.py`（仅联调）、`run_lc_ds09_domestic.ps1`（修复 `-BuildFrom1h` 注入远程脚本）。
+- 文档：新增 `docs/LC_DS09_ACCEPTANCE.md`。
+- 复验：`verify_ds09_lc_session` / `debug_lc_ds09` → `m15_rows≈9911`，`ds09_trades=0`，`locks=0`，`bad_trades=0`。
+- Git：`8780b1e`（LC 流水线脚本）、`ec1be47`（加长回填 + 验收清单）。
 
 ### 国内 LC DS09 夜盘 session 与沙盒（2026-05-28）
 

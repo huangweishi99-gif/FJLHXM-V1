@@ -11,6 +11,8 @@ from typing import Any
 import pandas as pd
 import requests
 
+from fengji_feishu_notify import close_notify_key, fill_notify_key, send_feishu_once
+
 
 DEFAULT_BINANCE_PRICE_URLS = [
     "https://api.binance.com/api/v3/ticker/price",
@@ -439,6 +441,10 @@ def close_position_on_stop(
     return record
 
 
+def notify_claims_dir(args: argparse.Namespace) -> Path:
+    return Path(getattr(args, "notify_claims_dir", "runtime/feishu_notify_claims"))
+
+
 def process_open_position_stops(args: argparse.Namespace, paper_state: dict[str, Any], prices: dict[str, float]) -> list[dict[str, Any]]:
     closed: list[dict[str, Any]] = []
     if not args.paper_state_file or args.no_paper_state_update:
@@ -456,9 +462,23 @@ def process_open_position_stops(args: argparse.Namespace, paper_state: dict[str,
         record = close_position_on_stop(args, paper_state, clean, symbol_state, float(price))
         if record:
             closed.append(record)
+            if args.paper_state_file and not args.no_paper_state_update:
+                save_json(Path(args.paper_state_file), paper_state)
             append_csv(Path(args.out_dir) / "closed_trades.csv", record)
             append_jsonl(Path(args.out_dir) / "events.jsonl", {"event_type": "close", **record})
-            send_msg(args.feishu_webhook, format_stop_exit(clean, position, float(price), record))
+            notify_key = close_notify_key(
+                clean,
+                str(position.get("order_id", "")),
+                str(position.get("entry_time", record.get("entry_time", ""))),
+                str(position.get("strategy_id", "")),
+            )
+            send_feishu_once(
+                notify_claims_dir(args),
+                notify_key,
+                args.feishu_webhook,
+                format_stop_exit(clean, position, float(price), record),
+                send_msg,
+            )
     return closed
 
 
@@ -576,7 +596,13 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
             save_json(Path(args.paper_state_file), paper_state)
         append_csv(Path(args.out_dir) / "fills.csv", record)
         append_jsonl(Path(args.out_dir) / "events.jsonl", record)
-        send_msg(args.feishu_webhook, format_fill(order, float(price)))
+        send_feishu_once(
+            notify_claims_dir(args),
+            fill_notify_key(order_id),
+            args.feishu_webhook,
+            format_fill(order, float(price)),
+            send_msg,
+        )
 
         for cancel in cancel_conflicting_orders(state, order, orders):
             cancelled_ids.add(str(cancel.get("order_id", "")))
@@ -615,6 +641,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fee-rate", type=float, default=0.0005)
     parser.add_argument("--slippage-rate", type=float, default=0.0003)
     parser.add_argument("--no-paper-state-update", action="store_true")
+    parser.add_argument("--notify-claims-dir", default="runtime/feishu_notify_claims")
     parser.add_argument("--once", action="store_true")
     return parser.parse_args()
 

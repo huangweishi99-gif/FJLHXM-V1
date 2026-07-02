@@ -20,10 +20,17 @@ DEFAULT_SECTORS = [
     "机器人概念",
     "低空经济",
     "军工",
-    "新能源车",
-    "证券",
-    "互联网金融",
+    "BK0900",  # 新能源车（东财概念；含宁德/比亚迪/阳光电源等）
+    "BK0473",  # 证券Ⅱ
+    "BK0637",  # 互联网金融
 ]
+
+# 历史名称 → 东财 BK 代码（catalog 无「新能源车」条目时用代码）
+BOARD_ALIASES = {
+    "新能源车": "BK0900",
+    "新能源汽车": "BK0900",
+    "证券": "BK0473",
+}
 
 
 BOARD_FIELDS = "f12,f14,f3,f6,f8,f20,f21,f62"
@@ -308,6 +315,7 @@ def main() -> None:
     all_summaries: list[pd.DataFrame] = []
     board_rows: list[dict] = []
     for term in board_terms:
+        term = BOARD_ALIASES.get(term.strip(), term.strip())
         board = resolve_board(term, boards)
         print(f"\n===== 板块: {term} => {board['board_name']}({board['board_code']}) =====")
         constituents = fetch_board_stocks(str(board["board_code"]))
