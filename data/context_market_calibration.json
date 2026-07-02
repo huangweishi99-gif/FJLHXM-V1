@@ -1,0 +1,42 @@
+{
+  "version": "2",
+  "note": "Recalibrated 2026-06-16: FUTURES futures_v2 + 15m backfill (9329 snapshots, 59 eligible buckets). FUTURES tier_medium=0.443491/tier_strong=0.70411 activated Phase 3. CRYPTO/A_STOCK unchanged.",
+  "markets": {
+    "A_STOCK": {
+      "activate": true,
+      "tier_strong": 0.497445,
+      "tier_medium": 0.316326,
+      "min_bucket_samples": 30,
+      "w_wr": 0.45,
+      "w_r": 0.35,
+      "w_conf": 0.2
+    },
+    "CRYPTO": {
+      "activate": true,
+      "tier_strong": 0.425837,
+      "tier_medium": 0.359823,
+      "min_bucket_samples": 30,
+      "w_wr": 0.45,
+      "w_r": 0.35,
+      "w_conf": 0.2
+    },
+    "FUTURES": {
+      "activate": true,
+      "tier_strong": 0.70411,
+      "tier_medium": 0.443491,
+      "min_bucket_samples": 30,
+      "bucket_profile": "futures_v2",
+      "w_wr": 0.45,
+      "w_r": 0.35,
+      "w_conf": 0.2
+    }
+  },
+  "default": {
+    "tier_strong": 0.65,
+    "tier_medium": 0.45,
+    "min_bucket_samples": 30,
+    "w_wr": 0.45,
+    "w_r": 0.35,
+    "w_conf": 0.2
+  }
+}

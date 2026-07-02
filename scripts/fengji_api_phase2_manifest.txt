@@ -1,0 +1,16 @@
+# FengJi API — Phase 2 manifest (PR #8 chart + context)
+# Extends fengji_api_phase1_manifest.txt.
+
+# --- include all phase1 paths (see fengji_api_phase1_manifest.txt) ---
+
+src/chart_bundle.py
+
+packages/fengji_core/fengji_core/chart_line.py
+packages/fengji_core/fengji_core/symbol_names.py
+packages/fengji_core/fengji_core/context_snapshot.py
+packages/fengji_core/fengji_core/context_stats.py
+
+data/context_market_calibration.json
+
+scripts/batch_build_context_stats.py
+scripts/batch_import_context_stats_to_pg.py
