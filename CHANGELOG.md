@@ -6,7 +6,8 @@
 
 - GitHub PR #1–#5 已 merge 到 `main`：fill_supervision（B1）、ops audit（#2）、OpenAPI Phase0（#3）、文档 handoff（#4）、Pencil B0-3 脚本（#5）。
 - 合并后验收：`results/post_merge_acceptance_20260702/ACCEPTANCE.md`。
-- 修复合并后 core 版本不一致：`constants.STRATEGY_DISPLAY_NAMES`；`ds07.make_ds07_signal` 增加可选 `df` 参数（fill_supervision audit 兼容）。
+- 修复合并后 core 版本不一致：`constants.STRATEGY_DISPLAY_NAMES`；`ds07.make_ds07_signal` 增加可选 `df` 参数；新增 `tests/test_core_post_merge_compat.py`。
+- follow-up 分支：`pr/b1-followup-core-compat`（待 merge）。
 - 验证：pytest fill_supervision 相关 **33 passed**；`export_openapi_snapshot.py` **38 paths**；`run_overseas_fill_audit.ps1 -FailOnInvalid` **invalid_new=0** exit **0**。
 
 ## 2026-05-28

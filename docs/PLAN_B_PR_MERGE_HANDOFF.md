@@ -63,7 +63,7 @@ git pull origin main
 
 **PR #1–#5 已全部 merge 到 `main`**（merge commits 含 `09fb52a` B6、`6d128a9` B4 等）。
 
-合并后验收见 `results/post_merge_acceptance_20260702/ACCEPTANCE.md`。
+合并后验收见 `docs/POST_MERGE_ACCEPTANCE_20260702.md`。
 
 首轮发现 `constants.STRATEGY_DISPLAY_NAMES` 与 `ds07.make_ds07_signal(df=...)` 未随 B1 合入，已在本地最小补丁修复；**建议开 follow-up PR 推 remote**。
 
