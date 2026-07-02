@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import pandas as pd
 
 
 REQUIRED_COLUMNS = {"date", "open", "high", "low", "close", "volume"}
+FUTURES_MIN_PRICE = 1e-6
+FUTURES_MAX_PRICE = 1e8
+FUTURES_MAX_OHLC_RATIO = 100.0
 
 
 def read_csv_strict(path: str | Path) -> pd.DataFrame:
@@ -29,6 +33,40 @@ def parse_tq_datetime_series(series: pd.Series) -> pd.Series:
   return pd.to_datetime(series, errors="coerce")
 
 
+def valid_futures_price_mask(
+  frame: pd.DataFrame,
+  *,
+  min_price: float = FUTURES_MIN_PRICE,
+  max_price: float = FUTURES_MAX_PRICE,
+  max_ohlc_ratio: float = FUTURES_MAX_OHLC_RATIO,
+) -> pd.Series:
+  """Return a conservative mask for domestic futures OHLC price sanity.
+
+  Tianqin has occasionally returned corrupted rows whose values are finite and
+  positive but physically impossible, for example tiny subnormal prices mixed
+  with huge highs.  Basic OHLC relation checks are not enough for those rows.
+  """
+  index = frame.index
+  required = ["open", "high", "low", "close"]
+  missing = [column for column in required if column not in frame.columns]
+  if missing:
+    return pd.Series(False, index=index)
+
+  prices = frame[required].apply(pd.to_numeric, errors="coerce")
+  finite = prices.apply(lambda column: column.map(lambda value: math.isfinite(float(value))))
+  mask = finite.all(axis=1)
+  mask &= (prices >= min_price).all(axis=1)
+  mask &= (prices <= max_price).all(axis=1)
+  mask &= prices["high"] >= prices[["open", "close", "low"]].max(axis=1)
+  mask &= prices["low"] <= prices[["open", "close", "high"]].min(axis=1)
+
+  min_ohlc = prices.min(axis=1)
+  max_ohlc = prices.max(axis=1)
+  ratio = max_ohlc / min_ohlc.replace(0, pd.NA)
+  mask &= ratio <= max_ohlc_ratio
+  return mask.fillna(False)
+
+
 def filter_valid_futures_ohlcv(frame: pd.DataFrame, min_close: float = 100.0) -> pd.DataFrame:
   out = frame.copy()
   out["date"] = pd.to_datetime(out["date"], errors="coerce")
@@ -39,7 +77,7 @@ def filter_valid_futures_ohlcv(frame: pd.DataFrame, min_close: float = 100.0) ->
     out["volume"] = 0.0
   out = out.dropna(subset=["date", "open", "high", "low", "close"])
   out = out[(out["date"] >= pd.Timestamp("2020-01-01")) & (out["date"] <= pd.Timestamp("2031-12-31"))]
-  out = out[(out["high"] > out["low"]) & (out["close"] >= min_close)]
+  out = out[valid_futures_price_mask(out) & (out["high"] > out["low"]) & (out["close"] >= min_close)]
   return out.sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True)
 
 

@@ -40,6 +40,24 @@ def count_left_lines(
     return count
 
 
+def ds01_os_defense_missing(camp: int, row: pd.Series) -> bool:
+    """红营缺 active_low / 蓝营缺 active_high 时不授权 DS01（与雷达 add_ds01 一致）。"""
+    if camp == 1:
+        val = row.get("active_low")
+    elif camp == -1:
+        val = row.get("active_high")
+    else:
+        return True
+    if val is None:
+        return True
+    try:
+        if pd.isna(val):
+            return True
+    except TypeError:
+        pass
+    return False
+
+
 def make_ds01_pending(
     df: pd.DataFrame,
     i: int,
