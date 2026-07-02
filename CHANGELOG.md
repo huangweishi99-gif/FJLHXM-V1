@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-07-02（Phase 1 · PR #7 merged）
+
+- PR #7 merged（`1a0bc86`）：services · migrations · auth tests · OpenAPI 38 paths。
+- 验收：`docs/POST_MERGE_ACCEPTANCE_PR7_20260702.md`。
+
+## 2026-07-02（Phase 1 · PR #8 chart）
+
+- 分支 `pr/b2-chart-bundle-deps`：`chart_bundle` · `chart_line` · `symbol_names` · `context_*` · phase2 manifest。
+- 期货 chart 黄金测试默认 skip（`FENGJI_CHART_FUTURES_GOLDEN=1` 时启用）。
+
 ## 2026-07-02（Phase 1 · services MVP）
 
 ### PR #7 准备 · services/API 分桶

@@ -4,45 +4,43 @@
 
 ## 目标
 
-将本地 untracked 的 `services/` 纳入版本库，使 OpenAPI 导出与 auth/feature_gate 单测可在 CI/`main` 上复现，**不**在本 PR 混入定式/OS 逻辑变更。
+将 `services/` 与 chart/context 依赖纳入版本库，使 OpenAPI、auth 与 chart_bundle 可在 CI/`main` 上复现，**不**混入定式/OS 逻辑变更。
 
 ## 分 PR 策略
 
-| PR | 分支建议 | 范围 | 验收 |
-|----|----------|------|------|
-| **#7 MVP** | `pr/b2-services-api-phase1` | `services/` · `migrations/` · `alembic.ini` · `docker-compose.yml` · Phase1 manifest · auth 相关 tests | pytest phase1 · `export_openapi_snapshot.py` |
+| PR | 分支 | 状态 | 范围 |
+|----|------|------|------|
+| **#7 MVP** | `pr/b2-services-api-phase1` | ✅ merged | `services/` · migrations · alembic · docker-compose |
+| **#8 chart** | `pr/b2-chart-bundle-deps` | 🔄 | chart_bundle · chart_line · symbol_names · context_* |
+| **#9 ops** | `pr/b3-api-deploy-scripts` | 待办 | sync_deploy · W17 remote（脱敏） |
+| **#10 web** | `pr/b2-web-tests` | 待办 | web/ · feature_gate_api / w17 |
 
-**开 PR**：https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b2-services-api-phase1
-| **#8 chart** | `pr/b2-chart-bundle-deps` | `src/chart_bundle.py` · `chart_line.py` · `symbol_names.py` · context_* | manifest 全量 · chart smoke |
-| **#9 ops** | `pr/b3-api-deploy-scripts` | `sync_deploy_fengji_api.ps1` · health · alembic upgrade · W17 remote（脱敏） | deploy manifest 全绿 |
-| **#10 web** | `pr/b2-web-tests` | `web/` · feature_gate_api / w17 失败项 | 分桶修 6 fail |
+**PR #8 开 PR**：https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b2-chart-bundle-deps
 
-**禁止**：`.env` · 真实 webhook/密钥 · `data/market_data.sqlite` · `runtime/*.json`
+## Manifest 层级
 
-## Phase 1 manifest（PR #7）
+| 文件 | 说明 |
+|------|------|
+| `fengji_api_phase1_manifest.txt` | PR #7 · services + migrations |
+| `fengji_api_phase2_manifest.txt` | PR #8 · chart + context 增量 |
+| `fengji_api_deploy_manifest.txt` | 全量 W17（随 #9 逐步绿） |
 
-见 `scripts/fengji_api_phase1_manifest.txt`（仅 services + DB 迁移 + 容器骨架）。
-
-全量 W17 部署清单仍为 `scripts/fengji_api_deploy_manifest.txt`（119 项 · 随 #8/#9 逐步入库）。
-
-## PR #7 提交前检查
+## PR #8 提交前检查
 
 ```powershell
-python -m pytest tests/test_auth_api.py tests/test_feature_gate.py tests/test_subscription_plan_catalog.py tests/test_fengji_api_phase1_manifest.py -q
+python -m pytest tests/test_chart_line.py tests/test_chart_bundle.py tests/test_fengji_api_phase2_manifest.py tests/test_fengji_api_phase1_manifest.py -q
 python scripts/export_openapi_snapshot.py
-python scripts/assess_instruments_vs_coverage.py   # FUTURES 5m 仍为已知 fail
 ```
 
-## 已知缺口（不阻塞 #7）
+## 已知缺口
 
 | 项 | 说明 |
 |----|------|
-| FUTURES **5m** | `assess_instruments_vs_coverage.py` · Phase 1 数据 PR 单独排 |
+| FUTURES **5m** | `assess_instruments_vs_coverage.py` |
 | HYPE #28 | 待 07-02 D1 · `docs/HYPE28_STOP_FOLLOWUP.md` |
-| chart_bundle | 依赖 `backtest_ds*` · 随 #8 |
+| 期货 chart 黄金测试 | 需 `runtime/fengji_os_state/{NI,AG,SC}_1d.json` · 无则 skip |
 
 ## 引用
 
 - `docs/PLAN_B_PHASE0_COMPLETE.md`
-- `docs/PLAN_B_B04_COMMIT_BUCKETS.md`（B2 桶）
-- `scripts/fengji_api_deploy_manifest.txt`
+- `docs/POST_MERGE_ACCEPTANCE_PR7_20260702.md`

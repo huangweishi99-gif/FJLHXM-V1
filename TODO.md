@@ -6,7 +6,8 @@
 
 - [x] **PR #1–#6 全部 merge 到 `main`**（含 follow-up core 兼容 · `c929b71`）。
 - [x] **Phase 0 签收**：`docs/PLAN_B_PHASE0_COMPLETE.md` · pytest **38 passed** · audit **invalid_new=0** · OpenAPI **38 paths**。
-- [ ] **Phase 1 PR #7**：`pr/b2-services-api-phase1` — services + migrations + auth tests（已 push 待 merge）· `docs/PLAN_B_PHASE1_SERVICES_BUCKET.md`
+- [x] **Phase 1 PR #7**：services + migrations merged · `1a0bc86`
+- [ ] **Phase 1 PR #8**：`pr/b2-chart-bundle-deps` — chart_bundle + chart_line + context（待 merge）
 - [ ] **HYPE #28**：见 `docs/HYPE28_STOP_FOLLOWUP.md` · 07-01 breach · 待 **07-02 D1** 收盘入库后 monitor 触停。
 - [ ] **stash@{0}**：含 os_engine / web / services WIP · **勿整包 pop** · 按桶 cherry-pick。
 
