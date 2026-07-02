@@ -6,8 +6,8 @@
 
 - [x] **PR #1–#5 全部 merge 到 `main`**（fill_supervision、ops audit、OpenAPI、Phase0 文档、Pencil 脚本）。
 - [x] **合并后验收**：`results/post_merge_acceptance_20260702/ACCEPTANCE.md`（pytest 33 passed · audit invalid_new=0 · OpenAPI 38 paths）。
-- [ ] **follow-up PR**：`pr/b1-followup-core-compat` — `constants.STRATEGY_DISPLAY_NAMES` + `ds07.make_ds07_signal(df=...)` + 回归测试（本地已就绪，待 push/merge）。
-- [ ] **HYPE #28**：`STOP_PENDING_MONITOR_BAR` · 07-01 D1 low 61.777 < stop 64.259 · 待 **07-02 D1** 入库后 monitor 切 bar。
+- [ ] **follow-up PR #6**：`pr/b1-followup-core-compat` 已 push · [开 PR](https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b1-followup-core-compat) · 待 merge。
+- [ ] **HYPE #28**：见 `docs/HYPE28_STOP_FOLLOWUP.md` · 07-01 breach · 待 **07-02 D1** 入库后 monitor 触停。
 - [ ] **stash@{0}**：含 os_engine / web / services WIP · **勿整包 pop** · 按桶 cherry-pick。
 
 ## 已完成 / 待复查（2026-05-28 LC DS09 与数据）

@@ -20,7 +20,9 @@
 | `export_openapi_snapshot.py` → `ImportError: STRATEGY_DISPLAY_NAMES` | `constants.py` 缺展示名字典 | 补 `STRATEGY_DISPLAY_NAMES` |
 | `audit_paper_fills` DS07 → `make_ds07_signal(..., df=)` TypeError | `ds07.py` 签名未含 `df` | 补可选参数 `df: pd.DataFrame \| None = None` |
 
-分支：`pr/b1-followup-core-compat`
+分支：`pr/b1-followup-core-compat` · **已 push** · 开 PR：https://github.com/huangweishi99-gif/FJLHXM-V1/compare/main...pr/b1-followup-core-compat
+
+建议标题：`fix(core): post-merge constants and ds07 fill_supervision compat`
 
 ## 验收命令与结果
 
