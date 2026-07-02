@@ -16,9 +16,25 @@
 
 ## 各 PR 要点
 
-### B1 · fill_supervision
+### B1 · fill_supervision（已补依赖 · `860ab26`）
 - `resolve_ds03_entry_bar_index` 优先 `attack_bar_time`
+- **同 PR 附带 import 依赖**：`ds01` · `data` · `ds03_pending_fill` · `runtime_stop_updater`
 - 测试：`pytest tests/test_fill_supervision.py -q` → **26 passed**
+- 本地 `integrate/b1-b3-smoke`（B1+B3 merge）已通过 import + pytest
+
+## 在 GitHub 创建 PR（无 gh CLI 时）
+
+对每个 compare 链接 → **Create pull request**，建议标题：
+
+| 分支 | PR 标题 |
+|------|---------|
+| B1 | `fix(core): fill_supervision DS03 attack_bar_time + deps` |
+| B3 | `feat(ops): overseas fill audit and ops round scripts` |
+| B2 | `feat(phase0): OpenAPI snapshot and coverage reconcile` |
+| B4 | `docs: Phase 0 handoff and B0-4 PR buckets` |
+| B6 | `design: FJLHXM pen build scripts and B0-3 assess` |
+
+Test plan 粘贴各 PR 要点中的 pytest / audit 结果。
 
 ### B3 · ops / audit
 - `audit_exit_code`：`--fail-on-invalid` + `invalid_new=0` → exit **0**
@@ -50,7 +66,7 @@ git pull origin main
 
 ## T0 待跟进（合 PR 前可并行）
 
-- **HYPE #28**：D1 末根 **07-01** · 待 **07-02 D1** 后 monitor 触停
+- **HYPE #28**：D1 末根 **07-01**（low **61.777**）· 已 sync 24/24 · 仍待 **07-02 D1**
 - **Phase 0**：PR 全合并后 `main` 恢复 ops / fill audit 一键脚本
 
 引用：`docs/PLAN_B_B04_COMMIT_BUCKETS.md`
