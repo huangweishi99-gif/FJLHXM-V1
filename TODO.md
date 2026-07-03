@@ -1,14 +1,19 @@
 # TODO
 
-更新时间：2026-07-02（Phase 1 完成 · `2ead68e`）
+更新时间：2026-07-03
+
+## 2026-07-03 · 运行态处置
+
+- [x] **国内 SF DS05 invalid**：登记 ack 继续观察 · audit `new=0 ack=1`。
+- [x] **海外 BTC lock timeout**：重启 pending monitor（旧进程 2d+ 100% CPU 占锁）。
+- [x] **HYPE #28**：DS05 long 已 **gap_stop** 平仓（07-03 00:00:13 @ 64.654）· 见 `docs/HYPE28_STOP_FOLLOWUP.md`。
+- [x] **Phase 2 W17 本地验收**：Docker PG + `w17_remote_acceptance.py --auto-server` · **7/7 + 5/5**（2026-07-03）。
+- [x] **国内 API deploy 验证**：`sync_deploy_fengji_api.ps1 -Verify` · health ok · 124 文件同步。
+- [x] **pending monitor 仓库对齐**：海外 `state_lock` 版入库 · 测试修复。
+- [ ] **Phase 2 续**：FUTURES 5m 数据桶 · 国内 PG/alembic 确认 · futures pending state_lock。
+- [ ] **stash@{0}**：按桶 cherry-pick · 勿整包 pop。
 
 ## 2026-07-02 · 方案 B Phase 1 完成 ✅
-
-- [x] **PR #7–#10 全部 merge**（services · chart · deploy · web）。
-- [x] **Phase 1 签收**：`docs/PLAN_B_PHASE1_COMPLETE.md`（manifest 全绿 · OpenAPI 38 · pytest 18 passed · W17 preflight ok）。
-- [ ] **Phase 2**：本地 PG + W17 全量 acceptance · 国内 `sync_deploy_fengji_api.ps1 -Verify` · FUTURES 5m 数据桶。
-- [ ] **HYPE #28**：`docs/HYPE28_STOP_FOLLOWUP.md` · 待 07-02 D1。
-- [ ] **stash@{0}**：按桶 cherry-pick · 勿整包 pop。
 
 ## 2026-07-02 · 方案 B Phase 0 完成
 

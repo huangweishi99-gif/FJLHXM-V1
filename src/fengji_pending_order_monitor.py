@@ -1,17 +1,44 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import math
 import os
 import time
+from contextlib import nullcontext
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 import requests
 
-from fengji_feishu_notify import close_notify_key, fill_notify_key, send_feishu_once
+from fengji_core.ds03_pending_fill import resolve_ds03_pending_fill
+from fengji_core.ds08_pending_fill import (
+    DEFAULT_DS08_MAX_LAG_BARS,
+    check_ds08_setup_key_stale,
+    resolve_ds08_pending_fill,
+)
+from fengji_core.runtime_stop_updater import refresh_position_stop
+from fengji_core.state_lock import file_lock
+from fengji_core.symbol_names import crypto_display
+from fengji_core.feishu_trade_notify import (
+    audit_fill_for_notify,
+    format_close_done,
+    format_fill_done,
+    format_pending_expected,
+    log_notify_blocked,
+    validate_close_fill,
+    validate_expected_close,
+    validate_pending_order,
+)
+from fengji_feishu_notify import (
+    close_notify_key,
+    fill_notify_key,
+    pending_notify_key,
+    pending_semantic_notify_key,
+    send_feishu_once,
+)
 
 
 DEFAULT_BINANCE_PRICE_URLS = [
@@ -126,10 +153,51 @@ def fetch_binance_prices(symbols: set[str], timeout: float, urls: list[str] | No
     return prices
 
 
+OKX_PRICE_ONLY = frozenset({"HYPEUSDT", "ATHUSDT"})
+
+
+def okx_inst_id(symbol: str) -> str:
+    sym = normalize_symbol(symbol)
+    return f"{sym[:-4]}-USDT"
+
+
+def fetch_okx_prices(symbols: set[str], timeout: float) -> dict[str, float]:
+    prices: dict[str, float] = {}
+    for symbol in symbols:
+        clean = normalize_symbol(symbol)
+        if clean not in OKX_PRICE_ONLY:
+            continue
+        try:
+            resp = requests.get(
+                "https://www.okx.com/api/v5/market/ticker",
+                params={"instId": okx_inst_id(clean)},
+                timeout=timeout,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            rows = payload.get("data") if isinstance(payload, dict) else None
+            if not rows:
+                continue
+            price = safe_float(rows[0].get("last"))
+            if price is not None:
+                prices[clean] = float(price)
+        except Exception as exc:
+            print(f"OKX price failed: {clean} {exc}")
+    return prices
+
+
 def load_price_snapshot(args: argparse.Namespace, symbols: set[str]) -> dict[str, float]:
     if args.price_file:
         return read_mock_prices(Path(args.price_file))
-    return fetch_binance_prices(symbols, timeout=float(args.timeout))
+    prices = fetch_binance_prices(symbols, timeout=float(args.timeout))
+    missing_okx = {
+        normalize_symbol(symbol)
+        for symbol in symbols
+        if normalize_symbol(symbol) in OKX_PRICE_ONLY and normalize_symbol(symbol) not in prices
+    }
+    if missing_okx:
+        prices.update(fetch_okx_prices(missing_okx, timeout=float(args.timeout)))
+    return prices
 
 
 def triggered(order: dict[str, Any], price: float) -> bool:
@@ -160,41 +228,179 @@ def order_expired(order: dict[str, Any], now: pd.Timestamp | None = None) -> boo
     return current > valid_until
 
 
-def format_fill(order: dict[str, Any], fill_price: float) -> str:
-    direction = "买入做多" if str(order.get("side", "")).lower() == "long" else "卖出做空"
-    stop = safe_float(order.get("stop_price"))
-    stop_text = "无" if stop is None else f"{stop:.8g}"
-    return (
-        "🚨【峰极总定式 模拟挂单触发】\n"
-        f"时间: {now_text()}\n"
-        f"币种: {order.get('symbol', '')}\n"
-        f"定式: {order.get('strategy_id', '')}\n"
-        f"周期: {order.get('timeframe', '')}\n"
-        f"方向: {direction}\n"
-        f"触发价: {float(order.get('trigger_price', 0.0)):.8g}\n"
-        f"最新价: {fill_price:.8g}\n"
-        f"初始止损: {stop_text}\n"
-        f"峰极阵营: {order.get('os_camp', '')}\n"
-        f"依据: {order.get('setup', '')}\n"
-        "模式: 只模拟触发，不真实下单"
+def notify_claims_dir(args: argparse.Namespace) -> Path:
+    return Path(getattr(args, "notify_claims_dir", "runtime/feishu_notify_claims"))
+
+
+def _position_from_paper(paper_state: dict[str, Any], symbol: str) -> dict[str, Any] | None:
+    symbol_state = (paper_state.get("symbols") or {}).get(normalize_symbol(symbol)) or {}
+    position = symbol_state.get("open_position")
+    return position if isinstance(position, dict) else None
+
+
+def legacy_pending_symbol_strategy_notified(
+    notified_order_ids: set[str], order: dict[str, Any]
+) -> bool:
+    """Migrate pre-semantic dedup: same symbol+strategy already pushed via legacy order_id keys."""
+    symbol = normalize_symbol(str(order.get("symbol", "")))
+    strategy = str(order.get("strategy_id", "")).strip().upper()
+    if not symbol or not strategy:
+        return False
+    prefix = f"{symbol}-{strategy}-"
+    return any(str(order_id).startswith(prefix) for order_id in notified_order_ids)
+
+
+def bootstrap_pending_semantic_keys(
+    state: dict[str, Any], orders: list[dict[str, Any]]
+) -> None:
+    """One-shot migration: map legacy order_id/setup_key notifications to semantic keys."""
+    notified = set(state.setdefault("notified_pending_order_ids", []))
+    notified_setup = set(state.setdefault("notified_pending_setup_keys", []))
+    notified_semantic = set(state.setdefault("notified_pending_semantic_keys", []))
+    for order in orders:
+        semantic_key = pending_semantic_notify_key(order)
+        if semantic_key in notified_semantic:
+            continue
+        order_id = str(order.get("order_id", ""))
+        setup_key = order_setup_key(order)
+        if order_id and order_id in notified:
+            notified_semantic.add(semantic_key)
+        elif legacy_pending_symbol_strategy_notified(notified, order):
+            notified_semantic.add(semantic_key)
+        elif setup_key and setup_key in notified_setup:
+            notified_semantic.add(semantic_key)
+    state["notified_pending_semantic_keys"] = sorted(notified_semantic)
+
+
+def notify_new_pending_orders(
+    args: argparse.Namespace,
+    state: dict[str, Any],
+    active_orders: list[dict[str, Any]],
+    *,
+    symbol_label_fn: Callable[[str], str] | None = None,
+) -> None:
+    label_fn = symbol_label_fn or crypto_display
+    bootstrap_pending_semantic_keys(state, active_orders)
+    notified = set(state.setdefault("notified_pending_order_ids", []))
+    notified_setup = set(state.setdefault("notified_pending_setup_keys", []))
+    notified_semantic = set(state.setdefault("notified_pending_semantic_keys", []))
+    for order in active_orders:
+        order_id = str(order.get("order_id", ""))
+        setup_key = order_setup_key(order)
+        semantic_key = pending_semantic_notify_key(order)
+        if order_id and order_id in notified:
+            continue
+        if semantic_key in notified_semantic:
+            continue
+        if setup_key and setup_key in notified_setup:
+            continue
+        check = validate_pending_order(order)
+        if not check.ok:
+            log_notify_blocked("pending", order_id, check)
+            continue
+        symbol = normalize_symbol(str(order.get("symbol", "")))
+        notify_key = semantic_key
+        sent = send_feishu_once(
+            notify_claims_dir(args),
+            notify_key,
+            args.feishu_webhook,
+            format_pending_expected(order, symbol_label=label_fn(symbol), now=now_text()),
+            send_msg,
+        )
+        if sent:
+            if order_id:
+                notified.add(order_id)
+            if setup_key:
+                notified_setup.add(setup_key)
+            notified_semantic.add(semantic_key)
+    state["notified_pending_order_ids"] = sorted(notified)
+    state["notified_pending_setup_keys"] = sorted(notified_setup)
+    state["notified_pending_semantic_keys"] = sorted(notified_semantic)
+
+
+def notify_fill_and_expected_close(
+    args: argparse.Namespace,
+    order: dict[str, Any],
+    fill_price: float,
+    record: dict[str, Any],
+    paper_state: dict[str, Any],
+    *,
+    market: str = "crypto",
+    symbol_label_fn: Callable[[str], str] | None = None,
+    position: dict[str, Any] | None = None,
+    extra_fill_lines: list[str] | None = None,
+) -> None:
+    label_fn = symbol_label_fn or crypto_display
+    order_id = str(order.get("order_id", ""))
+    symbol = normalize_symbol(str(order.get("symbol", "")))
+    data_dir = Path(getattr(args, "data_dir", "data"))
+    audit, check = audit_fill_for_notify(record, data_dir=data_dir, market=market)
+    if not check.ok:
+        log_notify_blocked("fill", order_id, check)
+        return
+    if position is None:
+        position = _position_from_paper(paper_state, symbol)
+    include_expected = False
+    if position:
+        close_check = validate_expected_close(position)
+        if not close_check.ok:
+            log_notify_blocked("expected_close", order_id, close_check)
+        else:
+            include_expected = True
+    send_feishu_once(
+        notify_claims_dir(args),
+        fill_notify_key(order_id),
+        args.feishu_webhook,
+        format_fill_done(
+            order,
+            fill_price,
+            symbol_label=label_fn(symbol),
+            now=now_text(),
+            audit=audit,
+            extra_lines=extra_fill_lines,
+            position=position if include_expected else None,
+        ),
+        send_msg,
     )
 
 
-def format_stop_exit(symbol: str, position: dict[str, Any], exit_price: float, pnl: dict[str, Any]) -> str:
-    net = float(pnl.get("net_pnl", 0.0))
-    result = "盈利" if net >= 0 else "亏损"
-    return (
-        "✅【峰极总定式 模拟挂单平仓】\n"
-        f"时间: {now_text()}\n"
-        f"币种: {symbol}\n"
-        f"定式: {position.get('strategy_id', '')}\n"
-        f"方向: {'多头' if int(position.get('side', 0) or 0) == 1 else '空头'}\n"
-        f"入场时间: {position.get('entry_time', '')}\n"
-        f"平仓价格: {exit_price:.8g}\n"
-        f"平均入场: {float(position.get('entry_price', 0.0) or 0.0):.8g}\n"
-        f"结果: {result} {net:.2f} USDT\n"
-        "退出原因: stop\n"
-        "模式: 只模拟触发，不真实下单"
+def notify_close_fill(
+    args: argparse.Namespace,
+    symbol: str,
+    position: dict[str, Any],
+    exit_price: float,
+    pnl: dict[str, Any],
+    *,
+    exit_reason: str = "stop",
+    symbol_label_fn: Callable[[str], str] | None = None,
+    bar_hint: str = "",
+) -> None:
+    label_fn = symbol_label_fn or crypto_display
+    order_id = str(position.get("order_id", ""))
+    check = validate_close_fill(position, float(exit_price), exit_reason=exit_reason)
+    if not check.ok:
+        log_notify_blocked("close", order_id, check)
+        return
+    clean = normalize_symbol(symbol)
+    send_feishu_once(
+        notify_claims_dir(args),
+        close_notify_key(
+            clean,
+            order_id,
+            str(position.get("entry_time", "")),
+            str(position.get("strategy_id", "")),
+        ),
+        args.feishu_webhook,
+        format_close_done(
+            position,
+            float(exit_price),
+            {**pnl, "unit": pnl.get("unit", "USDT")},
+            symbol_label=label_fn(clean),
+            now=now_text(),
+            exit_reason=exit_reason,
+            bar_hint=bar_hint,
+        ),
+        send_msg,
     )
 
 
@@ -385,6 +591,9 @@ def close_position_on_stop(
     symbol: str,
     symbol_state: dict[str, Any],
     exit_price: float,
+    *,
+    exit_reason: str = "stop",
+    exit_bar: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     position = symbol_state.get("open_position")
     if not position:
@@ -406,7 +615,7 @@ def close_position_on_stop(
         "entry_price": float(position.get("entry_price", 0.0) or 0.0),
         "exit_price": float(exit_price),
         "initial_stop": safe_float(position.get("initial_stop")) or 0.0,
-        "exit_reason": "stop",
+        "exit_reason": exit_reason,
         "entries": int(position.get("entries", 1) or 1),
         "margin": float(pnl["margin"]),
         "leverage": float(position.get("leverage", getattr(args, "leverage", 2.0)) or 2.0),
@@ -431,8 +640,11 @@ def close_position_on_stop(
         "strategy_id": position.get("strategy_id", ""),
         "net_pnl": net,
         "equity_after": float(symbol_state["equity"]),
-        "exit_reason": "stop",
+        "exit_reason": exit_reason,
     }
+    if exit_bar:
+        event["exit_bar_timeframe"] = str(exit_bar.get("timeframe", ""))
+        event["exit_bar_time"] = str(exit_bar.get("date", ""))
     paper_state.setdefault("events", []).append(event)
     paper_state["events"] = paper_state["events"][-800:]
     symbol_state.setdefault("events", []).append(event)
@@ -441,14 +653,70 @@ def close_position_on_stop(
     return record
 
 
-def notify_claims_dir(args: argparse.Namespace) -> Path:
-    return Path(getattr(args, "notify_claims_dir", "runtime/feishu_notify_claims"))
+def precompute_open_position_stops(args: argparse.Namespace, paper_snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Lock-free stop refresh preview keyed by symbol (order_id + current_stop)."""
+    out: dict[str, dict[str, Any]] = {}
+    if not args.paper_state_file or args.no_paper_state_update:
+        return out
+    data_dir = Path(getattr(args, "data_dir", "data"))
+    os_state_dir = getattr(args, "os_state_dir", "runtime/fengji_os_state")
+    for symbol, symbol_state in (paper_snapshot.get("symbols") or {}).items():
+        if not isinstance(symbol_state, dict):
+            continue
+        position = symbol_state.get("open_position")
+        if not position:
+            continue
+        clean = normalize_symbol(symbol)
+        pos_copy = copy.deepcopy(position)
+        refresh_position_stop(
+            pos_copy,
+            symbol=clean,
+            data_dir=data_dir,
+            os_state_dir=os_state_dir,
+        )
+        out[clean] = {
+            "order_id": str(position.get("order_id", "")),
+            "current_stop": pos_copy.get("current_stop"),
+        }
+    return out
 
 
-def process_open_position_stops(args: argparse.Namespace, paper_state: dict[str, Any], prices: dict[str, float]) -> list[dict[str, Any]]:
+def apply_precomputed_stops(paper_state: dict[str, Any], precomputed: dict[str, dict[str, Any]]) -> None:
+    for symbol, symbol_state in (paper_state.get("symbols") or {}).items():
+        if not isinstance(symbol_state, dict):
+            continue
+        position = symbol_state.get("open_position")
+        if not position:
+            continue
+        hint = precomputed.get(normalize_symbol(symbol))
+        if not hint:
+            continue
+        if str(position.get("order_id", "")) != str(hint.get("order_id", "")):
+            continue
+        if hint.get("current_stop") is not None:
+            position["current_stop"] = hint["current_stop"]
+
+
+def process_open_position_stops(
+    args: argparse.Namespace,
+    paper_state: dict[str, Any],
+    prices: dict[str, float],
+    *,
+    skip_refresh: bool = False,
+) -> list[dict[str, Any]]:
     closed: list[dict[str, Any]] = []
     if not args.paper_state_file or args.no_paper_state_update:
         return closed
+    data_dir = Path(getattr(args, "data_dir", "data"))
+    os_state_dir = getattr(args, "os_state_dir", "runtime/fengji_os_state")
+    from fengji_core.stop_bar_monitor import (
+        read_stop_bar_for_position,
+        stop_bar_after_entry,
+        stop_crossed,
+        stop_exit_fill,
+        stop_timeframe_for_position,
+    )
+
     for symbol, symbol_state in (paper_state.get("symbols") or {}).items():
         if not isinstance(symbol_state, dict):
             continue
@@ -456,28 +724,50 @@ def process_open_position_stops(args: argparse.Namespace, paper_state: dict[str,
         if not position:
             continue
         clean = normalize_symbol(symbol)
-        price = prices.get(clean)
-        if price is None or not stop_triggered(position, float(price)):
-            continue
-        record = close_position_on_stop(args, paper_state, clean, symbol_state, float(price))
+        if not skip_refresh:
+            refresh_position_stop(
+                position,
+                symbol=clean,
+                data_dir=data_dir,
+                os_state_dir=os_state_dir,
+            )
+        stop_bar = None
+        exit_price: float | None = None
+        exit_reason = "stop"
+        if stop_timeframe_for_position(position):
+            stop_bar = read_stop_bar_for_position(args, clean, position)
+            if stop_bar is None or not stop_bar_after_entry(position, stop_bar):
+                continue
+            if not stop_crossed(position, stop_bar):
+                continue
+            exit_price, exit_reason = stop_exit_fill(position, stop_bar)
+        else:
+            price = prices.get(clean)
+            if price is None or not stop_triggered(position, float(price)):
+                continue
+            exit_price = float(price)
+        record = close_position_on_stop(
+            args,
+            paper_state,
+            clean,
+            symbol_state,
+            float(exit_price),
+            exit_reason=exit_reason,
+            exit_bar=stop_bar,
+        )
         if record:
             closed.append(record)
             if args.paper_state_file and not args.no_paper_state_update:
                 save_json(Path(args.paper_state_file), paper_state)
             append_csv(Path(args.out_dir) / "closed_trades.csv", record)
             append_jsonl(Path(args.out_dir) / "events.jsonl", {"event_type": "close", **record})
-            notify_key = close_notify_key(
+            notify_close_fill(
+                args,
                 clean,
-                str(position.get("order_id", "")),
-                str(position.get("entry_time", record.get("entry_time", ""))),
-                str(position.get("strategy_id", "")),
-            )
-            send_feishu_once(
-                notify_claims_dir(args),
-                notify_key,
-                args.feishu_webhook,
-                format_stop_exit(clean, position, float(price), record),
-                send_msg,
+                position,
+                float(exit_price),
+                record,
+                exit_reason=str(exit_reason),
             )
     return closed
 
@@ -526,7 +816,8 @@ def cancel_conflicting_orders(state: dict[str, Any], filled: dict[str, Any], ord
 
 def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, Any]:
     orders = read_orders(Path(args.orders_file))
-    paper_state = load_json(Path(args.paper_state_file), {}) if args.paper_state_file else {}
+    # 锁外快照仅用于「发现需要取价的品种」；真正的状态读改写在锁内重载。
+    discovery_snapshot = load_json(Path(args.paper_state_file), {}) if args.paper_state_file else {}
     filled_ids = set(state.get("filled_order_ids", []))
     cancelled_ids = set(state.get("cancelled_order_ids", []))
     filled_setup_keys = set(state.get("filled_setup_keys", []))
@@ -542,11 +833,132 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
         and not order_expired(order)
     ]
     symbols = {normalize_symbol(str(order.get("symbol", ""))) for order in active_orders}
-    symbols.update(open_position_symbols(paper_state))
+    symbols.update(open_position_symbols(discovery_snapshot))
     prices = load_price_snapshot(args, symbols) if symbols else {}
-    closed_records = process_open_position_stops(args, paper_state, prices)
-    if closed_records and args.paper_state_file and not args.no_paper_state_update:
-        save_json(Path(args.paper_state_file), paper_state)
+
+    notify_new_pending_orders(args, state, active_orders)
+
+    paper_updates = bool(args.paper_state_file) and not args.no_paper_state_update
+    precomputed_stops: dict[str, dict[str, Any]] = {}
+    if paper_updates:
+        snapshot = load_json(Path(args.paper_state_file), {})
+        precomputed_stops = precompute_open_position_stops(args, snapshot)
+    # 持锁临界区：与模拟盘进程互斥，持锁内重载最新 paper_state 再改写，杜绝丢失更新。
+    if paper_updates:
+        lock_cm = file_lock(Path(args.paper_state_file))
+    else:
+        lock_cm = nullcontext()
+    with lock_cm:
+        paper_state = load_json(Path(args.paper_state_file), {}) if paper_updates else discovery_snapshot
+        if precomputed_stops:
+            apply_precomputed_stops(paper_state, precomputed_stops)
+        closed_records = process_open_position_stops(args, paper_state, prices, skip_refresh=True)
+        if closed_records and paper_updates:
+            save_json(Path(args.paper_state_file), paper_state)
+        filled_records, skipped_records = _run_fill_loop(
+            args,
+            state,
+            paper_state,
+            active_orders,
+            orders,
+            prices,
+            filled_ids,
+            cancelled_ids,
+            filled_setup_keys,
+            paper_updates,
+        )
+
+    for record in skipped_records:
+        append_jsonl(Path(args.out_dir) / "events.jsonl", record)
+
+    state["last_check"] = now_text()
+    state["last_prices"] = prices
+    save_json(Path(args.state_file), state)
+    return {
+        "checked_orders": len(active_orders),
+        "price_count": len(prices),
+        "filled": len(filled_records),
+        "skipped": len(skipped_records),
+        "closed": len(closed_records),
+    }
+
+
+def cancel_stale_order(
+    state: dict[str, Any],
+    order: dict[str, Any],
+    *,
+    cancel_reason: str,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    order_id = str(order.get("order_id", ""))
+    cancelled_ids = set(state.setdefault("cancelled_order_ids", []))
+    cancelled_setup_keys = set(state.setdefault("cancelled_setup_keys", []))
+    if order_id:
+        cancelled_ids.add(order_id)
+    setup_key = order_setup_key(order)
+    if setup_key:
+        cancelled_setup_keys.add(setup_key)
+    state["cancelled_order_ids"] = sorted(cancelled_ids)
+    state["cancelled_setup_keys"] = sorted(cancelled_setup_keys)
+    payload = {
+        **order,
+        "time": now_text(),
+        "event_type": "cancel",
+        "cancel_reason": cancel_reason,
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def try_fill_ds08_order(
+    args: argparse.Namespace,
+    order: dict[str, Any],
+    symbol: str,
+    live_price: float,
+) -> dict[str, Any] | None:
+    data_dir = Path(getattr(args, "data_dir", "data"))
+    os_state_dir = getattr(args, "os_state_dir", "runtime/fengji_os_state")
+    max_lag = int(getattr(args, "ds08_max_lag_bars", DEFAULT_DS08_MAX_LAG_BARS) or DEFAULT_DS08_MAX_LAG_BARS)
+    return resolve_ds08_pending_fill(
+        order,
+        symbol,
+        data_dir,
+        os_state_dir,
+        live_price=live_price,
+        max_lag_bars=max_lag,
+    )
+
+
+def try_fill_ds03_order(
+    args: argparse.Namespace,
+    order: dict[str, Any],
+    symbol: str,
+    live_price: float,
+) -> dict[str, Any] | None:
+    data_dir = Path(getattr(args, "data_dir", "data"))
+    os_state_dir = getattr(args, "os_state_dir", "runtime/fengji_os_state")
+    return resolve_ds03_pending_fill(
+        order,
+        symbol,
+        data_dir,
+        os_state_dir,
+        live_price=live_price,
+    )
+
+
+def _run_fill_loop(
+    args: argparse.Namespace,
+    state: dict[str, Any],
+    paper_state: dict[str, Any],
+    active_orders: list[dict[str, Any]],
+    orders: list[dict[str, Any]],
+    prices: dict[str, float],
+    filled_ids: set[str],
+    cancelled_ids: set[str],
+    filled_setup_keys: set[str],
+    paper_updates: bool,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     filled_records: list[dict[str, Any]] = []
     skipped_records: list[dict[str, Any]] = []
 
@@ -562,7 +974,90 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
         if skip:
             skipped_records.append({"time": now_text(), "event_type": "skip", "skip_reason": skip_reason, "last_price": price, **order})
             continue
-        if not triggered(order, price):
+
+        strategy = str(order.get("strategy_id", "")).upper()
+        ds03_meta: dict[str, Any] = {}
+        ds08_meta: dict[str, Any] = {}
+        if strategy == "DS08":
+            stale_ds08 = check_ds08_setup_key_stale(
+                order,
+                symbol,
+                Path(getattr(args, "data_dir", "data")),
+                getattr(args, "os_state_dir", "runtime/fengji_os_state"),
+            )
+            if stale_ds08 and stale_ds08.get("stale"):
+                cancel = cancel_stale_order(
+                    state,
+                    order,
+                    cancel_reason=str(stale_ds08.get("reason", "ds08_setup_key_stale")),
+                    extra={k: v for k, v in stale_ds08.items() if k != "stale"},
+                )
+                cancelled_ids.add(str(order.get("order_id", "")))
+                skipped_records.append(cancel)
+                append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
+                continue
+            if not triggered(order, price):
+                continue
+            ds08_ctx = try_fill_ds08_order(args, order, symbol, price)
+            if ds08_ctx is None:
+                continue
+            if ds08_ctx.get("stale"):
+                cancel = cancel_stale_order(
+                    state,
+                    order,
+                    cancel_reason=str(ds08_ctx.get("reason", "ds08_activation_bar_missed")),
+                    extra={
+                        k: v
+                        for k, v in ds08_ctx.items()
+                        if k not in {"stale", "reason"}
+                    },
+                )
+                cancelled_ids.add(str(order.get("order_id", "")))
+                skipped_records.append(cancel)
+                append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
+                continue
+            fill_price = float(ds08_ctx["fill_price"])
+            price_source = str(ds08_ctx.get("price_source", "ds08_entry_fill"))
+            ds08_meta = {
+                "activation_bar_idx": ds08_ctx.get("activation_bar_idx"),
+                "activation_bar_time": ds08_ctx.get("activation_bar_time"),
+                "entry_ref": ds08_ctx.get("entry_ref"),
+            }
+            if ds08_ctx.get("initial_stop") is not None:
+                order = {**order, "stop_price": ds08_ctx["initial_stop"]}
+        else:
+            fill_price = float(price)
+            price_source = "mock" if args.price_file else "binance"
+
+        if strategy == "DS03":
+            ds03_ctx = try_fill_ds03_order(args, order, symbol, price)
+            if ds03_ctx is None:
+                continue
+            if ds03_ctx.get("stale"):
+                cancel = cancel_stale_order(
+                    state,
+                    order,
+                    cancel_reason=str(ds03_ctx.get("reason", "ds03_attack_bar_missed")),
+                    extra={
+                        "missed_attack_bar_idx": ds03_ctx.get("missed_attack_bar_idx"),
+                        "missed_attack_bar_time": ds03_ctx.get("missed_attack_bar_time"),
+                    },
+                )
+                cancelled_ids.add(str(order.get("order_id", "")))
+                skipped_records.append(cancel)
+                append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
+                continue
+            fill_price = float(ds03_ctx["fill_price"])
+            price_source = str(ds03_ctx.get("price_source", "ds03_attack_bar"))
+            ds03_meta = {
+                "attack_bar_idx": ds03_ctx.get("attack_bar_idx"),
+                "attack_bar_time": ds03_ctx.get("attack_bar_time"),
+                "peak_key": ds03_ctx.get("peak_key"),
+                "trigger_source": ds03_ctx.get("trigger_source"),
+            }
+            if ds03_ctx.get("initial_stop") is not None:
+                order = {**order, "stop_price": ds03_ctx["initial_stop"]}
+        elif strategy != "DS08" and not triggered(order, price):
             continue
 
         setup_key = order_setup_key(order)
@@ -575,8 +1070,10 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
         record = {
             "time": now_text(),
             "event_type": "fill",
-            "fill_price": float(price),
-            "price_source": "mock" if args.price_file else "binance",
+            "fill_price": fill_price,
+            "price_source": price_source,
+            **ds03_meta,
+            **ds08_meta,
             **order,
         }
         state.setdefault("filled_order_ids", [])
@@ -596,32 +1093,14 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
             save_json(Path(args.paper_state_file), paper_state)
         append_csv(Path(args.out_dir) / "fills.csv", record)
         append_jsonl(Path(args.out_dir) / "events.jsonl", record)
-        send_feishu_once(
-            notify_claims_dir(args),
-            fill_notify_key(order_id),
-            args.feishu_webhook,
-            format_fill(order, float(price)),
-            send_msg,
-        )
+        notify_fill_and_expected_close(args, order, fill_price, record, paper_state)
 
         for cancel in cancel_conflicting_orders(state, order, orders):
             cancelled_ids.add(str(cancel.get("order_id", "")))
             append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
         cancelled_ids = set(state.get("cancelled_order_ids", []))
 
-    for record in skipped_records:
-        append_jsonl(Path(args.out_dir) / "events.jsonl", record)
-
-    state["last_check"] = now_text()
-    state["last_prices"] = prices
-    save_json(Path(args.state_file), state)
-    return {
-        "checked_orders": len(active_orders),
-        "price_count": len(prices),
-        "filled": len(filled_records),
-        "skipped": len(skipped_records),
-        "closed": len(closed_records),
-    }
+    return filled_records, skipped_records
 
 
 def parse_args() -> argparse.Namespace:
@@ -632,6 +1111,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--paper-state-file", default="runtime/fengji_paper/state.json")
     parser.add_argument("--feishu-webhook", default=os.getenv("FEISHU_WEBHOOK", ""))
     parser.add_argument("--loop-seconds", type=int, default=5)
+    parser.add_argument(
+        "--ds08-max-lag-bars",
+        type=int,
+        default=DEFAULT_DS08_MAX_LAG_BARS,
+        help="DS08 H1 激活棍后允许模拟成交的最大滞后 K 数（默认 1）",
+    )
     parser.add_argument("--timeout", type=float, default=8.0)
     parser.add_argument("--price-file", default="", help="Optional JSON/CSV price snapshot for tests.")
     parser.add_argument("--max-ds01-entries", type=int, default=3)
@@ -642,6 +1127,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--slippage-rate", type=float, default=0.0003)
     parser.add_argument("--no-paper-state-update", action="store_true")
     parser.add_argument("--notify-claims-dir", default="runtime/feishu_notify_claims")
+    parser.add_argument("--data-dir", default="data", help="OHLCV CSV 根目录（用于动态止损刷新）")
+    parser.add_argument("--os-state-dir", default="runtime/fengji_os_state", help="OS state 目录（用于增量计算）")
     parser.add_argument("--once", action="store_true")
     return parser.parse_args()
 

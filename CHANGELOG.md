@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-07-03（Phase 2 · 国内 deploy + pending monitor 对齐）
+
+- `sync_deploy_fengji_api.ps1 -Verify`：124 文件同步国内 · `FENGJI_API_HEALTH_OK`。
+- 仓库对齐海外生产 `fengji_pending_order_monitor.py`（`state_lock`）+ `fengji_feishu_notify.py`；修复 `test_pending_orders.py`。
+- `docs/PLAN_B_PHASE2_PROGRESS.md` · B0-2 对账 FUTURES 缺 **5m**。
+
+## 2026-07-03（Phase 2 · 本地 PG + W17 全量验收）
+
+- 修复 `scripts/setup_local_pg.ps1` 编码/引号问题；Docker TimescaleDB @5432 启动 · Alembic **009 head**。
+- `w17_remote_acceptance.py --auto-server`：**7/7 required + 5/5 optional** · 报告 `runtime/web_validation/w17_remote_acceptance.json`。
+- CSV→PG 导入完成：**278 instruments**（crypto 39 + A股 239）· 首次 OPUSDT 权限瞬时失败，重跑成功。
+
+## 2026-07-03（运行态 · SF ack · HYPE #28 平仓）
+
+- 国内 SF DS05 invalid 登记 ack（`SFUSDT-DS05-D1-short-ba832cace3293f52`）· fill audit 72h 通过。
+- 海外 pending monitor 重启（解 state.json.lock 争用）；HYPE #28 DS05 long **gap_stop** @ 64.654（07-03 00:00:13）。
+- `docs/HYPE28_STOP_FOLLOWUP.md` 签收更新。
+
 ## 2026-07-02（Phase 1 完成 · PR #10 merged）
 
 - PR #10 merged（`2ead68e`）：`web/` · feature_gate_api · 静态页测试 · W17 subscription smoke 脚本。

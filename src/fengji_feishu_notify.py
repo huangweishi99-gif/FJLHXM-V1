@@ -11,6 +11,45 @@ def fill_notify_key(order_id: str) -> str:
     return f"fill|{str(order_id).strip()}"
 
 
+def pending_notify_key(order_id: str) -> str:
+    return f"pending|{str(order_id).strip()}"
+
+
+def pending_setup_notify_key(setup_key: str) -> str:
+    """Semantic dedup for radar-refreshed orders that keep the same structure but new order_id."""
+    return f"pending_setup|{str(setup_key).strip()}"
+
+
+def _pending_side_token(side: object) -> str:
+    text = str(side or "").strip().lower()
+    if text in {"1", "long"}:
+        return "long"
+    if text in {"-1", "short"}:
+        return "short"
+    return text
+
+
+def _pending_price_token(value: object) -> str:
+    if value is None or value == "":
+        return ""
+    return f"{float(value):.10g}"
+
+
+def pending_semantic_notify_key(order: dict) -> str:
+    """Stable dedup across order_id / setup_key churn when structure and prices are unchanged."""
+    symbol = str(order.get("symbol", "")).strip().upper()
+    strategy = str(order.get("strategy_id", "")).strip().upper()
+    timeframe = str(order.get("timeframe", "")).strip().upper()
+    side = _pending_side_token(order.get("side"))
+    trigger = _pending_price_token(order.get("trigger_price"))
+    stop = _pending_price_token(order.get("stop_price"))
+    return f"pending_semantic|{symbol}|{strategy}|{timeframe}|{side}|{trigger}|{stop}"
+
+
+def expected_close_notify_key(order_id: str) -> str:
+    return f"expected_close|{str(order_id).strip()}"
+
+
 def close_notify_key(symbol: str, order_id: str, entry_time: str, strategy_id: str = "") -> str:
     return (
         f"close|{str(symbol).strip().upper()}|{str(strategy_id).strip().upper()}|"
@@ -20,6 +59,16 @@ def close_notify_key(symbol: str, order_id: str, entry_time: str, strategy_id: s
 
 def paper_trade_notify_key(event: str, trade_key: str) -> str:
     return f"paper|{event}|{str(trade_key).strip()}"
+
+
+def system_notify_key(scope: str, event: str) -> str:
+    return f"system|{str(scope).strip()}|{str(event).strip()}"
+
+
+def default_feishu_claims_dir(project_root: Path | None = None) -> Path:
+    """与挂单监控共用 runtime/feishu_notify_claims，跨进程统一去重。"""
+    root = project_root if project_root is not None else Path.cwd()
+    return (root / "runtime" / "feishu_notify_claims").resolve()
 
 
 def _claim_file(claims_dir: Path, event_key: str) -> Path:

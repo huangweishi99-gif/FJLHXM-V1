@@ -154,10 +154,10 @@ def test_setup_key_keeps_order_id_stable_across_refreshes() -> None:
 
 
 def test_pending_monitor_records_filled_setup_key(tmp_path: Path) -> None:
-    setup_key = "RENDERUSDT|DS08|LONG|4|3|2.28"
+    setup_key = "RENDERUSDT|DS01|LONG|signal=20260701000000|trigger=10"
     orders = convert_radar_rows(
-        [radar_row("RENDERUSDT", "DS08", "PENDING", trigger=10.0, current=9.5, setup_key=setup_key)],
-        include_strategies={"DS08"},
+        [radar_row("RENDERUSDT", "DS01", "PENDING", trigger=10.0, current=9.5, setup_key=setup_key)],
+        include_strategies={"DS01"},
         include_triggered=False,
         max_distance_pct=0.08,
         created_at=_future_created_at(),
@@ -311,10 +311,20 @@ def test_pending_monitor_skip_log_preserves_skip_reason(tmp_path: Path) -> None:
     assert event["reason"] == "test"
 
 
-def test_pending_monitor_closes_paper_state_on_stop(tmp_path: Path) -> None:
+def test_pending_monitor_closes_paper_state_on_stop(tmp_path: Path, monkeypatch) -> None:
+    import fengji_core.stop_bar_monitor as sbm
+
+    def _fake_stop_bar(args, symbol, position):
+        return {"date": "2026-07-02 00:00:00", "low": 8.9, "high": 10.0, "close": 9.5}
+
+    monkeypatch.setattr(sbm, "read_stop_bar_for_position", _fake_stop_bar)
+    monkeypatch.setattr(sbm, "stop_bar_after_entry", lambda _pos, _bar: True)
+    monkeypatch.setattr(sbm, "stop_crossed", lambda _pos, _bar: True)
+    monkeypatch.setattr(sbm, "stop_exit_fill", lambda _pos, _bar: (9.0, "stop"))
+
     orders = convert_radar_rows(
-        [radar_row("RENDERUSDT", "DS03", "PENDING", trigger=10.0, current=9.5)],
-        include_strategies={"DS03"},
+        [radar_row("RENDERUSDT", "DS01", "PENDING", trigger=10.0, current=9.5)],
+        include_strategies={"DS01"},
         include_triggered=False,
         max_distance_pct=0.08,
         created_at=_future_created_at(),

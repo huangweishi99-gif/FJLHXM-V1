@@ -1,8 +1,18 @@
 # PROJECT_CONTEXT
 
-更新时间：2026-07-02
+更新时间：2026-07-03
 
-## 2026-07-02 方案 B Phase 1 完成（最新）
+## 2026-07-03 方案 B Phase 2 进行中（最新）
+
+### 摘要
+
+- **本地 PG + W17**：Docker PG · **7/7 + 5/5** · 见 `docs/PLAN_B_PHASE2_PROGRESS.md`。
+- **国内 API**：`sync_deploy_fengji_api.ps1 -Verify` 通过（health ok；alembic 待 DATABASE_URL 配置）。
+- **pending monitor**：仓库已对齐海外生产版（`state_lock` · 飞书 dedup）。
+- **数据缺口**：FUTURES **5m** 整周期缺失（69 品种）· B0-2 报告 `results/plan_b_b02_instruments_coverage/`。
+- **Phase 1 签收**：`docs/PLAN_B_PHASE1_COMPLETE.md` · `main` @ `06c0008+`。
+
+## 2026-07-02 方案 B Phase 1 完成
 
 ### 本轮状态摘要
 
@@ -14,7 +24,7 @@
 - **fill_supervision**：海外 audit `invalid_new=0`（见 Phase 0 验收）。
 - **签收文档**：`docs/PLAN_B_PHASE1_COMPLETE.md` · `docs/PLAN_B_PHASE0_COMPLETE.md`。
 - **Phase 2 入口**：本地 PG + W17 全量 acceptance · 国内 deploy 试跑 · FUTURES 5m 数据桶。
-- **HYPE #28**：仍 `STOP_PENDING_MONITOR_BAR` · `docs/HYPE28_STOP_FOLLOWUP.md`。
+- **HYPE #28**：已 gap_stop 平仓 · `docs/HYPE28_STOP_FOLLOWUP.md`。
 
 ## 2026-05-28 LC DS09 与数据管线
 
