@@ -578,6 +578,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--paper-state-file", default="runtime/fengji_futures/state_futures_v2.json")
     parser.add_argument("--trade-csv", default="runtime/fengji_futures/trades_futures_astock.csv")
     parser.add_argument("--data-dir", default="data")
+    parser.add_argument("--os-state-dir", default="runtime/fengji_os_state", help="Watchdog CLI compat; reserved for OS-aware stop refresh")
     parser.add_argument("--price-timeframes", default="15m,1h,1d")
     parser.add_argument("--feishu-webhook", default=os.getenv("FENGJI_FEISHU_WEBHOOK", ""))
     parser.add_argument("--loop-seconds", type=int, default=5)

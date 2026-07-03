@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-07-03（国内 pending_monitor 重启失败修复）
+
+- 根因：watchdog 传 `--os-state-dir`，新版 `fengji_futures_pending_order_monitor.py` 未声明该参数 → 进程秒退。
+- 修复：补 CLI 兼容参数 · 已同步国内 · PID 856 正常运行。
+
 ## 2026-07-03（Phase 2 · 国内 W17 远程 + futures state_lock）
 
 - 国内 PG 已在 **127.0.0.1:5432** · alembic **009 head**；`w17_remote_acceptance.py --ssh-tunnel domestic-quant` **7/7**。
