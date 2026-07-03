@@ -13,7 +13,8 @@
 - [x] **国内 W17 远程验收**：SSH tunnel · **7/7 required**（2026-07-03）。
 - [x] **国内 PG**：`127.0.0.1:5432` · alembic **009 head**。
 - [x] **国内 futures pending `state_lock`**：已部署并重启 monitor。
-- [ ] **FUTURES 5m 数据桶**：`docs/FUTURES_5M_DATA_PLAN.md`（需先扩展 data_manager）。
+- [x] **FUTURES 5m 数据泵 PR-A**：`data_manager_futures.py` + 国内部署 · 待交易时段首轮回填。
+- [ ] **FUTURES 5m PR-B**：本机 sync + SQLite ingest · B0-2 对账。
 - [ ] **stash@{0}**：按桶 cherry-pick · 勿整包 pop。
 
 ## 2026-07-02 · 方案 B Phase 1 完成 ✅

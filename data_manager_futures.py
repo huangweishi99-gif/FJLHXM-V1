@@ -19,7 +19,7 @@ DATA_DIR = Path(os.getenv("FUTURES_DATA_DIR", r"C:\Users\Administrator\quant_fut
 LOG_DIR = Path(os.getenv("FUTURES_LOG_DIR", r"C:\Users\Administrator\quant_futures\runtime\logs"))
 LOG_FILE = LOG_DIR / "data_manager_futures.log"
 STALE_CATCHUP_HOURS = int(os.getenv("FUTURES_STALE_CATCHUP_HOURS", "36"))
-for d in ["1d", "1h", "15m"]:
+for d in ["1d", "1h", "15m", "5m"]:
     (DATA_DIR / d).mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -29,11 +29,14 @@ DATA_LENGTHS = {
     # DS09 需要更长 M15：默认 12000 根（约 125 个交易日）；天勤上限不足时可调低 FUTURES_15M_LENGTH
     # GFEX LC 在 tqsdk2 下 data_length>8000 时 15m 曾出现脏数据，默认 8000；需更长可设 FUTURES_15M_LENGTH
     "15m": int(os.getenv("FUTURES_15M_LENGTH", "8000")),
+    # 5m：默认 6000 根（约 50 交易日）；天勤上限不足时按 frame_looks_sane 降档
+    "5m": int(os.getenv("FUTURES_5M_LENGTH", "6000")),
 }
 TIMEFRAMES = {
     "1d": 86400,
     "1h": 3600,
     "15m": 900,
+    "5m": 300,
 }
 MAX_FETCH_RETRIES = 3
 MAX_CONNECT_RETRIES = 3
@@ -176,10 +179,12 @@ def _length_candidates(timeframe: str, target: int) -> list[int]:
         extras = (1200, 1000, 800, 600, 400, 300)
     elif timeframe == "15m":
         extras = (12000, 11000, 10000, 9500, 9000, 8500, 8000, 6000, 4000, 3000)
+    elif timeframe == "5m":
+        extras = (6000, 5000, 4000, 3000, 2000)
     else:
         return [target]
     ordered = [target, *extras]
-    min_len = 300 if timeframe == "1d" else 3000
+    min_len = 300 if timeframe == "1d" else (2000 if timeframe == "5m" else 3000)
     seen: set[int] = set()
     out: list[int] = []
     for value in ordered:
@@ -196,7 +201,11 @@ def fetch_frame(api: TqApi, tq_code: str, timeframe: str) -> pd.DataFrame:
     last_error: Exception | None = None
     seconds = TIMEFRAMES[timeframe]
     length = DATA_LENGTHS[timeframe]
-    pick_longest = (timeframe == "15m" and length > 8000) or (timeframe == "1d" and length > 800)
+    pick_longest = (
+        (timeframe == "15m" and length > 8000)
+        or (timeframe == "5m" and length > 4000)
+        or (timeframe == "1d" and length > 800)
+    )
     best: pd.DataFrame | None = None
     best_len = 0
     best_data_length = length
@@ -224,7 +233,7 @@ def fetch_frame(api: TqApi, tq_code: str, timeframe: str) -> pd.DataFrame:
                 print(f"[WARN] [{ts()}] {tq_code} {timeframe} 第 {attempt}/{MAX_FETCH_RETRIES} 次抓取失败: {exc}", flush=True)
                 if attempt < MAX_FETCH_RETRIES:
                     time.sleep(RETRY_SLEEP_SECONDS)
-        stop_at = 8000 if timeframe == "15m" else 400
+        stop_at = 8000 if timeframe == "15m" else (3000 if timeframe == "5m" else 400)
         if pick_longest and best is not None and data_length <= stop_at:
             break
 
@@ -237,7 +246,7 @@ def fetch_frame(api: TqApi, tq_code: str, timeframe: str) -> pd.DataFrame:
 def fetch_symbol(api: TqApi, short_code: str, tq_code: str) -> bool:
     ok = True
     rows: dict[str, int] = {}
-    for timeframe in ["1d", "1h", "15m"]:
+    for timeframe in ["1d", "1h", "15m", "5m"]:
         try:
             frame = fetch_frame(api, tq_code, timeframe)
             primary = DATA_DIR / timeframe / f"{short_code}.csv"
@@ -250,7 +259,10 @@ def fetch_symbol(api: TqApi, short_code: str, tq_code: str) -> bool:
             ok = False
             log_line(f"[ERROR] 抓取 [{short_code}] {timeframe} 失败: {exc}")
     if ok:
-        log_line(f"[OK] 成功抓取 [{short_code}] 1d={rows.get('1d', 0)} 1h={rows.get('1h', 0)} 15m={rows.get('15m', 0)}")
+        log_line(
+            f"[OK] 成功抓取 [{short_code}] 1d={rows.get('1d', 0)} 1h={rows.get('1h', 0)} "
+            f"15m={rows.get('15m', 0)} 5m={rows.get('5m', 0)}"
+        )
     return ok
 
 

@@ -18,7 +18,7 @@
 
 | 项 | 说明 |
 |----|------|
-| **FUTURES 5m** | `docs/FUTURES_5M_DATA_PLAN.md` · 泵未产出 5m |
+| **FUTURES 5m** | PR-A ✅ 泵已部署 · PR-B sync/ingest 待办 |
 | 海外 pending CPU | 单轮 ~24s 持锁 · 待优化临界区 |
 | stash@{0} | 按桶 cherry-pick |
 

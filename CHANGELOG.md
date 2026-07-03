@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-07-03（FUTURES 5m 数据泵 PR-A）
+
+- `data_manager_futures.py` 增加 **5m**（300s · 默认 6000 根）· `tests/test_data_manager_futures_5m.py` 3 passed。
+- 已同步国内并仅重启 data_manager；`data/5m/` 目录已创建，CSV 待交易时段写入。
+
 ## 2026-07-03（国内 pending_monitor 重启失败修复）
 
 - 根因：watchdog 传 `--os-state-dir`，新版 `fengji_futures_pending_order_monitor.py` 未声明该参数 → 进程秒退。
