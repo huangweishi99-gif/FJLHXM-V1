@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-07-03（Phase 2 · 国内 W17 远程 + futures state_lock）
+
+- 国内 PG 已在 **127.0.0.1:5432** · alembic **009 head**；`w17_remote_acceptance.py --ssh-tunnel domestic-quant` **7/7**。
+- `fengji_futures_pending_order_monitor.py` 增加 `state_lock` · 已同步国内并重启。
+- `docs/FUTURES_5M_DATA_PLAN.md`：5m 缺口规划（data_manager 尚未产出）。
+- `verify_fengji_api_health.ps1`：alembic 检测误报修复。
+
 ## 2026-07-03（Phase 2 · 国内 deploy + pending monitor 对齐）
 
 - `sync_deploy_fengji_api.ps1 -Verify`：124 文件同步国内 · `FENGJI_API_HEALTH_OK`。

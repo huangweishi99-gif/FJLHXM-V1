@@ -5,12 +5,14 @@ import json
 import math
 import os
 import time
+from contextlib import nullcontext
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from fengji_core.os_state_store import find_data_file, market_symbol, normalize_symbol as os_normalize_symbol
+from fengji_core.state_lock import file_lock
 from fengji_feishu_notify import close_notify_key, fill_notify_key, send_feishu_once
 from fengji_pending_order_monitor import (
     append_csv,
@@ -450,7 +452,8 @@ def process_open_position_stops(args: argparse.Namespace, paper_state: dict[str,
 
 def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, Any]:
     orders = read_orders(Path(args.orders_file))
-    paper_state = load_json(Path(args.paper_state_file), {}) if args.paper_state_file else {}
+    paper_updates = bool(args.paper_state_file) and not args.no_paper_state_update
+    discovery_snapshot = load_json(Path(args.paper_state_file), {}) if paper_updates else {}
     filled_ids = set(state.get("filled_order_ids", []))
     cancelled_ids = set(state.get("cancelled_order_ids", []))
     filled_setup_keys = set(state.get("filled_setup_keys", []))
@@ -466,84 +469,91 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
         and (not bool(getattr(args, "enforce_valid_until", False)) or not order_expired(order))
     ]
     symbols = {normalize_symbol(str(order.get("symbol", ""))) for order in active_orders}
-    for symbol, symbol_state in (paper_state.get("symbols") or {}).items():
+    for symbol, symbol_state in (discovery_snapshot.get("symbols") or {}).items():
         if isinstance(symbol_state, dict) and active_positions(symbol_state.get("open_positions", [])):
             symbols.add(normalize_symbol(symbol))
 
     bars = load_bar_snapshot(args, symbols) if symbols else {}
-    closed_records = process_open_position_stops(args, paper_state, bars)
-    if closed_records and args.paper_state_file and not args.no_paper_state_update:
-        save_json(Path(args.paper_state_file), paper_state)
-
     filled_records: list[dict[str, Any]] = []
     skipped_records: list[dict[str, Any]] = []
-    for order in sorted(active_orders, key=lambda item: float(item.get("priority", 9999) or 9999)):
-        order_id = str(order.get("order_id", ""))
-        if order_id in filled_ids or order_id in cancelled_ids:
-            continue
-        symbol = normalize_symbol(str(order.get("symbol", "")))
-        bar = bars.get(symbol)
-        if bar is None:
-            continue
-        symbol_state = ensure_symbol_state(paper_state, symbol)
-        side = side_int(str(order.get("side", "")))
-        strategy_id = str(order.get("strategy_id", "")).upper()
-        allowed, risk_rule = can_open_position(
-            symbol_state.get("open_positions", []),
-            strategy_id,
-            side,
-            int(args.max_open_positions_per_symbol),
-            int(args.max_ds01_entries),
-        )
-        if not allowed:
-            skipped_records.append({"time": now_text(), "event_type": "skip", "skip_reason": risk_rule, "bar": bar, **order})
-            continue
-        if not bar_crossed(order, bar):
-            continue
+    closed_records: list[dict[str, Any]] = []
 
-        setup_key = order_setup_key(order)
-        if strategy_id == "DS03" and setup_key:
-            consumed = set(state.setdefault("consumed_ds03_setup_keys", []))
-            if setup_key not in consumed:
-                consumed.add(setup_key)
-                state["consumed_ds03_setup_keys"] = sorted(consumed)
-
-        filled_ids.add(order_id)
-        if setup_key:
-            filled_setup_keys.add(setup_key)
-        state["filled_order_ids"] = sorted(filled_ids)
-        state["filled_setup_keys"] = sorted(filled_setup_keys)
-        fill_price = float(order.get("trigger_price", bar.get("close", 0.0)) or bar.get("close", 0.0))
-        record = {
-            "time": now_text(),
-            "event_type": "fill",
-            "fill_price": fill_price,
-            "price_source": f"local_{bar.get('timeframe', '')}_bar",
-            "bar_time": bar.get("date", ""),
-            "bar_high": bar.get("high"),
-            "bar_low": bar.get("low"),
-            **order,
-        }
-        state.setdefault("fills", []).append(record)
-        state["fills"] = state["fills"][-1000:]
-        filled_records.append(record)
-        if args.paper_state_file and not args.no_paper_state_update:
-            position = update_paper_state_on_fill(args, paper_state, order, bar, risk_rule)
+    lock_cm = file_lock(Path(args.paper_state_file)) if paper_updates else nullcontext()
+    with lock_cm:
+        paper_state = load_json(Path(args.paper_state_file), {}) if paper_updates else discovery_snapshot
+        closed_records = process_open_position_stops(args, paper_state, bars)
+        if closed_records and paper_updates:
             save_json(Path(args.paper_state_file), paper_state)
-            append_open_trade(args, order, position, risk_rule)
-        append_jsonl(Path(args.out_dir) / "events.jsonl", record)
-        send_feishu_once(
-            notify_claims_dir(args),
-            fill_notify_key(order_id),
-            args.feishu_webhook,
-            format_fill(order, fill_price, bar, risk_rule),
-            send_msg,
-        )
 
-        for cancel in cancel_conflicting_orders(state, order, orders):
-            cancelled_ids.add(str(cancel.get("order_id", "")))
-            append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
-        cancelled_ids = set(state.get("cancelled_order_ids", []))
+        for order in sorted(active_orders, key=lambda item: float(item.get("priority", 9999) or 9999)):
+            order_id = str(order.get("order_id", ""))
+            if order_id in filled_ids or order_id in cancelled_ids:
+                continue
+            symbol = normalize_symbol(str(order.get("symbol", "")))
+            bar = bars.get(symbol)
+            if bar is None:
+                continue
+            symbol_state = ensure_symbol_state(paper_state, symbol)
+            side = side_int(str(order.get("side", "")))
+            strategy_id = str(order.get("strategy_id", "")).upper()
+            allowed, risk_rule = can_open_position(
+                symbol_state.get("open_positions", []),
+                strategy_id,
+                side,
+                int(args.max_open_positions_per_symbol),
+                int(args.max_ds01_entries),
+            )
+            if not allowed:
+                skipped_records.append({"time": now_text(), "event_type": "skip", "skip_reason": risk_rule, "bar": bar, **order})
+                continue
+            if not bar_crossed(order, bar):
+                continue
+
+            setup_key = order_setup_key(order)
+            if strategy_id == "DS03" and setup_key:
+                consumed = set(state.setdefault("consumed_ds03_setup_keys", []))
+                if setup_key not in consumed:
+                    consumed.add(setup_key)
+                    state["consumed_ds03_setup_keys"] = sorted(consumed)
+
+            filled_ids.add(order_id)
+            if setup_key:
+                filled_setup_keys.add(setup_key)
+            state["filled_order_ids"] = sorted(filled_ids)
+            state["filled_setup_keys"] = sorted(filled_setup_keys)
+            fill_price = float(order.get("trigger_price", bar.get("close", 0.0)) or bar.get("close", 0.0))
+            record = {
+                "time": now_text(),
+                "event_type": "fill",
+                "fill_price": fill_price,
+                "price_source": f"local_{bar.get('timeframe', '')}_bar",
+                "bar_time": bar.get("date", ""),
+                "bar_high": bar.get("high"),
+                "bar_low": bar.get("low"),
+                **order,
+            }
+            state.setdefault("fills", []).append(record)
+            state["fills"] = state["fills"][-1000:]
+            filled_records.append(record)
+            if paper_updates:
+                position = update_paper_state_on_fill(args, paper_state, order, bar, risk_rule)
+                save_json(Path(args.paper_state_file), paper_state)
+                append_open_trade(args, order, position, risk_rule)
+            send_feishu_once(
+                notify_claims_dir(args),
+                fill_notify_key(order_id),
+                args.feishu_webhook,
+                format_fill(order, fill_price, bar, risk_rule),
+                send_msg,
+            )
+
+            for cancel in cancel_conflicting_orders(state, order, orders):
+                cancelled_ids.add(str(cancel.get("order_id", "")))
+                append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
+            cancelled_ids = set(state.get("cancelled_order_ids", []))
+
+        for record in filled_records:
+            append_jsonl(Path(args.out_dir) / "events.jsonl", record)
 
     for record in skipped_records:
         append_jsonl(Path(args.out_dir) / "events.jsonl", record)

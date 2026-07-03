@@ -28,8 +28,9 @@ if ($health.status -ne "ok") {
 Write-Host "FENGJI_API_HEALTH_OK status=$($health.status) version=$($health.version)"
 
 try {
-    $current = python -m alembic -c alembic.ini current 2>&1 | Out-String
-    if ($LASTEXITCODE -eq 0 -and $current -match "head") {
+    $py = "C:\Users\Administrator\AppData\Local\Programs\Python\Python310\python.exe"
+    $current = & $py -m alembic -c alembic.ini current 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0 -and $current -match "\(head\)|009 \(head\)") {
         Write-Host "ALEMBIC_CURRENT $($current.Trim())"
     } else {
         Write-Host "WARN: alembic current failed" -ForegroundColor Yellow

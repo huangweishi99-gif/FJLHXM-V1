@@ -10,7 +10,10 @@
 - [x] **Phase 2 W17 本地验收**：Docker PG + `w17_remote_acceptance.py --auto-server` · **7/7 + 5/5**（2026-07-03）。
 - [x] **国内 API deploy 验证**：`sync_deploy_fengji_api.ps1 -Verify` · health ok · 124 文件同步。
 - [x] **pending monitor 仓库对齐**：海外 `state_lock` 版入库 · 测试修复。
-- [ ] **Phase 2 续**：FUTURES 5m 数据桶 · 国内 PG/alembic 确认 · futures pending state_lock。
+- [x] **国内 W17 远程验收**：SSH tunnel · **7/7 required**（2026-07-03）。
+- [x] **国内 PG**：`127.0.0.1:5432` · alembic **009 head**。
+- [x] **国内 futures pending `state_lock`**：已部署并重启 monitor。
+- [ ] **FUTURES 5m 数据桶**：`docs/FUTURES_5M_DATA_PLAN.md`（需先扩展 data_manager）。
 - [ ] **stash@{0}**：按桶 cherry-pick · 勿整包 pop。
 
 ## 2026-07-02 · 方案 B Phase 1 完成 ✅
