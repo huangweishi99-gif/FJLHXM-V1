@@ -1,4 +1,6 @@
-$procs = @(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "fengji_futures_pending_order_monitor" })
+$procs = @(Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -match "python" -and $_.CommandLine -match "fengji_futures_pending_order_monitor"
+})
 if ($procs.Count -le 1) {
     Write-Host "single pending monitor OK"
     exit 0

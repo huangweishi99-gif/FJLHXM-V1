@@ -1,5 +1,161 @@
 # CHANGELOG
 
+- **`stop_duplicate_pending_domestic.ps1`**：仅匹配 **python** 进程（避免误杀/误留 powershell）。
+- **国内 post-sync**：radar **3108** · pending **3316** · data_manager **3220** · health **OK** · 海外 hash **0**。
+
+## 2026-07-05（sync_deploy_domestic cherry-pick · 部署 manifest）
+
+- **`sync_deploy_domestic.ps1`**：远程目录预建 · `Sync-RemoteFile` · 运维脚本/PG-SC 验收文档 · **paper 改走 `deploy_domestic_paper_feishu.ps1`**（移除直 scp 中文文件名）· fengji_core **按 .py 增量 sync**。
+- 新增 **`fengji_domestic_deploy_manifest.txt`** + **`test_fengji_domestic_deploy_manifest.py`** · `verify_project_buckets` 纳入 deploy 桶。
+- **`fengji_ops_domestic_manifest`**：补 `verify_domestic_health` · `compare_overseas_core_hashes` · runtime remote。
+- **`ensure_single_data_manager.ps1`**：`@(Get-DmPythonProcs)` 修复单进程 `.Count` 为空 · 代码陈旧重启现可触发。
+- **`sync_deploy_domestic.ps1`** 试跑 **PASS**（~2.3min · 38 core + 31 fengji_core · paper manifest · skip restart）· 末尾自动 `ensure_single`。
+
+## 2026-07-05（运维巡检增强 · 海外 hash 批量比对）
+
+- **`check_domestic_status.ps1`**：python/cmd 进程分计 · **代码比进程新** 告警 · PG/SC 日志 tail 800。
+- **`compare_overseas_core_hashes.py`**：单次 SSH 批量 `sha256sum`（原 17 次串行易挂起）· **mismatches=0**（~7s）。
+- 国内运行态：**34/34 成功 fail=0** · PG/SC **`[OK]`** · data_manager PID **3980**。
+
+## 2026-07-05（data_manager 陈旧进程 · ensure_single 修复）
+
+- **根因**：国内 data_manager **PID 3828 自 7/3 14:14 未重启**，7/3 18:01 同步的 `fetch_frame` 降级修复未加载内存；日志仍显示 `连续抓取失败: None`。
+- **`ensure_single_data_manager.ps1`**：`Get-DmProcs` 含 cmd 包装 · **`Test-DmBinaryStale`** 代码新于进程则重启 · dedupe 仅 **python>1**（避免 cmd+python 双进程误杀）。
+- 国内重启后 **15:34** PG：`1h/15m 降级选用` · **`[OK] 成功抓取 [PG]`** · probe `--write` PG/SC mtime **15:30**。
+
+## 2026-07-03（PG/SC 15m 验收 PASS · fetch_frame 错误信息修复）
+
+- **`fetch_frame`**：全档校验失败时 `last_error` 不再为 `None` · 明确「严格/降级均未通过」原因。
+- **`probe_domestic_futures_15m.py`**：新增 **`--write`** 运维补写（验证降级落盘，非 data_manager 常规路径）。
+- 国内 probe `--write` PG/SC：**ACCEPTANCE_OK** · PG tail **2026-07-03 06:45** · SC mtime **18:02**。
+- 测试：`test_data_manager_futures_main_contracts.py` → **12 passed**。
+
+## 2026-07-03（PG/SC 验收文档 + sync_deploy 运维 cherry-pick）
+
+- 新增 **`docs/PG_SC_15M_ACCEPTANCE.md`** · **`run_night_session_pg_sc_checks.ps1`**（夜盘轮询 + health）。
+- **`check_domestic_status.ps1`** / **`verify_pg_sc_15m_csv.ps1`**：解析 next_window 与 PG/SC 抓取日志。
+- **`sync_deploy_domestic.ps1`**：scp `-LiteralPath`（空格路径）· 追加 watchdog / ensure_single / PG-SC 探针。
+
+## 2026-07-03（stash 运维桶 · watchdog/探针 sync）
+
+- 新增 **`scripts/fengji_ops_domestic_manifest.txt`** · **`deploy_domestic_ops_stash_bucket.ps1`** · **`tests/test_fengji_ops_domestic_manifest.py`**。
+- **`sync_watchdog_domestic.ps1`**：修复含空格路径 scp · 扩展 PG/SC 探针 + `install_watchdog_domestic_task.ps1`。
+- **`check_domestic_runtime_remote.ps1`**：radar/pending 计数告警（expect 1）。
+- 国内 sync：**7 文件** · radar=1 · pending=1 · PG/SC 验收 **PASS**（probe `--write` 18:02）。
+
+## 2026-07-03（运维脚本 + 桶验收整合）
+
+- **`ensure_single_data_manager.ps1`**：补 `Ensure-SingleDataManager` dedupe（修复启动后重复进程未定义函数）。
+- **`refresh_domestic_once.ps1`**：雷达 `--once` 显式 `--market futures`（对齐 stash 运维桶）。
+- 新增 **`verify_domestic_health.ps1`** · **`verify_project_buckets.ps1`**；`check_domestic_runtime_remote.ps1` 串联 PG/SC 验收。
+- `fengji_phase2_data_manifest.txt` 扩展 ops/验收脚本路径 · manifest **6 passed** · 桶总验 **11 passed**。
+- 海外 hash：`compare_overseas_core_hashes` **mismatches=0**。
+
+## 2026-07-03（stash ARCHIVE 文档桶 + PG/SC 15m 巡检）
+
+- 新增 **`docs/archives/INDEX.md`** · **`scripts/fengji_archive_docs_manifest.txt`** · **`scripts/verify_archive_docs_bucket.ps1`**。
+- 2026-06-02 两批 results 归档 manifest/verify CSV 纳入清单（zip 仍不入库）。
+- **`check_domestic_status.ps1`**：新增 **PG/SC 15m** 段（mtime + CSV tail）· 已 sync 国内。
+- PG/SC 15m：16:57 复核仍为 **PENDING**（休市）· 新增 `scripts/verify_pg_sc_15m_csv.ps1` · 下一抓取窗口 **20:30**。
+
+## 2026-07-03（stash Web manifest / Phase 2 数据桶）
+
+- 新增 **`scripts/fengji_phase2_data_manifest.txt`** · **`tests/test_fengji_phase2_data_manifest.py`** · **`scripts/verify_phase2_web_manifest_bucket.ps1`**。
+- 整合 Phase 2 本地数据链路：`import-futures-local`（5m/15m/1h）· `sync_domestic_futures_5m_for_context` · `run_sync_domestic_futures_5m_for_context.ps1`。
+- **`docs/LOCAL_MARKET_DATA_DB.md`**：补 `import-futures-local` 与 5m sync 命令。
+- 说明：stash@{0} 中 Web/API 主资产已在 PR #7–#10 合入；本桶以**本地 untracked Phase 2 脚本**为准，**未整包 pop**。
+- 验证：manifest **6 passed** · 5m/import **4 passed** · OpenAPI **38 paths**。
+
+## 2026-07-03（PG/SC 15m probe · 降级抓取验证）
+
+- **`data_manager_futures.py`**：`frame_looks_acceptable` 短历史 floor 修正 · 15m `min_acceptable` **100** · 已 sync 国内并重启 data_manager。
+- 新增 **`scripts/probe_domestic_futures_15m.py`**（绕过交易时段 gate 的一次性抓取探针）。
+- 国内 probe（非交易时段）：**PG** `DCE.pg2608` 15m **4622** 行（严格校验未过、降级选用）· **SC** `INE.sc2608` 15m **4000** 行 · tail **2026-07-03 06:45**。
+- 测试：`test_data_manager_futures_main_contracts.py` → **11 passed**。
+
+## 2026-07-03（海外 crypto 数据泵 hash 全量对齐）
+
+- 新增 `scripts/deploy_overseas_crypto_data_bucket.ps1` · sync `data_manager.py` · `crypto_ingest.py` · `sync_missing_crypto_15m.py`。
+- `compare_overseas_core_hashes` → **mismatches=0**（海外核心文件与本地一致）。
+- 修复 `test_sync_okx_crypto_timeframes`：OKX-only 品种改由 sync 脚本负责，不再要求写进 `data_manager.py`。
+- 测试：OKX/crypto 相关 **8 passed** · watchdog 已重启 data_manager。
+
+## 2026-07-03（fill_supervision 桶 · 海内外 hash 对齐）
+
+- **说明**：stash 中该桶为**旧版删减**；以本地 HEAD 为准（完整 `fill_supervision` + `ds03_pending_fill`）。
+- 新增 `scripts/deploy_fill_supervision_bucket.ps1` · 已 sync **海外 + 国内**。
+- 海外 hash：`fill_supervision` · `ds03_pending_fill` **match**（剩余 drift：`data_manager` · `crypto_ingest`）。
+- 合并 stash `test_feishu_notify.py` 扩展用例（pending/expected_close key）。
+- 测试：`test_fill_supervision` + `test_ds03_pending_fill` + `test_feishu_notify` → **38 passed**。
+
+## 2026-07-03（stash ds03/paper 桶 cherry-pick + 部署）
+
+- **DS03**：真峰触发需同时存在 `active_high` + `active_low`（红/蓝防守极缺一不可）· 新增 `test_ds03` / `test_ds01` 用例。
+- **`binance_fengji_paper_monitor.py`**：扩展 MONITOR_COINS · 飞书 `send_feishu_once` dedup（startup/异常/开平仓）。
+- 新增 `scripts/deploy_ds03_paper_bucket.ps1` · 已 sync DS03 海内外 · 重启 radar loop。
+- 测试：`test_ds01` + `test_ds03` + `test_pending_orders` → **24 passed**。
+
+## 2026-07-03（stash os_engine/radar 桶 cherry-pick + 部署）
+
+- **stash cherry-pick**：`os_engine.py` · `fengji_total_radar.py`（`resolve_market`/`resolve_symbols`）· `ds07.py` · 配套 `test_os_engine` / radar 测试。
+- 新增 `scripts/deploy_os_engine_radar_bucket.ps1` · 已 sync **海外 + 国内** · 重启 radar loop。
+- 测试：`test_os_engine` + radar + DS01/03/05 + pending + data_manager → **77 passed**。
+- 国内 radar 去重：restart 后保留单进程。
+
+## 2026-07-03（运维脚本 + PROJECT_CONTEXT + stash 运维桶）
+
+- **stash cherry-pick（运维桶）**：恢复 `scripts/check_domestic_status.ps1`（heartbeat/去重/UTF-8）· `constants.py`（DS09→九重天 · TOTAL priority=5）。
+- 新增 `scripts/deploy_domestic_futures_pending_lock.ps1` · 修复 `check_domestic_runtime_remote.ps1`（委托 status 脚本，避免 EncodedCommand 转义失败）。
+- `PROJECT_CONTEXT.md`：更新 Phase 2 摘要（5m pass · 锁优化 · data_manager 口径）。
+- B0-2：`assess_instruments_vs_coverage.py` **pass** · `test_feishu_notify` + `test_radar_setup_keys` **5 passed**。
+
+## 2026-07-03（国内 futures pending 锁优化 + PG 15m 降档抓取）
+
+- `fengji_futures_pending_order_monitor.py`：对齐海外 crypto 版 **plan/apply** 分离 · 锁内单次 `save_json` · 锁外 CSV/飞书。
+- `data_manager_futures.py`：`frame_looks_sane` 修复短历史误判（<10 根）· 新增 `frame_looks_acceptable` 降级路径（PG 等 15m 严格校验失败时仍写入）。
+- 已同步国内并重启 **futures pending monitor**（PID 3572）+ **data_manager**。
+- 测试：`test_futures_pending_orders.py` 3 passed · `test_data_manager_futures_main_contracts.py` 8 passed。
+
+## 2026-07-03（海外 pending monitor 持锁优化 · plan/apply 分离）
+
+- `fengji_pending_order_monitor.py`：`process_once` 改为锁外 **plan**（止损刷新预览、DS03/DS08 解析、成交规划）→ 锁内 **apply** + 单次 `save_json` → 锁外 notify/append。
+- 新增 `precompute_stop_exit_plans` / `apply_stop_exit_plans` / `plan_fill_actions` / `apply_fill_plans`；删除 `_run_fill_loop` 与 `process_open_position_stops_legacy`。
+- 修复平仓 notify 误用已清空 `open_position` 的问题（平仓前快照 position）。
+- 测试：`python -m pytest tests/test_pending_orders.py -q` → **10 passed**。
+- **已部署海外**：`scp` sync · watchdog 重启 · hash **match** · 日志单轮 ~8s（原 ~24s）。
+
+## 2026-07-03（FUTURES 5m 全量 sync + SF 告警收口）
+
+- 国内 **34 品种 5m** 就绪 · 本机 `SYNC_OK symbols=34` · ingest 76 · B0-2 **pass**。
+- SF watchdog：重启 data_manager 加载新 `normalize_frame` · 全品种 sanity dry-run **0**。
+- `ensure_single_data_manager.ps1`：启动后自动去重 · 新增 `test_normalize_frame_drops_pre_2020_rows`。
+
+## 2026-07-03（SF 15m watchdog 误报 · 日期口径对齐）
+
+- **根因**：watchdog `sanitize` 丢弃 `<2020` 的 K 线；数据泵 `normalize_frame` 此前保留 `≥1990`，SF 15m 含 **138 行 2016 历史** 被标为 corrupt。
+- 国内已 `sanitize --apply --symbols SF` 备份并裁剪；dry-run **files_changed=0**。
+- `data_manager_futures.normalize_frame` 对齐 `fengji_core.valid_futures_price_mask` + **date≥2020**，后续写入不再触发同类告警。
+
+## 2026-07-03（天勤 SDK 修复 · tqsdk 优先 + 心跳）
+
+- **根因**：国内 `tqsdk2` 报 `订阅合约信息失败`；官方 `tqsdk 3.10.1` 连接正常（`_test_tq_connect.py` PASS）。
+- `data_manager_futures.py`：优先 `tqsdk` 回退 `tqsdk2` · 写入 `data_manager_heartbeat.txt` 供 watchdog。
+- 国内已强制重启；首品种 SA **5m=6000** · 实际合约 `CZCE.SA609`。
+
+## 2026-07-03（data_manager 实际主力合约恢复 + tqsdk 测试 stub）
+
+- `data_manager_futures.py` 恢复 **tq_actual_main_contract**：`resolve_data_contract` · manifest · 实际月份 K 线写入（拒绝 KQ.m@ 污染 CSV）。
+- 已同步国内并**仅重启 data_manager**（paper/radar/pending 未动）。
+- `tests/conftest.py`：本地无 tqsdk2 DLL 时 stub，便于 pytest。
+- 测试：`test_data_manager_futures_main_contracts` + `test_data_manager_futures_5m` + `test_futures_main_contract` → **16 passed**。
+
+## 2026-07-03（FUTURES 5m PR-B · sync + SQLite ingest）
+
+- 新增 `scripts/sync_domestic_futures_5m_for_context.py` · `run_sync_domestic_futures_5m_for_context.ps1`（sync 后自动 `import-futures-local`）。
+- `market_data_store.import_futures_local` + CLI `import-futures-local`：扫描 `data/futures/{5m,15m,1h}` 短代码 CSV 写入 SQLite。
+- 测试：`test_sync_domestic_futures_5m_for_context.py` 2 passed · `test_market_data_store_futures_local.py` 2 passed。
+- **前置**：国内 `data/5m/*.csv` 有数据后执行 sync；12:27 复核仍为 0（午休，约 13:00 开始写入）。
+
 ## 2026-07-03（FUTURES 5m 数据泵 PR-A）
 
 - `data_manager_futures.py` 增加 **5m**（300s · 默认 6000 根）· `tests/test_data_manager_futures_5m.py` 3 passed。

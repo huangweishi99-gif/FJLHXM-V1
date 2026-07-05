@@ -1,37 +1,32 @@
-# 从本机 SSH 调用国内服务器运行态检查
+# 从本机 SSH 调用国内服务器运行态检查（委托 check_domestic_status.ps1，避免 EncodedCommand 转义问题）
 param(
-    [string]$SshHost = "domestic-quant"
+    [string]$SshHost = "domestic-quant",
+    [string]$RemoteRoot = "C:/Users/Administrator/quant_futures"
 )
 
 $ErrorActionPreference = "Stop"
-$remoteScript = @'
-Set-Location C:\Users\Administrator\quant_futures
-Write-Host "===== HOST ====="
-hostname
-Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"
-Write-Host ""
-Write-Host "===== PROCESSES ====="
-Get-CimInstance Win32_Process | Where-Object {
-    $_.CommandLine -match "data_manager_futures|fengji_radar_order_loop|fengji_futures_pending|峰极总定式"
-} | ForEach-Object { "PID=$($_.ProcessId) $($_.CommandLine.Substring(0, [Math]::Min(120, $_.CommandLine.Length)))" }
-Write-Host ""
-Write-Host "===== RADAR / PENDING ====="
-if (Test-Path runtime\fengji_radar\radar.json) {
-    Get-Item runtime\fengji_radar\radar.json | Select-Object FullName, LastWriteTime, Length
-}
-if (Test-Path runtime\fengji_pending_orders\pending_orders.json) {
-    Get-Item runtime\fengji_pending_orders\pending_orders.json | Select-Object FullName, LastWriteTime, Length
-}
-Write-Host ""
-Write-Host "===== OS STATE ====="
-if (Test-Path runtime\fengji_os_state) {
-    Get-ChildItem runtime\fengji_os_state -File | Sort-Object LastWriteTime -Descending | Select-Object -First 5 Name, LastWriteTime, Length
-} else { Write-Host "no_os_state_dir" }
-Write-Host ""
-Write-Host "===== LC DATA ====="
-Get-ChildItem data -Recurse -Filter "LC*.csv" -ErrorAction SilentlyContinue | Select-Object FullName, LastWriteTime, Length
-'@
-
 Write-Host "Connecting $SshHost ..." -ForegroundColor Cyan
-$encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($remoteScript))
+ssh -o BatchMode=yes -o ConnectTimeout=25 $SshHost "powershell -NoProfile -File $RemoteRoot/scripts/check_domestic_status.ps1"
+
+Write-Host "`n===== PG/SC 15m ACCEPTANCE =====" -ForegroundColor Cyan
+ssh -o BatchMode=yes -o ConnectTimeout=25 $SshHost "powershell -NoProfile -File $RemoteRoot/scripts/verify_pg_sc_15m_csv.ps1"
+$pgExit = $LASTEXITCODE
+if ($pgExit -ge 2) { exit $pgExit }
+
+Write-Host "`n===== EXTRA PROCESSES =====" -ForegroundColor Cyan
+$remoteExtra = @'
+Set-Location C:/Users/Administrator/quant_futures
+$radar = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -match 'fengji_radar_order_loop\.py' })
+$pending = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -match 'fengji_futures_pending_order_monitor\.py' })
+Write-Host ("radar python count=" + $radar.Count + " (expect 1)")
+Write-Host ("pending python count=" + $pending.Count + " (expect 1)")
+if ($radar.Count -gt 1) { Write-Host "WARN duplicate radar — run restart_domestic_radar_loop.ps1" }
+if ($pending.Count -gt 1) { Write-Host "WARN duplicate pending monitor" }
+$radar | ForEach-Object { Write-Output ("radar PID=" + $_.ProcessId) }
+$pending | ForEach-Object { Write-Output ("pending PID=" + $_.ProcessId) }
+'@
+$encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($remoteExtra))
 ssh -o BatchMode=yes -o ConnectTimeout=25 $SshHost "powershell -NoProfile -EncodedCommand $encoded"
+exit $pgExit

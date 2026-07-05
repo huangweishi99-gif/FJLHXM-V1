@@ -1,0 +1,21 @@
+# sync_deploy_domestic.ps1 core sync list (paths relative to repo root)
+# Paper monitor deployed separately via deploy_domestic_paper_feishu.ps1 + domestic_paper_manifest.txt
+
+packages/fengji_core/fengji_core/os_engine.py
+packages/fengji_core/fengji_core/ds01.py
+packages/fengji_core/fengji_core/ds03.py
+packages/fengji_core/fengji_core/ds05.py
+packages/fengji_core/fengji_core/ds07.py
+packages/fengji_core/fengji_core/ds09.py
+packages/fengji_core/fengji_core/os_state_store.py
+packages/fengji_core/fengji_core/state_lock.py
+src/fengji_total_radar.py
+src/fengji_radar_order_loop.py
+src/fengji_pending_orders.py
+src/fengji_pending_order_monitor.py
+src/fengji_futures_pending_order_monitor.py
+src/fengji_feishu_notify.py
+data_manager_futures.py
+scripts/sync_deploy_domestic.ps1
+scripts/deploy_domestic_paper_feishu.ps1
+scripts/domestic_paper_manifest.txt

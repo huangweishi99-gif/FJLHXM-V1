@@ -11,6 +11,7 @@ powershell -NoProfile -Command "
   `$env:PYTHONPATH='src;packages/fengji_core'
   `$env:FENGJI_MARKET='futures'
   & 'C:\Users\Administrator\AppData\Local\Programs\Python\Python310\python.exe' -u src\fengji_radar_order_loop.py `
+    --market futures `
     --data-dir data --radar-dir runtime\fengji_radar --pending-dir runtime\fengji_pending_orders `
     --monitor-state runtime\fengji_pending_orders\futures_pending_state.json `
     --symbols 'LC,SA,RB' --include-triggered --once --daily-tail 400 --h1-tail 2400 --top-n 40

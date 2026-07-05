@@ -1,16 +1,18 @@
 # PROJECT_CONTEXT
 
-更新时间：2026-07-03
+更新时间：2026-07-05
 
-## 2026-07-03 方案 B Phase 2 进行中（最新）
+## 2026-07-05 方案 B Phase 2 进行中（最新）
 
 ### 摘要
 
 - **本地 PG + W17**：Docker PG · **7/7 + 5/5** · 见 `docs/PLAN_B_PHASE2_PROGRESS.md`。
-- **国内 API**：`sync_deploy_fengji_api.ps1 -Verify` 通过（health ok；alembic 待 DATABASE_URL 配置）。
-- **pending monitor**：仓库已对齐海外生产版（`state_lock` · 飞书 dedup）。
-- **数据缺口**：FUTURES **5m** 整周期缺失（69 品种）· B0-2 报告 `results/plan_b_b02_instruments_coverage/`。
-- **Phase 1 签收**：`docs/PLAN_B_PHASE1_COMPLETE.md` · `main` @ `06c0008+`。
+- **国内 API**：`sync_deploy_fengji_api.ps1 -Verify` 通过（health ok；alembic **009 head**）。
+- **pending monitor 锁优化**：海外 crypto + 国内 futures 均已 **plan/apply 分离**（锁内单次 `save_json` · 锁外 notify/CSV）；海外单轮 ~8s（原 ~24s）。
+- **FUTURES 5m**：国内 34 品种 CSV 就绪 · 本机 sync + ingest · B0-2 **pass**（`scripts/assess_instruments_vs_coverage.py`）。
+- **data_manager**：**34/34 fail=0**（7/5 16:51）· PG/SC **`[OK]`** · `ensure_single` 代码陈旧重启已部署。
+- **国内 deploy / 运维**：`sync_deploy_domestic.ps1` · `verify_domestic_health.ps1` · `compare_overseas_core_hashes`（批量 SSH）· deploy+ops manifest 全绿。
+- **海外 hash**：**mismatches=0**（2026-07-05 批量比对 ~7s）。
 
 ## 2026-07-02 方案 B Phase 1 完成
 
@@ -42,7 +44,7 @@
 ### 国内服务器（时间敏感，须 SSH 复验）
 
 - 项目根目录：`C:/Users/Administrator/quant_futures`（SSH 别名常见为 `domestic-quant`，见本机 SSH 配置）。
-- 数据泵：`data_manager_futures.py`（tqsdk2）；`FUTURES_15M_LENGTH` 建议 ≤12000 且依赖自动降档，默认工程默认 **8000**，回填脚本默认请求 **12000**。
+- 数据泵：`data_manager_futures.py`（**tqsdk 优先**，回退 tqsdk2）；`FUTURES_15M_LENGTH` 默认 **8000**，失败时 `frame_looks_acceptable` 降级；心跳 `runtime/logs/data_manager_heartbeat.txt`。
 - 雷达：`fengji_radar_order_loop` 已含 LC；`sync_deploy_domestic.ps1` 可同步核心并 `-RestartRadarLoop`。
 - Python：**3.10** 无法 `pip install -e fengji_core`（要求 ≥3.11），运行用 `PYTHONPATH=src;packages/fengji_core`。
 
