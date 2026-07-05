@@ -6,6 +6,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from fengji_core.ds03 import resolve_ds03_attack
+
 
 @dataclass(frozen=True)
 class DS07Signal:
@@ -50,6 +52,8 @@ def prepare_datetime_ohlcv(frame: pd.DataFrame) -> pd.DataFrame:
         out = out.rename(columns=positional)
     if "datetime" in out.columns and "date" not in out.columns:
         out["date"] = pd.to_datetime(out["datetime"], errors="raise")
+    elif "timestamp" in out.columns and "date" not in out.columns:
+        out["date"] = pd.to_datetime(out["timestamp"], errors="raise")
     elif "date" in out.columns:
         out["date"] = pd.to_datetime(out["date"], errors="raise")
     else:
@@ -127,8 +131,9 @@ def map_d1_to_h1_future(d1_os: pd.DataFrame, h1_os: pd.DataFrame) -> pd.DataFram
     d1_dates = sorted(d1["session_date"].drop_duplicates().tolist())
     h1["session_date"] = pd.to_datetime(h1["date"]).apply(lambda value: _session_date_for_future(value, d1_dates))
 
-    d1_ref = d1[["session_date", "camp"]].copy()
-    d1_ref["d1_camp"] = d1_ref["camp"].shift(1).fillna(0).astype(int)
+    camp_col = "camp_confirmed" if "camp_confirmed" in d1.columns else "camp"
+    d1_ref = d1[["session_date", camp_col]].copy()
+    d1_ref["d1_camp"] = d1_ref[camp_col].shift(1).fillna(0).astype(int)
     camp_map = dict(zip(d1_ref["session_date"], d1_ref["d1_camp"]))
     h1["d1_camp"] = h1["session_date"].map(camp_map).fillna(0).astype(int)
     return h1.dropna(subset=["session_date"]).reset_index(drop=True)
@@ -139,8 +144,9 @@ def map_d1_to_h1_natural_day(d1_os: pd.DataFrame, h1_os: pd.DataFrame) -> pd.Dat
     h1 = h1_os.copy()
     d1["session_date"] = pd.to_datetime(d1["date"]).dt.normalize()
     h1["session_date"] = pd.to_datetime(h1["date"]).dt.normalize()
-    d1_ref = d1[["session_date", "camp"]].copy()
-    d1_ref["d1_camp"] = d1_ref["camp"].shift(1).fillna(0).astype(int)
+    camp_col = "camp_confirmed" if "camp_confirmed" in d1.columns else "camp"
+    d1_ref = d1[["session_date", camp_col]].copy()
+    d1_ref["d1_camp"] = d1_ref[camp_col].shift(1).fillna(0).astype(int)
     camp_map = dict(zip(d1_ref["session_date"], d1_ref["d1_camp"]))
     h1["d1_camp"] = h1["session_date"].map(camp_map).fillna(0).astype(int)
     return h1.reset_index(drop=True)
@@ -207,6 +213,12 @@ def _make_signal(
     )
 
 
+def _confirmed_camp(row: pd.Series) -> int:
+    if "camp_confirmed" in row.index and not pd.isna(row.get("camp_confirmed")):
+        return int(row["camp_confirmed"])
+    return int(row.get("camp", 0))
+
+
 def make_ds07_signal(
     row: pd.Series,
     i: int,
@@ -215,76 +227,38 @@ def make_ds07_signal(
     prev_row: pd.Series | None = None,
     df: pd.DataFrame | None = None,
 ) -> DS07Signal | None:
-    if i < 1 or prev_row is None:
+    """DS07 共振决战：D1 camp_confirmed 战略授权 + H1 DS03 二四棒同向触发。
+
+    与 DS01、DS02 无关；不满足双周期同向或 H1 未过 DS03 二四棒则不开仓。
+    """
+    if i < 1 or prev_row is None or df is None:
+        return None
+
+    ds03 = resolve_ds03_attack(df, i)
+    if ds03 is None:
         return None
 
     d1_camp = int(row.get("d1_camp", 0))
-    h1_camp = int(row.get("camp", 0))
-    prev_h1_camp = int(prev_row.get("camp", 0))
+    h1_camp = _confirmed_camp(row)
+    prev_h1_camp = _confirmed_camp(prev_row)
     open_price = float(row["open"])
-    high = float(row["high"])
-    low = float(row["low"])
 
-    if d1_camp == 1:
-        # Tactical alignment: H1 was blue, breaks the prior blue_ext, and becomes red.
-        blue_ext = prev_row.get("blue_ext_price", np.nan)
-        blue_ext_idx = prev_row.get("blue_ext_idx", np.nan)
-        red_ext = row.get("red_ext_price", np.nan)
-        red_ext_idx = row.get("red_ext_idx", np.nan)
-        if (
-            prev_h1_camp == -1
-            and h1_camp == 1
-            and _has_n_structure(prev_row)
-            and _valid_price(blue_ext)
-            and _valid_idx(blue_ext_idx)
-            and high > float(blue_ext)
-            and _valid_price(red_ext)
-            and _valid_idx(red_ext_idx)
-        ):
-            attack_idx = int(blue_ext_idx)
-            defense_idx = int(red_ext_idx)
-            entry_ref = float(blue_ext)
-            initial_stop = float(red_ext)
-            entry_price = max(open_price, entry_ref)
-            attack_key = f"{symbol}|LONG_ALIGN_TURN|{i}|{attack_idx}|{entry_ref:.10g}"
-            if attack_key not in used_attack_keys and initial_stop < entry_price:
-                return _make_signal(
-                    side=1,
-                    activate_idx=i,
-                    d1_camp=d1_camp,
-                    prev_h1_camp=prev_h1_camp,
-                    h1_camp=h1_camp,
-                    entry_ref=entry_ref,
-                    initial_stop=initial_stop,
-                    attack_idx=attack_idx,
-                    defense_idx=defense_idx,
-                    attack_key=attack_key,
-                    trigger_type="LONG_ALIGN_TURN",
-                    pattern="DS07 D1 Red + H1 Blue-to-Red Alignment First Bar",
-                    session_date=row.get("session_date"),
-                )
-
-        # Continuation: H1 was already red and breaks the prior red_peak.
-        red_peak = prev_row.get("red_peak_price", np.nan)
+    if d1_camp == 1 and ds03.side == 1:
         red_ext = prev_row.get("red_ext_price", np.nan)
-        red_peak_idx = prev_row.get("red_peak_idx", np.nan)
         red_ext_idx = prev_row.get("red_ext_idx", np.nan)
         if (
             prev_h1_camp == 1
             and h1_camp == 1
             and _has_n_structure(prev_row)
-            and _valid_price(red_peak)
             and _valid_price(red_ext)
-            and _valid_idx(red_peak_idx)
             and _valid_idx(red_ext_idx)
-            and high > float(red_peak)
         ):
-            attack_idx = int(red_peak_idx)
+            attack_idx = int(ds03.ref_idx)
             defense_idx = int(red_ext_idx)
-            entry_ref = float(red_peak)
+            entry_ref = float(ds03.entry_ref)
             initial_stop = float(red_ext)
             entry_price = max(open_price, entry_ref)
-            attack_key = f"{symbol}|LONG_CONTINUE|{attack_idx}|{entry_ref:.10g}"
+            attack_key = f"{symbol}|LONG_CONTINUE|{ds03.peak_key}"
             if attack_key not in used_attack_keys and initial_stop < entry_price:
                 return _make_signal(
                     side=1,
@@ -298,70 +272,26 @@ def make_ds07_signal(
                     defense_idx=defense_idx,
                     attack_key=attack_key,
                     trigger_type="LONG_CONTINUE",
-                    pattern="DS07 D1 Red + H1 Red Continuation First Bar",
+                    pattern=f"DS07 D1 Red + H1 Red DS03 | {ds03.pattern}",
                     session_date=row.get("session_date"),
                 )
 
-    if d1_camp == -1:
-        # Tactical alignment: H1 was red, breaks the prior red_ext, and becomes blue.
-        red_ext = prev_row.get("red_ext_price", np.nan)
-        red_ext_idx = prev_row.get("red_ext_idx", np.nan)
-        blue_ext = row.get("blue_ext_price", np.nan)
-        blue_ext_idx = row.get("blue_ext_idx", np.nan)
-        if (
-            prev_h1_camp == 1
-            and h1_camp == -1
-            and _has_n_structure(prev_row)
-            and _valid_price(red_ext)
-            and _valid_idx(red_ext_idx)
-            and low < float(red_ext)
-            and _valid_price(blue_ext)
-            and _valid_idx(blue_ext_idx)
-        ):
-            attack_idx = int(red_ext_idx)
-            defense_idx = int(blue_ext_idx)
-            entry_ref = float(red_ext)
-            initial_stop = float(blue_ext)
-            entry_price = min(open_price, entry_ref)
-            attack_key = f"{symbol}|SHORT_ALIGN_TURN|{i}|{attack_idx}|{entry_ref:.10g}"
-            if attack_key not in used_attack_keys and initial_stop > entry_price:
-                return _make_signal(
-                    side=-1,
-                    activate_idx=i,
-                    d1_camp=d1_camp,
-                    prev_h1_camp=prev_h1_camp,
-                    h1_camp=h1_camp,
-                    entry_ref=entry_ref,
-                    initial_stop=initial_stop,
-                    attack_idx=attack_idx,
-                    defense_idx=defense_idx,
-                    attack_key=attack_key,
-                    trigger_type="SHORT_ALIGN_TURN",
-                    pattern="DS07 D1 Blue + H1 Red-to-Blue Alignment First Bar",
-                    session_date=row.get("session_date"),
-                )
-
-        # Continuation: H1 was already blue and breaks the prior blue_peak.
-        blue_peak = prev_row.get("blue_peak_price", np.nan)
+    if d1_camp == -1 and ds03.side == -1:
         blue_ext = prev_row.get("blue_ext_price", np.nan)
-        blue_peak_idx = prev_row.get("blue_peak_idx", np.nan)
         blue_ext_idx = prev_row.get("blue_ext_idx", np.nan)
         if (
             prev_h1_camp == -1
             and h1_camp == -1
             and _has_n_structure(prev_row)
-            and _valid_price(blue_peak)
             and _valid_price(blue_ext)
-            and _valid_idx(blue_peak_idx)
             and _valid_idx(blue_ext_idx)
-            and low < float(blue_peak)
         ):
-            attack_idx = int(blue_peak_idx)
+            attack_idx = int(ds03.ref_idx)
             defense_idx = int(blue_ext_idx)
-            entry_ref = float(blue_peak)
+            entry_ref = float(ds03.entry_ref)
             initial_stop = float(blue_ext)
             entry_price = min(open_price, entry_ref)
-            attack_key = f"{symbol}|SHORT_CONTINUE|{attack_idx}|{entry_ref:.10g}"
+            attack_key = f"{symbol}|SHORT_CONTINUE|{ds03.peak_key}"
             if attack_key not in used_attack_keys and initial_stop > entry_price:
                 return _make_signal(
                     side=-1,
@@ -375,7 +305,7 @@ def make_ds07_signal(
                     defense_idx=defense_idx,
                     attack_key=attack_key,
                     trigger_type="SHORT_CONTINUE",
-                    pattern="DS07 D1 Blue + H1 Blue Continuation First Bar",
+                    pattern=f"DS07 D1 Blue + H1 Blue DS03 | {ds03.pattern}",
                     session_date=row.get("session_date"),
                 )
 
@@ -424,14 +354,7 @@ def audit_ds07_structure(trades: pd.DataFrame) -> pd.DataFrame:
         & (
             (trades["d1_camp"] != 1)
             | (trades["h1_camp"] != 1)
-            | (
-                (trigger == "LONG_ALIGN_TURN")
-                & (prev_h1 != -1)
-            )
-            | (
-                (trigger == "LONG_CONTINUE")
-                & (prev_h1 != 1)
-            )
+            | ((trigger == "LONG_CONTINUE") & (prev_h1 != 1))
             | (trades["attack_price"] > trades["entry_price"])
             | (trades["defense_price"] >= trades["entry_price"])
         )
@@ -441,18 +364,11 @@ def audit_ds07_structure(trades: pd.DataFrame) -> pd.DataFrame:
         & (
             (trades["d1_camp"] != -1)
             | (trades["h1_camp"] != -1)
-            | (
-                (trigger == "SHORT_ALIGN_TURN")
-                & (prev_h1 != 1)
-            )
-            | (
-                (trigger == "SHORT_CONTINUE")
-                & (prev_h1 != -1)
-            )
+            | ((trigger == "SHORT_CONTINUE") & (prev_h1 != -1))
             | (trades["attack_price"] < trades["entry_price"])
             | (trades["defense_price"] <= trades["entry_price"])
         )
     )
-    bad_trigger = ~trigger.isin({"LONG_ALIGN_TURN", "LONG_CONTINUE", "SHORT_ALIGN_TURN", "SHORT_CONTINUE"})
+    bad_trigger = ~trigger.isin({"LONG_CONTINUE", "SHORT_CONTINUE"})
     duplicate_attack = trades.duplicated("attack_key", keep=False)
     return trades[bad_long | bad_short | bad_trigger | duplicate_attack].copy()

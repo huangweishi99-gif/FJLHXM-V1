@@ -12,7 +12,12 @@ from typing import Any
 import pandas as pd
 import requests
 
-from fengji_feishu_notify import paper_trade_notify_key, send_feishu_once
+from fengji_feishu_notify import (
+    default_feishu_claims_dir,
+    paper_trade_notify_key,
+    send_feishu_once,
+    system_notify_key,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
@@ -39,6 +44,16 @@ MONITOR_COINS = [
     "LINKUSDT",
     "BNBUSDT",
     "ZECUSDT",
+    "XRPUSDT",
+    "HYPEUSDT",
+    "ATHUSDT",
+    "PEPEUSDT",
+    "ARBUSDT",
+    "OPUSDT",
+    "SUIUSDT",
+    "NEARUSDT",
+    "INJUSDT",
+    "WLDUSDT",
 ]
 
 DEFAULT_TRADE_COINS = [
@@ -323,9 +338,8 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
                 pnl = calc_pnl(row, money)
                 symbol_state["closed_entries"].append(key)
                 symbol_state["open_position"] = None
-                claims_dir = Path(args.runtime_dir) / "feishu_notify_claims"
                 send_feishu_once(
-                    claims_dir,
+                    default_feishu_claims_dir(ROOT),
                     paper_trade_notify_key("close", key),
                     args.feishu_webhook,
                     format_exit(clean, row, money, pnl),
@@ -348,9 +362,8 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
         key = trade_key(row)
         if key in seen:
             continue
-        claims_dir = Path(args.runtime_dir) / "feishu_notify_claims"
         send_feishu_once(
-            claims_dir,
+            default_feishu_claims_dir(ROOT),
             paper_trade_notify_key("open", key),
             args.feishu_webhook,
             format_entry(clean, row, money, meta),
@@ -416,7 +429,14 @@ def main() -> None:
         f"数据源: 本地 {Path(args.data_dir).resolve()}\n"
         f"说明: 首次启动只建立基线，不补发历史信号"
     )
-    send_msg(args.feishu_webhook, startup)
+    if args.feishu_webhook:
+        send_feishu_once(
+            default_feishu_claims_dir(ROOT),
+            system_notify_key("binance_paper", "startup"),
+            args.feishu_webhook,
+            startup,
+            send_msg,
+        )
     print(startup)
 
     while True:
@@ -429,7 +449,14 @@ def main() -> None:
                 except Exception as exc:
                     msg = f"⚠️【峰极模拟盘单币异常】\n时间: {now_text()}\n币种: {coin}\n错误: {exc}"
                     print(msg)
-                    send_msg(args.feishu_webhook, msg)
+                    if args.feishu_webhook:
+                        send_feishu_once(
+                            default_feishu_claims_dir(ROOT),
+                            system_notify_key("binance_paper", f"symbol_error|{coin}"),
+                            args.feishu_webhook,
+                            msg,
+                            send_msg,
+                        )
             if args.once:
                 break
             time.sleep(args.loop_seconds)
@@ -439,7 +466,14 @@ def main() -> None:
         except Exception as exc:
             msg = f"⚠️【峰极模拟盘主循环异常】\n时间: {now_text()}\n60秒后自动恢复\n错误: {exc}"
             print(msg)
-            send_msg(args.feishu_webhook, msg)
+            if args.feishu_webhook:
+                send_feishu_once(
+                    default_feishu_claims_dir(ROOT),
+                    system_notify_key("binance_paper", "main_loop_error"),
+                    args.feishu_webhook,
+                    msg,
+                    send_msg,
+                )
             time.sleep(60)
 
 

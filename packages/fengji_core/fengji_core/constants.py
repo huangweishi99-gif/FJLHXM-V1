@@ -24,6 +24,7 @@ STRATEGY_PRIORITY = {
     "DS07": 70,
     "DS08": 80,
     "DS09": 90,
+    "TOTAL": 5,
 }
 
 # 中文展示名（Web / API / 动画文案统一口径）
@@ -36,6 +37,6 @@ STRATEGY_DISPLAY_NAMES: dict[str, str] = {
     "DS06": "外扩峰",
     "DS07": "共振决战",
     "DS08": "否定确认式",
-    "DS09": "九重式",
+    "DS09": "九重天",
     "TOTAL": "峰极总定式",
 }
