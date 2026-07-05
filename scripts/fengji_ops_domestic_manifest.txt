@@ -1,0 +1,21 @@
+# FengJi domestic ops manifest (watchdog + data pump guards + PG/SC probes)
+# Cherry-pick from stash@{0} ops bucket; do NOT full stash pop.
+
+scripts/watchdog_domestic.ps1
+scripts/ensure_single_data_manager.ps1
+scripts/check_domestic_status.ps1
+scripts/restart_domestic_data_manager.ps1
+scripts/verify_pg_sc_15m_csv.ps1
+scripts/probe_domestic_futures_15m.py
+scripts/sync_watchdog_domestic.ps1
+scripts/install_watchdog_domestic_task.ps1
+scripts/run_night_session_pg_sc_checks.ps1
+scripts/wait_pg_sc_15m_acceptance.ps1
+scripts/verify_domestic_health.ps1
+scripts/check_domestic_runtime_remote.ps1
+scripts/compare_overseas_core_hashes.py
+
+docs/PG_SC_15M_ACCEPTANCE.md
+
+scripts/fengji_ops_domestic_manifest.txt
+scripts/deploy_domestic_ops_stash_bucket.ps1

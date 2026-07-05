@@ -1,5 +1,11 @@
 $ErrorActionPreference = "Stop"
 $root = "C:\Users\Administrator\quant_futures"
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ensure = Join-Path $scriptDir "ensure_single_data_manager.ps1"
+if (Test-Path -LiteralPath $ensure) {
+    & $ensure
+    exit $LASTEXITCODE
+}
 $py = "C:\Users\Administrator\AppData\Local\Programs\Python\Python310\python.exe"
 Set-Location $root
 Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "data_manager_futures\.py" } | ForEach-Object {

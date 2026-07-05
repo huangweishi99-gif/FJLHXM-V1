@@ -1,6 +1,6 @@
 # TODO
 
-更新时间：2026-07-03
+更新时间：2026-07-05
 
 ## 2026-07-03 · 运行态处置
 
@@ -14,9 +14,28 @@
 - [x] **国内 PG**：`127.0.0.1:5432` · alembic **009 head**。
 - [x] **国内 futures pending `state_lock`**：已部署并重启 monitor。
 - [x] **FUTURES 5m 数据泵 PR-A**：`data_manager_futures.py` + 国内部署 · 待交易时段首轮回填。
-- [ ] **FUTURES 5m PR-B**：本机 sync + SQLite ingest · B0-2 对账。
-- [ ] **stash@{0}**：按桶 cherry-pick · 勿整包 pop。
-
+- [x] **FUTURES 5m PR-B 脚本**：sync + `import_futures_local` · 待国内 5m CSV 就绪后跑 sync + B0-2 对账。
+- [x] **data_manager 实际主力合约**：`resolve_data_contract` + manifest · 已部署国内。
+- [x] **天勤 SDK 修复**：`tqsdk` 优先 · 心跳 · 国内首轮回填进行中。
+- [x] **SF 15m watchdog 误报**：date≥2020 口径对齐 · 国内 sanitize + normalize_frame 修复 · 全量 sanity dry-run **0**。
+- [x] **FUTURES 5m 全量 sync**：国内 68 CSV → 本机 `data/futures/5m` · ingest 76 · B0-2 **pass**。
+- [x] **海外 pending monitor 持锁优化**：plan/apply 分离 · `test_pending_orders.py` **10 passed**。
+- [x] **海外 pending monitor 部署**：已 sync · hash match · 单轮 ~8s。
+- [x] **国内 futures pending 锁优化**：plan/apply · 已部署 PID 3572 · pytest **11 passed**。
+- [x] **PG 15m 抓取修复**：`frame_looks_sane` 短历史 + `frame_looks_acceptable` 降级 · data_manager 已重启。
+- [x] **stash@{0} 运维桶**：已 cherry-pick `check_domestic_status.ps1` + `constants.py`。
+- [x] **stash os_engine/radar 桶**：`os_engine` · `fengji_total_radar` · `ds07` · **77 passed** · 已部署海内外。
+- [x] **stash ds03/paper 桶**：DS03 真峰需双极 · **24 passed** · 已部署。
+- [x] **fill_supervision 桶**：本地 HEAD sync 海内外 · hash **match** · pytest **38 passed**。
+- [x] **海外 crypto 数据泵 hash 对齐**：`data_manager` · `crypto_ingest` · `sync_missing_crypto_15m` · **mismatches=0**。
+- [x] **PG/SC 15m 全链路验收**：probe `--write` + data_manager **15:34 `[OK] PG`**（`降级选用 rows=4630`）。
+- [x] **ensure_single_data_manager 修复**：cmd 包装进程检测 · 代码陈旧自动重启 · dedupe 不误杀 cmd+python。
+- [x] **海外 hash 批量比对**：`compare_overseas_core_hashes.py` 单次 SSH · **mismatches=0**（7/5）。
+- [x] **check_domestic_status 增强**：python/cmd 分计 · 代码陈旧告警 · PG/SC 日志口径。
+- [x] **stash Web manifest / Phase 2 数据桶**：`fengji_phase2_data_manifest.txt` · `import-futures-local` · 5m sync · manifest **6+4 passed** · OpenAPI **38 paths**。
+- [x] **stash 文档/ARCHIVE 桶**：`fengji_archive_docs_manifest.txt` · `docs/archives/INDEX.md` · verify **1 passed**。
+- [x] **stash 运维桶（watchdog/探针）**：`deploy_domestic_ops_stash_bucket.ps1` · `fengji_ops_domestic_manifest.txt` · sync 国内 **7 文件** · scp 路径含空格修复。
+- [x] **sync_deploy 试跑 + 进程重启**：core/fengji_core sync OK · radar **PID 3108** · pending **PID 3316** · data_manager **3220** · **34/0**。
 ## 2026-07-02 · 方案 B Phase 1 完成 ✅
 
 ## 2026-07-02 · 方案 B Phase 0 完成

@@ -2,13 +2,18 @@
 $ErrorActionPreference = "Stop"
 $root = "C:\Users\Administrator\quant_futures"
 Set-Location $root
-Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "fengji_futures_pending_order_monitor" } | ForEach-Object {
+Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -match "python" -and $_.CommandLine -match "fengji_futures_pending_order_monitor"
+} | ForEach-Object {
     try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {}
 }
 Start-Sleep -Seconds 2
 & (Join-Path $PSScriptRoot "run_futures_pending_monitor.ps1")
 Start-Sleep -Seconds 2
-Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "fengji_futures_pending_order_monitor" } | ForEach-Object {
+& (Join-Path $PSScriptRoot "stop_duplicate_pending_domestic.ps1")
+Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -match "python" -and $_.CommandLine -match "fengji_futures_pending_order_monitor"
+} | ForEach-Object {
     if ($_.CommandLine -match "feishu-webhook\s+`"https://") {
         Write-Host "WARN: webhook still visible in command line — check runtime/feishu_webhook.env"
     } else {

@@ -12,6 +12,14 @@ Get-CimInstance Win32_Process |
         try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {}
     }
 
+Start-Sleep -Seconds 2
+
+Get-CimInstance Win32_Process |
+    Where-Object { $_.CommandLine -like "*fengji_radar_order_loop.py*" } |
+    ForEach-Object {
+        try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {}
+    }
+
 Start-Sleep -Seconds 1
 
 $stateFile = "runtime\fengji_pending_orders\futures_pending_state.json"
