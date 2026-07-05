@@ -25,9 +25,10 @@
 
 | 项 | 说明 |
 |----|------|
-| **sync_deploy 桶** | `sync_deploy_domestic.ps1` cherry-pick · deploy manifest **1 passed** |
+| **PR merged** | `feat/domestic-ops-pg-sc-sync` → `main`（2026-07-05） |
+| **PR pending** | `feat/os-engine-radar-core` · 43 pytest · 合并后 sync 海内外 radar |
 | stash@{0} 剩余 | 大量 data/ CSV · FJLHXM-UI · **勿整包 pop** |
-| Phase 2 后续 | 按 `PLAN_B` 路线图继续 W18+ 或用户指定优先级 |
+| Phase 2 后续 | W18+ watchlist / 自定义品种（见 FJLHXM-V1 Phase 2–3） |
 
 ## 命令速查
 

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-07-05（PR pending · os_engine/radar core）
+
+- 分支 **`feat/os-engine-radar-core`**：`os_engine` urgent_gap · `fengji_total_radar` · DS03/DS07 · **43 passed** · 待 merge。
+
+## 2026-07-05（PR merged · domestic ops）
+
+- **`feat/domestic-ops-pg-sc-sync`** 已合并 **`main`**（GitHub · 2026-07-05）。
+
+## 2026-07-05（post-sync 验证 · pending dedupe）
+
 - **`stop_duplicate_pending_domestic.ps1`**：仅匹配 **python** 进程（避免误杀/误留 powershell）。
 - **国内 post-sync**：radar **3108** · pending **3316** · data_manager **3220** · health **OK** · 海外 hash **0**。
 
