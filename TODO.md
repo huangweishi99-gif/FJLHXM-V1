@@ -7,7 +7,7 @@
 | 日序 | 主题 | 主要产出 | 状态 |
 |------|------|----------|------|
 | D0 | **PR #12 os_engine/radar** | merge `main@4d6a840` · 海内外 radar/pending 已部署 | ✅ |
-| D1 | **OS 状态账本复核** | 海内外 `runtime/fengji_os_state` 仍存在；第二轮 radar 只追加、不重连历史峰极线（`verify_os_state_*`） | 待做 |
+| D1 | **OS 状态账本复核** | 国内 LC `delta1=0 delta2=0` pl=192 · 海外 BTC `INCREMENTAL_OK` pl=1095 · 本地 incremental BTC/LC **ok**（2026-07-06） | ✅ |
 | D2 | **pending monitor 桶** | 工作区 `fengji_*_pending_order_monitor.py` 独立小 PR · 勿与 data CSV 混提 | 待做 |
 | D3 | **W18 watchlist MVP** | 自定义品种配额 / runtime job / 文档 `W18_*` 与 API 对齐抽查 | 待做 |
 | D4 | **定式案例回归** | DS01 左30≤2 · DS03 假峰/极（IOUSDT/ETH）· DS05 K2 可能极 · 沙盒图归档争议信号 | 待做 |
@@ -89,7 +89,7 @@
 ### 当前最高优先级任务
 
 1. ~~连接恢复后立即重传峰极OS增量连线最终版到海外服务器~~ → **已完成**（PR #12 · 2026-07-06 海内外部署）。
-2. **D1**：复核 `runtime/fengji_os_state` 第二轮只追加（见上方 N 日清单）。
+2. ~~D1 OS 账本增量~~ → **已完成**（国内/海外/本地 `verify_os_state_*`）。
 3. **D2–D3**：pending monitor 小 PR · W18 watchlist MVP。
 4. 固化峰极OS总工程交接文档（Cursor/Codex 以 Markdown 为准）。
 5. 实时检查国内/海外数据泵、模拟盘、雷达、挂单（节后巡检）。
@@ -110,7 +110,7 @@
 
 ### 阵营转换判断待验证任务
 
-- [ ] 海外服务器连接恢复后，确认峰极OS状态账本 `runtime/fengji_os_state` 按品种/周期生成，并验证第二轮雷达只追加新K线，不重连历史峰极线。
+- [x] 海外服务器连接恢复后，确认峰极OS状态账本 `runtime/fengji_os_state` 按品种/周期生成，并验证第二轮雷达只追加新K线，不重连历史峰极线。（2026-07-06 D1：BTC `INCREMENTAL_OK` · 国内 LC delta=0）
 - [ ] 用沙盒图验证红蓝阵营切换是否严格遵守峰极OS最高宪法。
 - [ ] 复核 active high/active low、红极/蓝极、合法假峰/假极的字段来源。
 - [ ] 确认 DOGEUSDT、LTCUSDT、RENDERUSDT、IOUSDT 的近期阵营判断是否和图形一致。

@@ -1,9 +1,16 @@
 # CHANGELOG
 
+## 2026-07-06（D1 · OS 状态账本增量复核）
+
+- 国内 LC：两轮 radar `--once` · `delta1=0 delta2=0` · `processed_len=192`。
+- 海外 BTC：两轮 radar `--once` · `INCREMENTAL_OK` · `processed_len=1095` · size 不变。
+- 本地 `verify_os_state_incremental.py`：BTC/LC 第二轮 `size_delta=0` · `incremental_ok=true`。
+- 修复 `verify_os_state_overseas.sh` CRLF（`set -eu`）。
+
 ## 2026-07-06（PR #12 merged · os_engine/radar + N 日清单）
 
 - **PR #12** (`4d6a840`)：`os_engine` urgent_gap · `fengji_total_radar` · DS03/DS07 · **43 passed** · merge `main` · 海内外部署。
-- `TODO.md` / `docs/PLAN_B_PHASE2_PROGRESS.md`：Phase 2 **D0–D7** N 日清单（D0 完成）。
+- `TODO.md` / `docs/PLAN_B_PHASE2_PROGRESS.md`：Phase 2 **D0–D7** N 日清单（D0–D1 完成）。
 
 ## 2026-07-05（PR merged · domestic ops）
 

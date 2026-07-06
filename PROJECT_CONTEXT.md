@@ -2,10 +2,11 @@
 
 更新时间：2026-07-05
 
-## 2026-07-05 方案 B Phase 2 进行中（最新）
+## 2026-07-06 方案 B Phase 2 进行中（最新）
 
 ### 摘要
 
+- **PR #12 / D0–D1**：`os_engine`·radar 已 merge 并部署；OS 账本第二轮 **只追加**（国内 LC / 海外 BTC / 本地 incremental 全绿）。见 `docs/PLAN_B_PHASE2_PROGRESS.md`。
 - **本地 PG + W17**：Docker PG · **7/7 + 5/5** · 见 `docs/PLAN_B_PHASE2_PROGRESS.md`。
 - **国内 API**：`sync_deploy_fengji_api.ps1 -Verify` 通过（health ok；alembic **009 head**）。
 - **pending monitor 锁优化**：海外 crypto + 国内 futures 均已 **plan/apply 分离**（锁内单次 `save_json` · 锁外 notify/CSV）；海外单轮 ~8s（原 ~24s）。

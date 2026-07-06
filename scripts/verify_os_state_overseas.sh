@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eu
 cd /home/ubuntu/quant_crypto
 PY=.venv/bin/python
 STATE=runtime/fengji_os_state/BTCUSDT_1d.json
@@ -42,9 +42,18 @@ stat_state
 SZ2=$(stat -c%s "$STATE")
 D2=$((SZ2 - SZ1))
 
-echo "=== SUMMARY delta1=$D1 delta2=$D2 (delta2 should be << delta1 if incremental rewrite stable) ==="
-if [ "$D2" -lt 100000 ] 2>/dev/null || [ "$D2" -eq 0 ] 2>/dev/null; then
+PL=$($PY -c "
+import json
+from pathlib import Path
+p=Path('$STATE')
+st=json.loads(p.read_text()) if p.exists() else {}
+print(st.get('processed_len', 0))
+")
+
+echo "=== SUMMARY delta1=$D1 delta2=$D2 processed_len=$PL ==="
+if [ "$D2" -lt 100000 ] || [ "$D2" -eq 0 ]; then
   echo "INCREMENTAL_OK"
 else
   echo "INCREMENTAL_WARN large_second_delta=$D2"
+  exit 1
 fi

@@ -28,7 +28,7 @@
 | 日序 | 说明 | 状态 |
 |------|------|------|
 | **D0** | PR #12 merge + 海内外 radar/pending 部署 | ✅ |
-| **D1** | OS 状态账本：第二轮 radar 只追加不重连（`verify_os_state_*`） | 待做 |
+| **D1** | OS 账本增量：国内 LC delta=0 pl=192 · 海外 BTC `INCREMENTAL_OK` pl=1095 · 本地 BTC/LC ok | ✅ |
 | **D2** | pending monitor 工作区改动 → 独立小 PR（勿混 data CSV） | 待做 |
 | **D3** | W18 watchlist / 自定义品种 MVP（`docs/W18_*`） | 待做 |
 | **D4** | DS01/DS03/DS05 争议案例沙盒回归 | 待做 |
