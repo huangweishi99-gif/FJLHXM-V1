@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## 2026-07-05（PR pending · os_engine/radar core）
+## 2026-07-06（PR #12 merged · os_engine/radar + N 日清单）
 
-- 分支 **`feat/os-engine-radar-core`**：`os_engine` urgent_gap · `fengji_total_radar` · DS03/DS07 · **43 passed** · 待 merge。
+- **PR #12** (`4d6a840`)：`os_engine` urgent_gap · `fengji_total_radar` · DS03/DS07 · **43 passed** · merge `main` · 海内外部署。
+- `TODO.md` / `docs/PLAN_B_PHASE2_PROGRESS.md`：Phase 2 **D0–D7** N 日清单（D0 完成）。
 
 ## 2026-07-05（PR merged · domestic ops）
 

@@ -1,6 +1,6 @@
 # 方案 B · Phase 2 进度
 
-更新：2026-07-05
+更新：2026-07-06
 
 ## 已完成
 
@@ -19,16 +19,26 @@
 | **运维/验收** | `verify_domestic_health.ps1` · `deploy_domestic_ops_stash_bucket.ps1` · ops manifest **1 passed** |
 | **PG/SC 15m** | probe + data_manager 全链路 **PASS**（7/5 · 34/0 轮次） |
 | **ensure_single** | 代码陈旧自动重启 · cmd+python dedupe 修复 |
-| **海外 hash** | `compare_overseas_core_hashes` 批量 SSH · **mismatches=0**（7/5） |
+| **海外 hash（核心雷达）** | `os_engine` / `fengji_total_radar` **match**（7/6） |
+| **PR #11** | `feat/domestic-ops-pg-sc-sync` → `main` |
+| **PR #12** | `feat/os-engine-radar-core` → `main` @ `4d6a840` · 海内外已部署 |
 
-## 待办
+## 待办 / N 日清单（自 2026-07-06）
 
-| 项 | 说明 |
-|----|------|
-| **PR merged** | `feat/domestic-ops-pg-sc-sync` → `main`（2026-07-05） |
-| **PR pending** | `feat/os-engine-radar-core` · 43 pytest · 合并后 sync 海内外 radar |
-| stash@{0} 剩余 | 大量 data/ CSV · FJLHXM-UI · **勿整包 pop** |
-| Phase 2 后续 | W18+ watchlist / 自定义品种（见 FJLHXM-V1 Phase 2–3） |
+| 日序 | 说明 | 状态 |
+|------|------|------|
+| **D0** | PR #12 merge + 海内外 radar/pending 部署 | ✅ |
+| **D1** | OS 状态账本：第二轮 radar 只追加不重连（`verify_os_state_*`） | 待做 |
+| **D2** | pending monitor 工作区改动 → 独立小 PR（勿混 data CSV） | 待做 |
+| **D3** | W18 watchlist / 自定义品种 MVP（`docs/W18_*`） | 待做 |
+| **D4** | DS01/DS03/DS05 争议案例沙盒回归 | 待做 |
+| **D5** | 天勤账号环境变量复查 · 雷达频率/挂单撤销口径文档化 | 待做 |
+| **D6** | A股 60m / 期货日夜盘覆盖边界标注 | 待做 |
+| **D7** | stash@{0} 仅 cherry-pick · Phase2 收口 | 待做 |
+
+stash@{0} 仍含大量 `data/` CSV 与 FJLHXM-UI · **勿整包 pop**。
+
+完整条目见 `TODO.md`「方案 B · Phase 2 后续 · N 日清单」。
 
 ## 命令速查
 
@@ -36,6 +46,9 @@
 powershell -File scripts\deploy_domestic_ops_stash_bucket.ps1
 powershell -File scripts\wait_pg_sc_15m_acceptance.ps1
 powershell -File scripts\verify_project_buckets.ps1
+powershell -File scripts\sync_deploy_domestic.ps1 -RestartRadarLoop -SkipPaperDeploy
+powershell -File scripts\deploy_os_engine_radar_bucket.ps1 -OverseasOnly
+python scripts/compare_overseas_core_hashes.py
 docker compose up -d
 python scripts/w17_remote_acceptance.py --auto-server
 python scripts/w17_remote_acceptance.py --ssh-tunnel domestic-quant --local-port 8040 --wait-seconds 12

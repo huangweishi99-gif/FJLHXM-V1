@@ -1,6 +1,21 @@
 # TODO
 
-更新时间：2026-07-05
+更新时间：2026-07-06
+
+## 方案 B · Phase 2 后续 · N 日清单（自 2026-07-06）
+
+| 日序 | 主题 | 主要产出 | 状态 |
+|------|------|----------|------|
+| D0 | **PR #12 os_engine/radar** | merge `main@4d6a840` · 海内外 radar/pending 已部署 | ✅ |
+| D1 | **OS 状态账本复核** | 海内外 `runtime/fengji_os_state` 仍存在；第二轮 radar 只追加、不重连历史峰极线（`verify_os_state_*`） | 待做 |
+| D2 | **pending monitor 桶** | 工作区 `fengji_*_pending_order_monitor.py` 独立小 PR · 勿与 data CSV 混提 | 待做 |
+| D3 | **W18 watchlist MVP** | 自定义品种配额 / runtime job / 文档 `W18_*` 与 API 对齐抽查 | 待做 |
+| D4 | **定式案例回归** | DS01 左30≤2 · DS03 假峰/极（IOUSDT/ETH）· DS05 K2 可能极 · 沙盒图归档争议信号 | 待做 |
+| D5 | **数据与挂单口径** | 天勤账号仅环境变量（待复查）· 雷达刷新频率文档 · 同品种多定式挂单撤销规则 | 待做 |
+| D6 | **A股/期货覆盖边界** | A股 60m 缺口标注或临时只用 DS01–DS06 日线；fut 日夜盘表补全 | 待做 |
+| D7 | **stash/文档卫生** | stash@{0} 仍勿整包 pop · 只 cherry-pick 有价值文件 · Phase2 progress 收口 | 待做 |
+
+操作约束：实盘权限未开；勿提交密钥；海内外部署后仍用 `verify_domestic_health` / `compare_overseas_core_hashes`。
 
 ## 2026-07-03 · 运行态处置
 
@@ -36,7 +51,7 @@
 - [x] **stash 文档/ARCHIVE 桶**：`fengji_archive_docs_manifest.txt` · `docs/archives/INDEX.md` · verify **1 passed**。
 - [x] **stash 运维桶（watchdog/探针）**：`deploy_domestic_ops_stash_bucket.ps1` · `fengji_ops_domestic_manifest.txt` · sync 国内 **7 文件** · scp 路径含空格修复。
 - [x] **PR merged**：`feat/domestic-ops-pg-sc-sync` → `main`（ops sync · PG/SC 15m · process guards · 试跑 34/0）。
-- [ ] **PR pending**：`feat/os-engine-radar-core` · os_engine/radar/DS03/DS07 · **43 passed** · 待 review/merge。
+- [x] **PR merged**：`feat/os-engine-radar-core` → `main`（#12 · `4d6a840`）· 国内 `-RestartRadarLoop` · 海外 os_engine/radar sync + watchdog · **43 passed**。
 ## 2026-07-02 · 方案 B Phase 1 完成 ✅
 
 ## 2026-07-02 · 方案 B Phase 0 完成
@@ -73,13 +88,12 @@
 
 ### 当前最高优先级任务
 
-1. 连接恢复后立即重传峰极OS增量连线最终版到海外服务器：`src/quant/os_engine.py`、`src/quant/ds07.py`、`src/fengji_total_radar.py`，然后重启海外雷达/挂单/模拟盘并检查 `runtime/fengji_os_state` 是否生成。
-1. 复核并同步 DS09《股票式 / 九重天》最新口径：D1必须在峰极OS下给出安全红/蓝阵营，M15只在第一次刺穿后锁定，等待第一进攻峰、防守极、二次攻击才入场。
-1. 固化峰极OS总工程交接文档，保证 Cursor/Codex 可在无旧聊天记录的情况下接手。
-2. 已确认 `packages/fengji_core` 与 `src/quant` 的权威关系：`packages/fengji_core/fengji_core` 为核心权威源，`src/quant` 为兼容层；后续重点是验证和服务器同步。
-3. 复核 DS01、DS03、DS05、DS07 最新规则是否已同步到本地、国内服务器、海外服务器。
-4. 实时检查国内/海外服务器的数据泵、模拟盘、雷达循环、挂单监控是否正常运行。
-5. 继续 A股板块回测、失败股票重试和结果归档。
+1. ~~连接恢复后立即重传峰极OS增量连线最终版到海外服务器~~ → **已完成**（PR #12 · 2026-07-06 海内外部署）。
+2. **D1**：复核 `runtime/fengji_os_state` 第二轮只追加（见上方 N 日清单）。
+3. **D2–D3**：pending monitor 小 PR · W18 watchlist MVP。
+4. 固化峰极OS总工程交接文档（Cursor/Codex 以 Markdown 为准）。
+5. 实时检查国内/海外数据泵、模拟盘、雷达、挂单（节后巡检）。
+6. 继续 A股板块回测、失败股票重试和结果归档（D6）。
 
 ### 九大定式逐个待完成任务
 
@@ -170,10 +184,11 @@
 
 ## 当前最高优先级任务
 
-1. 固化当前项目上下文，保证 Cursor/Codex 新会话可接手。
-2. 复查 DS01、DS03、DS05、DS07 与峰极 OS 的当前代码是否全部同步到海外、国内服务器。
-3. 检查海外虚拟货币模拟盘、国内期货/A股模拟盘、数据泵、雷达挂单循环是否仍正常运行。
-4. 跑核心测试，确认最近策略修正没有破坏雷达、挂单和模拟盘。
+以文首 **「方案 B · Phase 2 后续 · N 日清单」** 为准（D1–D7）。本段历史条目已收敛：
+
+1. PR #12 / os_engine·radar 已 merge 并部署（D0 ✅）。
+2. 待做：D1 OS 账本增量 · D2 pending 小 PR · D3 W18 · D4–D7 见清单。
+3. 节后巡检：海内外数据泵 / 模拟盘 / 雷达 / 挂单。
 
 ## 待完成任务
 
