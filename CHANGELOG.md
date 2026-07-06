@@ -1,6 +1,20 @@
 # CHANGELOG
 
+## 2026-07-06（D2 · pending monitor plan/apply）
+
+- `fengji_pending_order_monitor.py` / `fengji_futures_pending_order_monitor.py`：止损退出与成交路径拆为 **precompute/plan + apply**，缩短 `state_lock` 持锁窗口。
+- 测试：`tests/test_pending_orders.py` + `test_futures_pending_orders.py` · **13 passed**。
+- 附带：`scripts/watchdog_overseas.sh` 入库（`flock` + 拉起重试，防部署竞态误报）。
+
+## 2026-07-06（海外 radar_loop 告警 · 看护加固）
+
+- **根因**：PR #12 部署窗口 `pkill` 与 cron 看护竞态；10:53:02 已拉起，约 3s 内被 pkill，误报「拉起失败」。
+- **现状**：radar 已在跑（约 10:53:38 起）· pending/data/paper 正常。
+- **`watchdog_overseas.sh`**：`flock` 单实例 · `ensure_proc` 最多 3 次重试、分段等待探测 · 已 scp 海外。
+
 ## 2026-07-06（D1 · OS 状态账本增量复核）
+
+
 
 - 国内 LC：两轮 radar `--once` · `delta1=0 delta2=0` · `processed_len=192`。
 - 海外 BTC：两轮 radar `--once` · `INCREMENTAL_OK` · `processed_len=1095` · size 不变。
