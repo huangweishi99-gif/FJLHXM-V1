@@ -8,7 +8,7 @@
 |------|------|----------|------|
 | D0 | **PR #12 os_engine/radar** | merge `main@4d6a840` · 海内外 radar/pending 已部署 | ✅ |
 | D1 | **OS 状态账本复核** | 国内 LC `delta1=0 delta2=0` pl=192 · 海外 BTC `INCREMENTAL_OK` pl=1095 · 本地 incremental BTC/LC **ok**（2026-07-06） | ✅ |
-| D2 | **pending monitor 桶** | plan/apply · 分支已推送 `feat/pending-monitor-plan-apply` @ `98a78dd` · 测 **13 passed** · 待开/合 PR | 进行中 |
+| D2 | **pending monitor 桶** | PR **#13** `4a09090` · 海内外已部署重启 · 海外 PID **3345868** · 国内 PID **1140** · hash match · 测 **13 passed** | ✅ |
 | D3 | **W18 watchlist MVP** | 自定义品种配额 / runtime job / 文档 `W18_*` 与 API 对齐抽查 | 待做 |
 | D4 | **定式案例回归** | DS01 左30≤2 · DS03 假峰/极（IOUSDT/ETH）· DS05 K2 可能极 · 沙盒图归档争议信号 | 待做 |
 | D5 | **数据与挂单口径** | 天勤账号仅环境变量（待复查）· 雷达刷新频率文档 · 同品种多定式挂单撤销规则 | 待做 |
@@ -20,6 +20,7 @@
 ## 2026-07-06 · 运行态处置
 
 - [x] **海外 radar_loop 告警（10:53）**：部署 pkill 与 cron 竞态误报 · radar 已在跑 · `watchdog_overseas.sh` 已加固并部署。
+- [x] **D2 pending plan/apply**：PR #13 merge · 海外 crypto pending hash match · 国内 futures pending hash match · 均已重启。
 
 ## 2026-07-03 · 运行态处置
 

@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-07-06（D2 · pending monitor plan/apply · merge & deploy）
+
+- **PR #13** merge `main@4a09090`。
+- 海外：`fengji_pending_order_monitor.py` hash match · PID **3345868** · 日志正常轮询。
+- 国内：`fengji_futures_pending_order_monitor.py` hash match · PID **1140**。
+- 附带：`watchdog_overseas.sh`（`flock` + 拉起重试）已同步海外（注：scp 后需 `sed` 去 CRLF）。
+
 ## 2026-07-06（D2 · pending monitor plan/apply）
 
 - `fengji_pending_order_monitor.py` / `fengji_futures_pending_order_monitor.py`：止损退出与成交路径拆为 **precompute/plan + apply**，缩短 `state_lock` 持锁窗口。
