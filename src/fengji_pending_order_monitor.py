@@ -7,6 +7,7 @@ import math
 import os
 import time
 from contextlib import nullcontext
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
@@ -563,6 +564,124 @@ def stop_triggered(position: dict[str, Any], price: float) -> bool:
     return False
 
 
+@dataclass
+class PlannedStopExit:
+    symbol: str
+    order_id: str
+    exit_price: float
+    exit_reason: str
+    exit_bar: dict[str, Any] | None = None
+
+
+@dataclass
+class PlannedFill:
+    order: dict[str, Any]
+    fill_price: float
+    price_source: str
+    ds03_meta: dict[str, Any] = field(default_factory=dict)
+    ds08_meta: dict[str, Any] = field(default_factory=dict)
+    consume_ds03_setup_key: bool = False
+
+
+@dataclass
+class PlannedCancel:
+    order: dict[str, Any]
+    cancel_reason: str
+    extra: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class PlannedSkip:
+    order: dict[str, Any]
+    skip_reason: str
+    last_price: float
+
+
+def precompute_stop_exit_plans(
+    args: argparse.Namespace,
+    paper_snapshot: dict[str, Any],
+    prices: dict[str, float],
+    precomputed_stops: dict[str, dict[str, Any]],
+) -> list[PlannedStopExit]:
+    from fengji_core.stop_bar_monitor import (
+        read_stop_bar_for_position,
+        stop_bar_after_entry,
+        stop_crossed,
+        stop_exit_fill,
+        stop_timeframe_for_position,
+    )
+
+    plans: list[PlannedStopExit] = []
+    for symbol, symbol_state in (paper_snapshot.get("symbols") or {}).items():
+        if not isinstance(symbol_state, dict):
+            continue
+        position = symbol_state.get("open_position")
+        if not position:
+            continue
+        clean = normalize_symbol(symbol)
+        pos_copy = copy.deepcopy(position)
+        hint = precomputed_stops.get(clean)
+        if hint and hint.get("current_stop") is not None:
+            pos_copy["current_stop"] = hint["current_stop"]
+        stop_bar = None
+        exit_price: float | None = None
+        exit_reason = "stop"
+        if stop_timeframe_for_position(pos_copy):
+            stop_bar = read_stop_bar_for_position(args, clean, pos_copy)
+            if stop_bar is None or not stop_bar_after_entry(pos_copy, stop_bar):
+                continue
+            if not stop_crossed(pos_copy, stop_bar):
+                continue
+            exit_price, exit_reason = stop_exit_fill(pos_copy, stop_bar)
+        else:
+            price = prices.get(clean)
+            if price is None or not stop_triggered(pos_copy, float(price)):
+                continue
+            exit_price = float(price)
+        plans.append(
+            PlannedStopExit(
+                symbol=clean,
+                order_id=str(position.get("order_id", "")),
+                exit_price=float(exit_price),
+                exit_reason=str(exit_reason),
+                exit_bar=stop_bar,
+            )
+        )
+    return plans
+
+
+def apply_stop_exit_plans(
+    args: argparse.Namespace,
+    paper_state: dict[str, Any],
+    plans: list[PlannedStopExit],
+) -> tuple[list[dict[str, Any]], list[tuple[dict[str, Any], dict[str, Any], float, str]]]:
+    closed: list[dict[str, Any]] = []
+    notify_queue: list[tuple[dict[str, Any], dict[str, Any], float, str]] = []
+    for plan in plans:
+        symbol_state = (paper_state.get("symbols") or {}).get(plan.symbol)
+        if not isinstance(symbol_state, dict):
+            continue
+        position = symbol_state.get("open_position")
+        if not position:
+            continue
+        if str(position.get("order_id", "")) != plan.order_id:
+            continue
+        position_snapshot = copy.deepcopy(position)
+        record = close_position_on_stop(
+            args,
+            paper_state,
+            plan.symbol,
+            symbol_state,
+            plan.exit_price,
+            exit_reason=plan.exit_reason,
+            exit_bar=plan.exit_bar,
+        )
+        if record:
+            closed.append(record)
+            notify_queue.append((record, position_snapshot, plan.exit_price, plan.exit_reason))
+    return closed, notify_queue
+
+
 def calc_position_pnl(position: dict[str, Any], exit_price: float, args: argparse.Namespace) -> dict[str, Any]:
     entry = float(position.get("entry_price", 0.0) or 0.0)
     side = int(position.get("side", 0) or 0)
@@ -704,72 +823,227 @@ def process_open_position_stops(
     *,
     skip_refresh: bool = False,
 ) -> list[dict[str, Any]]:
-    closed: list[dict[str, Any]] = []
-    if not args.paper_state_file or args.no_paper_state_update:
-        return closed
-    data_dir = Path(getattr(args, "data_dir", "data"))
-    os_state_dir = getattr(args, "os_state_dir", "runtime/fengji_os_state")
-    from fengji_core.stop_bar_monitor import (
-        read_stop_bar_for_position,
-        stop_bar_after_entry,
-        stop_crossed,
-        stop_exit_fill,
-        stop_timeframe_for_position,
-    )
-
-    for symbol, symbol_state in (paper_state.get("symbols") or {}).items():
-        if not isinstance(symbol_state, dict):
-            continue
-        position = symbol_state.get("open_position")
-        if not position:
-            continue
-        clean = normalize_symbol(symbol)
-        if not skip_refresh:
-            refresh_position_stop(
-                position,
-                symbol=clean,
-                data_dir=data_dir,
-                os_state_dir=os_state_dir,
-            )
-        stop_bar = None
-        exit_price: float | None = None
-        exit_reason = "stop"
-        if stop_timeframe_for_position(position):
-            stop_bar = read_stop_bar_for_position(args, clean, position)
-            if stop_bar is None or not stop_bar_after_entry(position, stop_bar):
+    """Legacy path; process_once uses precompute_stop_exit_plans + apply_stop_exit_plans."""
+    precomputed = precompute_open_position_stops(args, paper_state) if not skip_refresh else {}
+    if skip_refresh:
+        for symbol, symbol_state in (paper_state.get("symbols") or {}).items():
+            if not isinstance(symbol_state, dict):
                 continue
-            if not stop_crossed(position, stop_bar):
+            position = symbol_state.get("open_position")
+            if not position:
                 continue
-            exit_price, exit_reason = stop_exit_fill(position, stop_bar)
-        else:
-            price = prices.get(clean)
-            if price is None or not stop_triggered(position, float(price)):
-                continue
-            exit_price = float(price)
-        record = close_position_on_stop(
-            args,
-            paper_state,
-            clean,
-            symbol_state,
-            float(exit_price),
-            exit_reason=exit_reason,
-            exit_bar=stop_bar,
-        )
-        if record:
-            closed.append(record)
-            if args.paper_state_file and not args.no_paper_state_update:
-                save_json(Path(args.paper_state_file), paper_state)
-            append_csv(Path(args.out_dir) / "closed_trades.csv", record)
-            append_jsonl(Path(args.out_dir) / "events.jsonl", {"event_type": "close", **record})
-            notify_close_fill(
-                args,
-                clean,
-                position,
-                float(exit_price),
-                record,
-                exit_reason=str(exit_reason),
-            )
+            clean = normalize_symbol(symbol)
+            precomputed[clean] = {"order_id": str(position.get("order_id", "")), "current_stop": position.get("current_stop")}
+    plans = precompute_stop_exit_plans(args, paper_state, prices, precomputed)
+    closed, close_notify = apply_stop_exit_plans(args, paper_state, plans)
+    if closed and args.paper_state_file and not args.no_paper_state_update:
+        save_json(Path(args.paper_state_file), paper_state)
+    for record, position, exit_price, exit_reason in close_notify:
+        append_csv(Path(args.out_dir) / "closed_trades.csv", record)
+        append_jsonl(Path(args.out_dir) / "events.jsonl", {"event_type": "close", **record})
+        notify_close_fill(args, record["symbol"], position, exit_price, record, exit_reason=exit_reason)
     return closed
+
+
+def plan_fill_actions(
+    args: argparse.Namespace,
+    active_orders: list[dict[str, Any]],
+    orders: list[dict[str, Any]],
+    prices: dict[str, float],
+    paper_snapshot: dict[str, Any],
+    filled_ids: set[str],
+    cancelled_ids: set[str],
+    filled_setup_keys: set[str],
+    cancelled_setup_keys: set[str],
+) -> tuple[list[PlannedFill], list[PlannedCancel], list[PlannedSkip]]:
+    fills: list[PlannedFill] = []
+    cancels: list[PlannedCancel] = []
+    skips: list[PlannedSkip] = []
+
+    for order in sorted(active_orders, key=lambda item: float(item.get("priority", 9999) or 9999)):
+        order_id = str(order.get("order_id", ""))
+        if order_id in filled_ids or order_id in cancelled_ids:
+            continue
+        symbol = normalize_symbol(str(order.get("symbol", "")))
+        price = prices.get(symbol)
+        if price is None:
+            continue
+        skip, skip_reason = should_skip_for_position(order, paper_snapshot, int(args.max_ds01_entries))
+        if skip:
+            skips.append(PlannedSkip(order=order, skip_reason=str(skip_reason), last_price=float(price)))
+            continue
+
+        strategy = str(order.get("strategy_id", "")).upper()
+        ds03_meta: dict[str, Any] = {}
+        ds08_meta: dict[str, Any] = {}
+        working_order = order
+        if strategy == "DS08":
+            stale_ds08 = check_ds08_setup_key_stale(
+                order,
+                symbol,
+                Path(getattr(args, "data_dir", "data")),
+                getattr(args, "os_state_dir", "runtime/fengji_os_state"),
+            )
+            if stale_ds08 and stale_ds08.get("stale"):
+                cancels.append(
+                    PlannedCancel(
+                        order=order,
+                        cancel_reason=str(stale_ds08.get("reason", "ds08_setup_key_stale")),
+                        extra={k: v for k, v in stale_ds08.items() if k != "stale"},
+                    )
+                )
+                continue
+            if not triggered(order, price):
+                continue
+            ds08_ctx = try_fill_ds08_order(args, order, symbol, price)
+            if ds08_ctx is None:
+                continue
+            if ds08_ctx.get("stale"):
+                cancels.append(
+                    PlannedCancel(
+                        order=order,
+                        cancel_reason=str(ds08_ctx.get("reason", "ds08_activation_bar_missed")),
+                        extra={k: v for k, v in ds08_ctx.items() if k not in {"stale", "reason"}},
+                    )
+                )
+                continue
+            fill_price = float(ds08_ctx["fill_price"])
+            price_source = str(ds08_ctx.get("price_source", "ds08_entry_fill"))
+            ds08_meta = {
+                "activation_bar_idx": ds08_ctx.get("activation_bar_idx"),
+                "activation_bar_time": ds08_ctx.get("activation_bar_time"),
+                "entry_ref": ds08_ctx.get("entry_ref"),
+            }
+            if ds08_ctx.get("initial_stop") is not None:
+                working_order = {**order, "stop_price": ds08_ctx["initial_stop"]}
+        else:
+            fill_price = float(price)
+            price_source = "mock" if args.price_file else "binance"
+
+        consume_ds03 = False
+        if strategy == "DS03":
+            ds03_ctx = try_fill_ds03_order(args, order, symbol, price)
+            if ds03_ctx is None:
+                continue
+            if ds03_ctx.get("stale"):
+                cancels.append(
+                    PlannedCancel(
+                        order=order,
+                        cancel_reason=str(ds03_ctx.get("reason", "ds03_attack_bar_missed")),
+                        extra={
+                            "missed_attack_bar_idx": ds03_ctx.get("missed_attack_bar_idx"),
+                            "missed_attack_bar_time": ds03_ctx.get("missed_attack_bar_time"),
+                        },
+                    )
+                )
+                continue
+            fill_price = float(ds03_ctx["fill_price"])
+            price_source = str(ds03_ctx.get("price_source", "ds03_attack_bar"))
+            ds03_meta = {
+                "attack_bar_idx": ds03_ctx.get("attack_bar_idx"),
+                "attack_bar_time": ds03_ctx.get("attack_bar_time"),
+                "peak_key": ds03_ctx.get("peak_key"),
+                "trigger_source": ds03_ctx.get("trigger_source"),
+            }
+            if ds03_ctx.get("initial_stop") is not None:
+                working_order = {**order, "stop_price": ds03_ctx["initial_stop"]}
+            consume_ds03 = bool(order_setup_key(order))
+        elif strategy != "DS08" and not triggered(order, price):
+            continue
+
+        fills.append(
+            PlannedFill(
+                order=working_order,
+                fill_price=fill_price,
+                price_source=price_source,
+                ds03_meta=ds03_meta,
+                ds08_meta=ds08_meta,
+                consume_ds03_setup_key=consume_ds03,
+            )
+        )
+    return fills, cancels, skips
+
+
+def apply_fill_plans(
+    args: argparse.Namespace,
+    state: dict[str, Any],
+    paper_state: dict[str, Any],
+    orders: list[dict[str, Any]],
+    plans: list[PlannedFill],
+    cancel_plans: list[PlannedCancel],
+    *,
+    filled_ids: set[str],
+    cancelled_ids: set[str],
+    filled_setup_keys: set[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    filled_records: list[dict[str, Any]] = []
+    skipped_records: list[dict[str, Any]] = []
+    notify_queue: list[tuple[dict[str, Any], dict[str, Any], float, dict[str, Any]]] = []
+
+    for plan in cancel_plans:
+        order_id = str(plan.order.get("order_id", ""))
+        if order_id in filled_ids or order_id in cancelled_ids:
+            continue
+        cancel = cancel_stale_order(state, plan.order, cancel_reason=plan.cancel_reason, extra=plan.extra or None)
+        cancelled_ids.add(order_id)
+        skipped_records.append(cancel)
+
+    for plan in plans:
+        order = plan.order
+        order_id = str(order.get("order_id", ""))
+        if order_id in filled_ids or order_id in cancelled_ids:
+            continue
+        symbol = normalize_symbol(str(order.get("symbol", "")))
+        skip, skip_reason = should_skip_for_position(order, paper_state, int(args.max_ds01_entries))
+        if skip:
+            skipped_records.append(
+                {
+                    "time": now_text(),
+                    "event_type": "skip",
+                    "skip_reason": skip_reason,
+                    "last_price": plan.fill_price,
+                    **order,
+                }
+            )
+            continue
+
+        if plan.consume_ds03_setup_key:
+            setup_key = order_setup_key(order)
+            if setup_key:
+                consumed = set(state.setdefault("consumed_ds03_setup_keys", []))
+                consumed.add(setup_key)
+                state["consumed_ds03_setup_keys"] = sorted(consumed)
+
+        record = {
+            "time": now_text(),
+            "event_type": "fill",
+            "fill_price": plan.fill_price,
+            "price_source": plan.price_source,
+            **plan.ds03_meta,
+            **plan.ds08_meta,
+            **order,
+        }
+        filled_ids.add(order_id)
+        setup_key = order_setup_key(order)
+        if setup_key:
+            filled_setup_keys.add(setup_key)
+        state.setdefault("filled_order_ids", [])
+        state.setdefault("filled_setup_keys", [])
+        state.setdefault("fills", [])
+        state["filled_order_ids"] = sorted(filled_ids)
+        state["filled_setup_keys"] = sorted(filled_setup_keys)
+        state["fills"].append(record)
+        state["fills"] = state["fills"][-1000:]
+        filled_records.append(record)
+        if args.paper_state_file and not args.no_paper_state_update:
+            update_paper_state_on_fill(args, paper_state, record)
+        for cancel in cancel_conflicting_orders(state, order, orders):
+            cancelled_ids.add(str(cancel.get("order_id", "")))
+            skipped_records.append(cancel)
+        notify_queue.append((order, record, plan.fill_price, copy.deepcopy(paper_state)))
+
+    cancelled_ids.update(set(state.get("cancelled_order_ids", [])))
+    return filled_records, skipped_records, notify_queue
 
 
 def cancel_conflicting_orders(state: dict[str, Any], filled: dict[str, Any], orders: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -840,10 +1114,30 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
 
     paper_updates = bool(args.paper_state_file) and not args.no_paper_state_update
     precomputed_stops: dict[str, dict[str, Any]] = {}
+    stop_exit_plans: list[PlannedStopExit] = []
     if paper_updates:
-        snapshot = load_json(Path(args.paper_state_file), {})
-        precomputed_stops = precompute_open_position_stops(args, snapshot)
-    # 持锁临界区：与模拟盘进程互斥，持锁内重载最新 paper_state 再改写，杜绝丢失更新。
+        planning_snapshot = load_json(Path(args.paper_state_file), {})
+        precomputed_stops = precompute_open_position_stops(args, planning_snapshot)
+        stop_exit_plans = precompute_stop_exit_plans(args, planning_snapshot, prices, precomputed_stops)
+
+    planned_fills, planned_cancels, planned_skips = plan_fill_actions(
+        args,
+        active_orders,
+        orders,
+        prices,
+        discovery_snapshot,
+        filled_ids,
+        cancelled_ids,
+        filled_setup_keys,
+        cancelled_setup_keys,
+    )
+
+    closed_records: list[dict[str, Any]] = []
+    filled_records: list[dict[str, Any]] = []
+    skipped_records: list[dict[str, Any]] = []
+    close_notify_queue: list[tuple[dict[str, Any], dict[str, Any], float, str]] = []
+    fill_notify_queue: list[tuple[dict[str, Any], dict[str, Any], float, dict[str, Any]]] = []
+
     if paper_updates:
         lock_cm = file_lock(Path(args.paper_state_file))
     else:
@@ -852,21 +1146,42 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
         paper_state = load_json(Path(args.paper_state_file), {}) if paper_updates else discovery_snapshot
         if precomputed_stops:
             apply_precomputed_stops(paper_state, precomputed_stops)
-        closed_records = process_open_position_stops(args, paper_state, prices, skip_refresh=True)
-        if closed_records and paper_updates:
-            save_json(Path(args.paper_state_file), paper_state)
-        filled_records, skipped_records = _run_fill_loop(
+        closed_records, close_notify_queue = apply_stop_exit_plans(args, paper_state, stop_exit_plans)
+        filled_records, skipped_in_lock, fill_notify_queue = apply_fill_plans(
             args,
             state,
             paper_state,
-            active_orders,
             orders,
-            prices,
-            filled_ids,
-            cancelled_ids,
-            filled_setup_keys,
-            paper_updates,
+            planned_fills,
+            planned_cancels,
+            filled_ids=filled_ids,
+            cancelled_ids=cancelled_ids,
+            filled_setup_keys=filled_setup_keys,
         )
+        skipped_records.extend(skipped_in_lock)
+        if paper_updates and (closed_records or filled_records):
+            save_json(Path(args.paper_state_file), paper_state)
+
+    for skip in planned_skips:
+        skipped_records.append(
+            {
+                "time": now_text(),
+                "event_type": "skip",
+                "skip_reason": skip.skip_reason,
+                "last_price": skip.last_price,
+                **skip.order,
+            }
+        )
+
+    for record, position, exit_price, exit_reason in close_notify_queue:
+        append_csv(Path(args.out_dir) / "closed_trades.csv", record)
+        append_jsonl(Path(args.out_dir) / "events.jsonl", {"event_type": "close", **record})
+        notify_close_fill(args, record["symbol"], position, exit_price, record, exit_reason=exit_reason)
+
+    for order, record, fill_price, paper_snapshot in fill_notify_queue:
+        append_csv(Path(args.out_dir) / "fills.csv", record)
+        append_jsonl(Path(args.out_dir) / "events.jsonl", record)
+        notify_fill_and_expected_close(args, order, fill_price, record, paper_snapshot)
 
     for record in skipped_records:
         append_jsonl(Path(args.out_dir) / "events.jsonl", record)
@@ -945,162 +1260,6 @@ def try_fill_ds03_order(
         os_state_dir,
         live_price=live_price,
     )
-
-
-def _run_fill_loop(
-    args: argparse.Namespace,
-    state: dict[str, Any],
-    paper_state: dict[str, Any],
-    active_orders: list[dict[str, Any]],
-    orders: list[dict[str, Any]],
-    prices: dict[str, float],
-    filled_ids: set[str],
-    cancelled_ids: set[str],
-    filled_setup_keys: set[str],
-    paper_updates: bool,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    filled_records: list[dict[str, Any]] = []
-    skipped_records: list[dict[str, Any]] = []
-
-    for order in sorted(active_orders, key=lambda item: float(item.get("priority", 9999) or 9999)):
-        order_id = str(order.get("order_id", ""))
-        if order_id in filled_ids or order_id in cancelled_ids:
-            continue
-        symbol = normalize_symbol(str(order.get("symbol", "")))
-        price = prices.get(symbol)
-        if price is None:
-            continue
-        skip, skip_reason = should_skip_for_position(order, paper_state, int(args.max_ds01_entries))
-        if skip:
-            skipped_records.append({"time": now_text(), "event_type": "skip", "skip_reason": skip_reason, "last_price": price, **order})
-            continue
-
-        strategy = str(order.get("strategy_id", "")).upper()
-        ds03_meta: dict[str, Any] = {}
-        ds08_meta: dict[str, Any] = {}
-        if strategy == "DS08":
-            stale_ds08 = check_ds08_setup_key_stale(
-                order,
-                symbol,
-                Path(getattr(args, "data_dir", "data")),
-                getattr(args, "os_state_dir", "runtime/fengji_os_state"),
-            )
-            if stale_ds08 and stale_ds08.get("stale"):
-                cancel = cancel_stale_order(
-                    state,
-                    order,
-                    cancel_reason=str(stale_ds08.get("reason", "ds08_setup_key_stale")),
-                    extra={k: v for k, v in stale_ds08.items() if k != "stale"},
-                )
-                cancelled_ids.add(str(order.get("order_id", "")))
-                skipped_records.append(cancel)
-                append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
-                continue
-            if not triggered(order, price):
-                continue
-            ds08_ctx = try_fill_ds08_order(args, order, symbol, price)
-            if ds08_ctx is None:
-                continue
-            if ds08_ctx.get("stale"):
-                cancel = cancel_stale_order(
-                    state,
-                    order,
-                    cancel_reason=str(ds08_ctx.get("reason", "ds08_activation_bar_missed")),
-                    extra={
-                        k: v
-                        for k, v in ds08_ctx.items()
-                        if k not in {"stale", "reason"}
-                    },
-                )
-                cancelled_ids.add(str(order.get("order_id", "")))
-                skipped_records.append(cancel)
-                append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
-                continue
-            fill_price = float(ds08_ctx["fill_price"])
-            price_source = str(ds08_ctx.get("price_source", "ds08_entry_fill"))
-            ds08_meta = {
-                "activation_bar_idx": ds08_ctx.get("activation_bar_idx"),
-                "activation_bar_time": ds08_ctx.get("activation_bar_time"),
-                "entry_ref": ds08_ctx.get("entry_ref"),
-            }
-            if ds08_ctx.get("initial_stop") is not None:
-                order = {**order, "stop_price": ds08_ctx["initial_stop"]}
-        else:
-            fill_price = float(price)
-            price_source = "mock" if args.price_file else "binance"
-
-        if strategy == "DS03":
-            ds03_ctx = try_fill_ds03_order(args, order, symbol, price)
-            if ds03_ctx is None:
-                continue
-            if ds03_ctx.get("stale"):
-                cancel = cancel_stale_order(
-                    state,
-                    order,
-                    cancel_reason=str(ds03_ctx.get("reason", "ds03_attack_bar_missed")),
-                    extra={
-                        "missed_attack_bar_idx": ds03_ctx.get("missed_attack_bar_idx"),
-                        "missed_attack_bar_time": ds03_ctx.get("missed_attack_bar_time"),
-                    },
-                )
-                cancelled_ids.add(str(order.get("order_id", "")))
-                skipped_records.append(cancel)
-                append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
-                continue
-            fill_price = float(ds03_ctx["fill_price"])
-            price_source = str(ds03_ctx.get("price_source", "ds03_attack_bar"))
-            ds03_meta = {
-                "attack_bar_idx": ds03_ctx.get("attack_bar_idx"),
-                "attack_bar_time": ds03_ctx.get("attack_bar_time"),
-                "peak_key": ds03_ctx.get("peak_key"),
-                "trigger_source": ds03_ctx.get("trigger_source"),
-            }
-            if ds03_ctx.get("initial_stop") is not None:
-                order = {**order, "stop_price": ds03_ctx["initial_stop"]}
-        elif strategy != "DS08" and not triggered(order, price):
-            continue
-
-        setup_key = order_setup_key(order)
-        if str(order.get("strategy_id", "")).upper() == "DS03" and setup_key:
-            consumed = set(state.setdefault("consumed_ds03_setup_keys", []))
-            if setup_key not in consumed:
-                consumed.add(setup_key)
-                state["consumed_ds03_setup_keys"] = sorted(consumed)
-
-        record = {
-            "time": now_text(),
-            "event_type": "fill",
-            "fill_price": fill_price,
-            "price_source": price_source,
-            **ds03_meta,
-            **ds08_meta,
-            **order,
-        }
-        state.setdefault("filled_order_ids", [])
-        state.setdefault("filled_setup_keys", [])
-        state.setdefault("fills", [])
-        filled_ids.add(order_id)
-        setup_key = order_setup_key(order)
-        if setup_key:
-            filled_setup_keys.add(setup_key)
-        state["filled_order_ids"] = sorted(filled_ids)
-        state["filled_setup_keys"] = sorted(filled_setup_keys)
-        state["fills"].append(record)
-        state["fills"] = state["fills"][-1000:]
-        filled_records.append(record)
-        if args.paper_state_file and not args.no_paper_state_update:
-            update_paper_state_on_fill(args, paper_state, record)
-            save_json(Path(args.paper_state_file), paper_state)
-        append_csv(Path(args.out_dir) / "fills.csv", record)
-        append_jsonl(Path(args.out_dir) / "events.jsonl", record)
-        notify_fill_and_expected_close(args, order, fill_price, record, paper_state)
-
-        for cancel in cancel_conflicting_orders(state, order, orders):
-            cancelled_ids.add(str(cancel.get("order_id", "")))
-            append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
-        cancelled_ids = set(state.get("cancelled_order_ids", []))
-
-    return filled_records, skipped_records
 
 
 def parse_args() -> argparse.Namespace:

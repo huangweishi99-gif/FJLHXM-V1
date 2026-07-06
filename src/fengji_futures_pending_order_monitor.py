@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import math
 import os
 import time
 from contextlib import nullcontext
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -66,6 +68,29 @@ FUTURES_MULTIPLIERS = {
     "SC": 1000,
 }
 DEFAULT_SYMBOL_EQUITY = 100000.0
+
+
+@dataclass(frozen=True)
+class PlannedStopExit:
+    symbol: str
+    position_key: str
+    bar: dict[str, Any]
+    position_snapshot: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class PlannedFill:
+    order: dict[str, Any]
+    bar: dict[str, Any]
+    fill_price: float
+    risk_rule: str
+
+
+@dataclass(frozen=True)
+class PlannedSkip:
+    order: dict[str, Any]
+    bar: dict[str, Any]
+    skip_reason: str
 
 
 def normalize_symbol(symbol: str) -> str:
@@ -402,51 +427,226 @@ def close_position_on_stop(
         "gross_pnl": round(float(pnl["gross_pnl"]), 2),
         "costs": round(float(pnl["costs"]), 2),
     }
-    append_csv(Path(args.trade_csv), record)
-    append_csv(Path(args.out_dir) / "closed_trades.csv", record)
-    append_jsonl(Path(args.out_dir) / "events.jsonl", {"event_type": "close", **record})
     return record
 
 
-def process_open_position_stops(args: argparse.Namespace, paper_state: dict[str, Any], bars: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
-    closed: list[dict[str, Any]] = []
-    if not args.paper_state_file or args.no_paper_state_update:
-        return closed
-    for symbol, symbol_state in (paper_state.get("symbols") or {}).items():
+def precompute_stop_exit_plans(
+    paper_snapshot: dict[str, Any],
+    bars: dict[str, dict[str, Any]],
+) -> list[PlannedStopExit]:
+    plans: list[PlannedStopExit] = []
+    for symbol, symbol_state in (paper_snapshot.get("symbols") or {}).items():
         if not isinstance(symbol_state, dict):
             continue
-        bar = bars.get(normalize_symbol(symbol))
+        clean = normalize_symbol(symbol)
+        bar = bars.get(clean)
         if bar is None:
             continue
-        still_open: list[dict[str, Any]] = []
         for position in active_positions(symbol_state.get("open_positions", [])):
-            if stop_crossed(position, bar):
-                record = close_position_on_stop(args, paper_state, normalize_symbol(symbol), symbol_state, position, bar)
+            if not stop_crossed(position, bar):
+                continue
+            position_key = str(position.get("key", "") or position.get("order_id", ""))
+            if not position_key:
+                continue
+            plans.append(
+                PlannedStopExit(
+                    symbol=clean,
+                    position_key=position_key,
+                    bar=bar,
+                    position_snapshot=copy.deepcopy(position),
+                )
+            )
+    return plans
+
+
+def apply_stop_exit_plans(
+    args: argparse.Namespace,
+    paper_state: dict[str, Any],
+    plans: list[PlannedStopExit],
+) -> tuple[list[dict[str, Any]], list[tuple[dict[str, Any], dict[str, Any], dict[str, Any]]]]:
+    closed: list[dict[str, Any]] = []
+    notify_queue: list[tuple[dict[str, Any], dict[str, Any], dict[str, Any]]] = []
+    for plan in plans:
+        symbol_state = (paper_state.get("symbols") or {}).get(plan.symbol)
+        if not isinstance(symbol_state, dict):
+            continue
+        still_open: list[dict[str, Any]] = []
+        matched = False
+        for position in active_positions(symbol_state.get("open_positions", [])):
+            position_key = str(position.get("key", "") or position.get("order_id", ""))
+            if position_key == plan.position_key:
+                record = close_position_on_stop(
+                    args,
+                    paper_state,
+                    plan.symbol,
+                    symbol_state,
+                    position,
+                    plan.bar,
+                )
                 closed.append(record)
-                notify_key = close_notify_key(
-                    display_name(normalize_symbol(symbol)),
-                    str(position.get("order_id", position.get("key", ""))),
-                    str(position.get("entry_time", "")),
-                    str(position.get("strategy_id", "")),
-                )
-                if args.paper_state_file and not args.no_paper_state_update:
-                    save_json(Path(args.paper_state_file), paper_state)
-                send_feishu_once(
-                    notify_claims_dir(args),
-                    notify_key,
-                    args.feishu_webhook,
-                    format_stop_exit(
-                        normalize_symbol(symbol),
-                        position,
-                        float(record["exit_price"]),
-                        {"net_pnl": float(record["net_pnl"])},
-                        bar,
-                    ),
-                    send_msg,
-                )
+                notify_queue.append((record, plan.position_snapshot, plan.bar))
+                matched = True
             else:
                 still_open.append(position)
-        symbol_state["open_positions"] = still_open
+        if matched:
+            symbol_state["open_positions"] = still_open
+    return closed, notify_queue
+
+
+def plan_fill_actions(
+    args: argparse.Namespace,
+    active_orders: list[dict[str, Any]],
+    bars: dict[str, dict[str, Any]],
+    paper_snapshot: dict[str, Any],
+    filled_ids: set[str],
+    cancelled_ids: set[str],
+) -> tuple[list[PlannedFill], list[PlannedSkip]]:
+    fills: list[PlannedFill] = []
+    skips: list[PlannedSkip] = []
+    for order in sorted(active_orders, key=lambda item: float(item.get("priority", 9999) or 9999)):
+        order_id = str(order.get("order_id", ""))
+        if order_id in filled_ids or order_id in cancelled_ids:
+            continue
+        symbol = normalize_symbol(str(order.get("symbol", "")))
+        bar = bars.get(symbol)
+        if bar is None:
+            continue
+        symbol_state = ensure_symbol_state(paper_snapshot, symbol)
+        side = side_int(str(order.get("side", "")))
+        strategy_id = str(order.get("strategy_id", "")).upper()
+        allowed, risk_rule = can_open_position(
+            symbol_state.get("open_positions", []),
+            strategy_id,
+            side,
+            int(args.max_open_positions_per_symbol),
+            int(args.max_ds01_entries),
+        )
+        if not allowed:
+            skips.append(PlannedSkip(order=order, bar=bar, skip_reason=risk_rule))
+            continue
+        if not bar_crossed(order, bar):
+            continue
+        fill_price = float(order.get("trigger_price", bar.get("close", 0.0)) or bar.get("close", 0.0))
+        fills.append(PlannedFill(order=order, bar=bar, fill_price=fill_price, risk_rule=risk_rule))
+    return fills, skips
+
+
+def apply_fill_plans(
+    args: argparse.Namespace,
+    state: dict[str, Any],
+    paper_state: dict[str, Any],
+    orders: list[dict[str, Any]],
+    plans: list[PlannedFill],
+    *,
+    filled_ids: set[str],
+    cancelled_ids: set[str],
+    filled_setup_keys: set[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[tuple[dict[str, Any], dict[str, Any], dict[str, Any], str, dict[str, Any]]]]:
+    filled_records: list[dict[str, Any]] = []
+    skipped_records: list[dict[str, Any]] = []
+    notify_queue: list[tuple[dict[str, Any], dict[str, Any], dict[str, Any], str, dict[str, Any]]] = []
+
+    for plan in plans:
+        order = plan.order
+        order_id = str(order.get("order_id", ""))
+        if order_id in filled_ids or order_id in cancelled_ids:
+            continue
+        strategy_id = str(order.get("strategy_id", "")).upper()
+        setup_key = order_setup_key(order)
+        if strategy_id == "DS03" and setup_key:
+            consumed = set(state.setdefault("consumed_ds03_setup_keys", []))
+            if setup_key not in consumed:
+                consumed.add(setup_key)
+                state["consumed_ds03_setup_keys"] = sorted(consumed)
+
+        filled_ids.add(order_id)
+        if setup_key:
+            filled_setup_keys.add(setup_key)
+        state["filled_order_ids"] = sorted(filled_ids)
+        state["filled_setup_keys"] = sorted(filled_setup_keys)
+
+        record = {
+            "time": now_text(),
+            "event_type": "fill",
+            "fill_price": plan.fill_price,
+            "price_source": f"local_{plan.bar.get('timeframe', '')}_bar",
+            "bar_time": plan.bar.get("date", ""),
+            "bar_high": plan.bar.get("high"),
+            "bar_low": plan.bar.get("low"),
+            **order,
+        }
+        state.setdefault("fills", []).append(record)
+        state["fills"] = state["fills"][-1000:]
+        filled_records.append(record)
+
+        position = update_paper_state_on_fill(args, paper_state, order, plan.bar, plan.risk_rule)
+        notify_queue.append((order, position, plan.bar, plan.risk_rule, record))
+
+        for cancel in cancel_conflicting_orders(state, order, orders):
+            cancelled_ids.add(str(cancel.get("order_id", "")))
+            skipped_records.append(cancel)
+
+    cancelled_ids.update(set(state.get("cancelled_order_ids", [])))
+    return filled_records, skipped_records, notify_queue
+
+
+def emit_stop_exit_artifacts(
+    args: argparse.Namespace,
+    record: dict[str, Any],
+    position: dict[str, Any],
+    bar: dict[str, Any],
+) -> None:
+    append_csv(Path(args.trade_csv), record)
+    append_csv(Path(args.out_dir) / "closed_trades.csv", record)
+    append_jsonl(Path(args.out_dir) / "events.jsonl", {"event_type": "close", **record})
+    notify_key = close_notify_key(
+        display_name(str(record.get("symbol", ""))),
+        str(position.get("order_id", position.get("key", ""))),
+        str(position.get("entry_time", "")),
+        str(position.get("strategy_id", "")),
+    )
+    send_feishu_once(
+        notify_claims_dir(args),
+        notify_key,
+        args.feishu_webhook,
+        format_stop_exit(
+            normalize_symbol(str(record.get("symbol", ""))),
+            position,
+            float(record["exit_price"]),
+            {"net_pnl": float(record["net_pnl"])},
+            bar,
+        ),
+        send_msg,
+    )
+
+
+def emit_fill_artifacts(
+    args: argparse.Namespace,
+    order: dict[str, Any],
+    position: dict[str, Any],
+    bar: dict[str, Any],
+    fill_price: float,
+    risk_rule: str,
+) -> None:
+    append_open_trade(args, order, position, risk_rule)
+    send_feishu_once(
+        notify_claims_dir(args),
+        fill_notify_key(str(order.get("order_id", ""))),
+        args.feishu_webhook,
+        format_fill(order, fill_price, bar, risk_rule),
+        send_msg,
+    )
+
+
+def process_open_position_stops(
+    args: argparse.Namespace,
+    paper_state: dict[str, Any],
+    bars: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    plans = precompute_stop_exit_plans(paper_state, bars)
+    closed, notify_queue = apply_stop_exit_plans(args, paper_state, plans)
+    for record, position, bar in notify_queue:
+        emit_stop_exit_artifacts(args, record, position, bar)
     return closed
 
 
@@ -474,86 +674,54 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
             symbols.add(normalize_symbol(symbol))
 
     bars = load_bar_snapshot(args, symbols) if symbols else {}
+    stop_exit_plans: list[PlannedStopExit] = []
+    if paper_updates:
+        planning_snapshot = load_json(Path(args.paper_state_file), {})
+        stop_exit_plans = precompute_stop_exit_plans(planning_snapshot, bars)
+    planned_fills, planned_skips = plan_fill_actions(
+        args,
+        active_orders,
+        bars,
+        discovery_snapshot,
+        filled_ids,
+        cancelled_ids,
+    )
+
     filled_records: list[dict[str, Any]] = []
     skipped_records: list[dict[str, Any]] = []
     closed_records: list[dict[str, Any]] = []
+    close_notify_queue: list[tuple[dict[str, Any], dict[str, Any], dict[str, Any]]] = []
+    fill_notify_queue: list[tuple[dict[str, Any], dict[str, Any], dict[str, Any], str, dict[str, Any]]] = []
 
     lock_cm = file_lock(Path(args.paper_state_file)) if paper_updates else nullcontext()
     with lock_cm:
         paper_state = load_json(Path(args.paper_state_file), {}) if paper_updates else discovery_snapshot
-        closed_records = process_open_position_stops(args, paper_state, bars)
-        if closed_records and paper_updates:
+        closed_records, close_notify_queue = apply_stop_exit_plans(args, paper_state, stop_exit_plans)
+        filled_records, skipped_in_lock, fill_notify_queue = apply_fill_plans(
+            args,
+            state,
+            paper_state,
+            orders,
+            planned_fills,
+            filled_ids=filled_ids,
+            cancelled_ids=cancelled_ids,
+            filled_setup_keys=filled_setup_keys,
+        )
+        skipped_records.extend(skipped_in_lock)
+        if paper_updates and (closed_records or filled_records):
             save_json(Path(args.paper_state_file), paper_state)
 
-        for order in sorted(active_orders, key=lambda item: float(item.get("priority", 9999) or 9999)):
-            order_id = str(order.get("order_id", ""))
-            if order_id in filled_ids or order_id in cancelled_ids:
-                continue
-            symbol = normalize_symbol(str(order.get("symbol", "")))
-            bar = bars.get(symbol)
-            if bar is None:
-                continue
-            symbol_state = ensure_symbol_state(paper_state, symbol)
-            side = side_int(str(order.get("side", "")))
-            strategy_id = str(order.get("strategy_id", "")).upper()
-            allowed, risk_rule = can_open_position(
-                symbol_state.get("open_positions", []),
-                strategy_id,
-                side,
-                int(args.max_open_positions_per_symbol),
-                int(args.max_ds01_entries),
-            )
-            if not allowed:
-                skipped_records.append({"time": now_text(), "event_type": "skip", "skip_reason": risk_rule, "bar": bar, **order})
-                continue
-            if not bar_crossed(order, bar):
-                continue
+    for skip in planned_skips:
+        skipped_records.append(
+            {"time": now_text(), "event_type": "skip", "skip_reason": skip.skip_reason, "bar": skip.bar, **skip.order}
+        )
 
-            setup_key = order_setup_key(order)
-            if strategy_id == "DS03" and setup_key:
-                consumed = set(state.setdefault("consumed_ds03_setup_keys", []))
-                if setup_key not in consumed:
-                    consumed.add(setup_key)
-                    state["consumed_ds03_setup_keys"] = sorted(consumed)
+    for record, position, bar in close_notify_queue:
+        emit_stop_exit_artifacts(args, record, position, bar)
 
-            filled_ids.add(order_id)
-            if setup_key:
-                filled_setup_keys.add(setup_key)
-            state["filled_order_ids"] = sorted(filled_ids)
-            state["filled_setup_keys"] = sorted(filled_setup_keys)
-            fill_price = float(order.get("trigger_price", bar.get("close", 0.0)) or bar.get("close", 0.0))
-            record = {
-                "time": now_text(),
-                "event_type": "fill",
-                "fill_price": fill_price,
-                "price_source": f"local_{bar.get('timeframe', '')}_bar",
-                "bar_time": bar.get("date", ""),
-                "bar_high": bar.get("high"),
-                "bar_low": bar.get("low"),
-                **order,
-            }
-            state.setdefault("fills", []).append(record)
-            state["fills"] = state["fills"][-1000:]
-            filled_records.append(record)
-            if paper_updates:
-                position = update_paper_state_on_fill(args, paper_state, order, bar, risk_rule)
-                save_json(Path(args.paper_state_file), paper_state)
-                append_open_trade(args, order, position, risk_rule)
-            send_feishu_once(
-                notify_claims_dir(args),
-                fill_notify_key(order_id),
-                args.feishu_webhook,
-                format_fill(order, fill_price, bar, risk_rule),
-                send_msg,
-            )
-
-            for cancel in cancel_conflicting_orders(state, order, orders):
-                cancelled_ids.add(str(cancel.get("order_id", "")))
-                append_jsonl(Path(args.out_dir) / "events.jsonl", cancel)
-            cancelled_ids = set(state.get("cancelled_order_ids", []))
-
-        for record in filled_records:
-            append_jsonl(Path(args.out_dir) / "events.jsonl", record)
+    for order, position, bar, risk_rule, record in fill_notify_queue:
+        emit_fill_artifacts(args, order, position, bar, float(record.get("fill_price", 0.0)), risk_rule)
+        append_jsonl(Path(args.out_dir) / "events.jsonl", record)
 
     for record in skipped_records:
         append_jsonl(Path(args.out_dir) / "events.jsonl", record)
