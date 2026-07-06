@@ -35,7 +35,8 @@
 - [x] **stash Web manifest / Phase 2 数据桶**：`fengji_phase2_data_manifest.txt` · `import-futures-local` · 5m sync · manifest **6+4 passed** · OpenAPI **38 paths**。
 - [x] **stash 文档/ARCHIVE 桶**：`fengji_archive_docs_manifest.txt` · `docs/archives/INDEX.md` · verify **1 passed**。
 - [x] **stash 运维桶（watchdog/探针）**：`deploy_domestic_ops_stash_bucket.ps1` · `fengji_ops_domestic_manifest.txt` · sync 国内 **7 文件** · scp 路径含空格修复。
-- [x] **sync_deploy 试跑 + 进程重启**：core/fengji_core sync OK · radar **PID 3108** · pending **PID 3316** · data_manager **3220** · **34/0**。
+- [x] **PR merged**：`feat/domestic-ops-pg-sc-sync` → `main`（ops sync · PG/SC 15m · process guards · 试跑 34/0）。
+- [ ] **PR pending**：`feat/os-engine-radar-core` · os_engine/radar/DS03/DS07 · **43 passed** · 待 review/merge。
 ## 2026-07-02 · 方案 B Phase 1 完成 ✅
 
 ## 2026-07-02 · 方案 B Phase 0 完成

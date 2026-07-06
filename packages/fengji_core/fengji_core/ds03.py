@@ -91,7 +91,7 @@ def resolve_ds03_attack(df: pd.DataFrame, i: int) -> DS03Attack | None:
     prev_active_high = _num(prev, "active_high")
     prev_active_low = _num(prev, "active_low")
 
-    if prev_camp == 1 and not np.isnan(prev_active_high):
+    if prev_camp == 1 and not np.isnan(prev_active_high) and not np.isnan(prev_active_low):
         if float(row["high"]) > prev_active_high and _first_pierce_long(df, i, prev_active_high):
             return DS03Attack(
                 side=1,
@@ -101,7 +101,7 @@ def resolve_ds03_attack(df: pd.DataFrame, i: int) -> DS03Attack | None:
                 trigger_source="true_peak",
             )
 
-    if prev_camp == -1 and not np.isnan(prev_active_low):
+    if prev_camp == -1 and not np.isnan(prev_active_low) and not np.isnan(prev_active_high):
         if float(row["low"]) < prev_active_low and _first_pierce_short(df, i, prev_active_low):
             return DS03Attack(
                 side=-1,

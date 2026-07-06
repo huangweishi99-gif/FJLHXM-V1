@@ -44,6 +44,28 @@ def test_ds03_true_peak_first_starter_bar() -> None:
     assert signal.ref_idx == 1
 
 
+def test_ds03_true_peak_requires_red_defense_extreme() -> None:
+    df = base_frame()
+    df.loc[6, "active_low"] = float("nan")
+    df.loc[7, "high"] = 10.2
+
+    assert resolve_ds03_attack(df, 7) is None
+    assert make_ds03_signal(df, 7) is None
+
+
+def test_ds03_true_peak_requires_blue_defense_extreme() -> None:
+    df = base_frame()
+    for idx in [6, 7]:
+        df.loc[idx, "camp"] = -1
+    df.loc[6, "active_low"] = 8.0
+    df.loc[6, "active_high"] = float("nan")
+    df.loc[6, "blue_peak_idx"] = 1
+    df.loc[7, "low"] = 7.8
+
+    assert resolve_ds03_attack(df, 7) is None
+    assert make_ds03_signal(df, 7) is None
+
+
 def test_ds03_true_peak_blocks_second_starter_bar() -> None:
     df = base_frame()
     df.loc[6, "high"] = 10.2

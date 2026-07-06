@@ -15,20 +15,32 @@ def base_rows() -> list[dict]:
     ]
 
 
-def test_ds05_radar_pending_before_k3_breaks_k2_high() -> None:
+def test_ds05_radar_waits_until_k3_breaks_k2_high() -> None:
     df = pd.DataFrame(base_rows())
     df["date"] = pd.to_datetime(df["date"])
     rows = []
 
     add_ds05(rows, "RENDERUSDT", df, current=10.8, extreme_atr_tol=0.8)
 
-    assert len(rows) == 1
-    assert rows[0].strategy_id == "DS05"
-    assert rows[0].side == "long"
-    assert rows[0].status == "PENDING"
-    assert rows[0].trigger_price == 11.1
-    assert rows[0].stop_price == 9.6
-    assert rows[0].setup_key == "RENDERUSDT|DS05|LONG|k2=20260525000000|k3=20260526000000|trigger=11.1"
+    assert rows == []
+
+
+def test_ds05_radar_waits_until_k3_breaks_k2_low_for_short() -> None:
+    df = pd.DataFrame(
+        [
+            {"date": "2026-05-22", "open": 10.0, "high": 10.4, "low": 9.4, "close": 9.8, "volume": 1, "atr": 1.0, "camp": -1, "active_low": 8.5, "active_high": 13.0},
+            {"date": "2026-05-23", "open": 9.8, "high": 10.5, "low": 9.5, "close": 9.9, "volume": 1, "atr": 1.0, "camp": -1, "active_low": 8.5, "active_high": 13.0},
+            {"date": "2026-05-24", "open": 9.9, "high": 10.6, "low": 9.6, "close": 9.7, "volume": 1, "atr": 1.0, "camp": -1, "active_low": 8.5, "active_high": 13.0},
+            {"date": "2026-05-25", "open": 9.8, "high": 11.1, "low": 9.6, "close": 10.4, "volume": 1, "atr": 1.0, "camp": -1, "active_low": 8.5, "active_high": 13.0},
+            {"date": "2026-05-26", "open": 10.3, "high": 11.0, "low": 9.7, "close": 9.9, "volume": 1, "atr": 1.0, "camp": -1, "active_low": 8.5, "active_high": 13.0},
+        ]
+    )
+    df["date"] = pd.to_datetime(df["date"])
+    rows = []
+
+    add_ds05(rows, "SIUSDT", df, current=9.9, extreme_atr_tol=0.8)
+
+    assert rows == []
 
 
 def test_ds05_radar_triggered_after_k3_breaks_k2_high() -> None:

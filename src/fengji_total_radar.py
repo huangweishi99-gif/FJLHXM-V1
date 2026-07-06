@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -16,13 +17,14 @@ if str(ROOT / "src") not in sys.path:
 if str(ROOT / "packages" / "fengji_core") not in sys.path:
     sys.path.insert(0, str(ROOT / "packages" / "fengji_core"))
 
-from quant.ds01 import ds01_left_filter_pass
+from quant.ds01 import ds01_left_filter_pass, ds01_os_defense_missing
 from quant.ds03 import resolve_ds03_attack
 from quant.ds04 import make_ds04_signal
-from quant.ds05 import has_price_gap_with_prev
-from quant.ds07 import attach_os_detail, map_d1_to_h1_future
+from quant.ds05 import make_ds05_signal
+from quant.ds07 import attach_os_detail, make_ds07_signal, map_d1_to_h1_future
 from quant.ds09 import assign_session_date, build_prev_day_boundary_map, make_ds09_signal
 from quant.os_engine import FengJiOSIdentityEngine
+from fengji_core.data import parse_tq_datetime_series, valid_futures_price_mask
 from fengji_core.os_state_store import (
     build_os_detail_frame_stateful as _build_os_detail_frame_stateful,
     find_data_file,
@@ -48,7 +50,19 @@ DEFAULT_SYMBOLS = [
     "LINKUSDT",
     "BNBUSDT",
     "ZECUSDT",
+    "XRPUSDT",
+    "HYPEUSDT",
+    "ATHUSDT",
+    "PEPEUSDT",
+    "ARBUSDT",
+    "OPUSDT",
+    "SUIUSDT",
+    "NEARUSDT",
+    "INJUSDT",
+    "WLDUSDT",
 ]
+
+VALID_MARKETS = {"crypto", "futures"}
 
 
 @dataclass
@@ -75,6 +89,65 @@ def normalize_symbol(symbol: str) -> str:
     return text if text.endswith("USDT") else f"{text}USDT"
 
 
+def split_symbols(text: str) -> list[str]:
+    return [item.strip().upper() for item in str(text or "").split(",") if item.strip()]
+
+
+def discover_futures_symbols(data_dir: Path) -> list[str]:
+    """Discover domestic futures symbols from data/1d without duplicating USDT aliases."""
+    one_day = data_dir / "1d"
+    if not one_day.exists():
+        return []
+    symbols: set[str] = set()
+    for path in one_day.glob("*.csv"):
+        stem = path.stem.strip().upper().replace("-", "").replace("_", "")
+        if not stem:
+            continue
+        symbols.add(stem.removesuffix("USDT"))
+    return sorted(symbols)
+
+
+def resolve_symbols(args: argparse.Namespace, market: str, data_dir: Path) -> list[str]:
+    explicit = split_symbols(str(getattr(args, "symbols", "") or ""))
+    if explicit:
+        return [normalize_symbol(item) for item in explicit]
+    if market == "futures":
+        return [normalize_symbol(item) for item in discover_futures_symbols(data_dir)]
+    return [normalize_symbol(item) for item in DEFAULT_SYMBOLS]
+
+
+def resolve_market(args: argparse.Namespace, environ: dict[str, str] | None = None) -> str:
+    explicit = str(getattr(args, "market", "") or "").strip().lower()
+    if explicit in VALID_MARKETS:
+        return explicit
+
+    env = environ if environ is not None else os.environ
+    from_env = str(env.get("FENGJI_MARKET", "") or "").strip().lower()
+    if from_env in VALID_MARKETS:
+        return from_env
+
+    symbols = split_symbols(str(getattr(args, "symbols", "") or ""))
+    if symbols:
+        return "crypto" if all(symbol.endswith("USDT") for symbol in symbols) else "futures"
+
+    data_hint = str(getattr(args, "data_dir", "") or "").lower()
+    if "futures" in data_hint:
+        return "futures"
+    if "crypto" in data_hint:
+        return "crypto"
+
+    return "crypto"
+
+
+def futures_session_placeholder_mask(frame: pd.DataFrame) -> pd.Series:
+    """Drop closed-session placeholders, but keep valid zero-volume bars with price movement."""
+    zero_volume = frame["volume"].fillna(0) <= 0
+    ohlc_range = frame[["open", "high", "low", "close"]].max(axis=1) - frame[
+        ["open", "high", "low", "close"]
+    ].min(axis=1)
+    return zero_volume & (ohlc_range.abs() <= 1e-12)
+
+
 def load_ohlcv(path: Path, atr_window: int = 14, tail_rows: int = 0) -> pd.DataFrame:
     frame = pd.read_csv(path)
     frame.columns = [str(column).strip().lower() for column in frame.columns]
@@ -90,12 +163,24 @@ def load_ohlcv(path: Path, atr_window: int = 14, tail_rows: int = 0) -> pd.DataF
     if missing:
         raise ValueError(f"{path} missing columns: {missing}")
     frame = frame[required].copy()
-    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    frame["date"] = parse_tq_datetime_series(frame["date"])
     max_reasonable_time = pd.Timestamp.now() + pd.Timedelta(days=1)
     frame = frame[frame["date"] <= max_reasonable_time]
     for column in ["open", "high", "low", "close", "volume"]:
         frame[column] = pd.to_numeric(frame[column], errors="coerce")
     frame = frame.dropna(subset=["date", "open", "high", "low", "close"])
+    if is_futures_market():
+        frame = frame[
+            (frame["date"] >= pd.Timestamp("2020-01-01"))
+            & valid_futures_price_mask(frame)
+        ]
+        frame = frame[~futures_session_placeholder_mask(frame)]
+    else:
+        frame = frame[
+            (frame["date"] >= pd.Timestamp("2020-01-01"))
+            & (frame["high"] >= frame["low"])
+            & (frame["close"] > 0)
+        ]
     frame = frame.sort_values("date").drop_duplicates("date", keep="last")
     if tail_rows > 0 and len(frame) > tail_rows:
         frame = frame.tail(tail_rows).copy()
@@ -182,6 +267,10 @@ def status_from_price(side: str, high: float, low: float, trigger: float, base_s
     return base_status
 
 
+def os_defense_missing(camp: int, row: pd.Series) -> bool:
+    return ds01_os_defense_missing(camp, row)
+
+
 def make_row(
     rows: list[RadarRow],
     *,
@@ -245,7 +334,10 @@ def add_ds01(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, d1_engine: Any
     i = len(d1) - 1
     prev = d1.iloc[i - 1]
     cur = d1.iloc[i]
-    camp = int(cur.get("camp", 0))
+    # DS01 is authorized by the last completed D1 OS state; the current D1 bar
+    # is only used as the intraday price probe.  Using cur.active_* can let a
+    # defense point confirmed today authorize yesterday's signal retroactively.
+    camp = int(prev.get("camp", 0))
     visible = d1_engine.hardened_by_bar[max(0, i - 1)] if d1_engine.hardened_by_bar else []
 
     if camp == 1 and float(prev["close"]) > float(prev["open"]):
@@ -253,8 +345,12 @@ def add_ds01(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, d1_engine: Any
         left_price = float(cur["high"]) if float(cur["high"]) >= trigger else trigger
         left_ok, left_count = ds01_left_filter_pass(visible, i, left_price, False)
         status = status_from_price("long", float(cur["high"]), float(cur["low"]), trigger)
+        reason_parts = [f"left_count={left_count}", f"left_check_price={left_price:.8g}"]
         if not left_ok:
             status = "BLOCKED_LEFT_LINES"
+        if os_defense_missing(camp, prev):
+            status = "BLOCKED_OS_INCOMPLETE"
+            reason_parts.append("missing_red_ext")
         make_row(
             rows,
             symbol=symbol,
@@ -268,7 +364,7 @@ def add_ds01(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, d1_engine: Any
             stop_price=float(prev["low"]),
             os_camp=camp_name(camp),
             latest_time=cur["date"],
-            reason=f"left_count={left_count}, left_check_price={left_price:.8g}",
+            reason=", ".join(reason_parts),
             setup_key=f"{symbol}|DS01|LONG|signal={key_time(prev['date'])}|trigger={trigger:.10g}",
         )
 
@@ -277,8 +373,12 @@ def add_ds01(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, d1_engine: Any
         left_price = float(cur["low"]) if float(cur["low"]) <= trigger else trigger
         left_ok, left_count = ds01_left_filter_pass(visible, i, left_price, False)
         status = status_from_price("short", float(cur["high"]), float(cur["low"]), trigger)
+        reason_parts = [f"left_count={left_count}", f"left_check_price={left_price:.8g}"]
         if not left_ok:
             status = "BLOCKED_LEFT_LINES"
+        if os_defense_missing(camp, prev):
+            status = "BLOCKED_OS_INCOMPLETE"
+            reason_parts.append("missing_blue_ext")
         make_row(
             rows,
             symbol=symbol,
@@ -292,7 +392,7 @@ def add_ds01(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, d1_engine: Any
             stop_price=float(prev["high"]),
             os_camp=camp_name(camp),
             latest_time=cur["date"],
-            reason=f"left_count={left_count}, left_check_price={left_price:.8g}",
+            reason=", ".join(reason_parts),
             setup_key=f"{symbol}|DS01|SHORT|signal={key_time(prev['date'])}|trigger={trigger:.10g}",
         )
 
@@ -309,7 +409,7 @@ def add_ds03(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, current: float
         if prev_camp == 1:
             trigger = safe_float(prev.get("active_high"))
             attack_idx = safe_int(prev.get("red_peak_idx"))
-            if trigger is None:
+            if trigger is None or os_defense_missing(prev_camp, prev):
                 return
             side = "long"
             setup = "red camp break active high"
@@ -319,7 +419,7 @@ def add_ds03(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, current: float
         elif prev_camp == -1:
             trigger = safe_float(prev.get("active_low"))
             attack_idx = safe_int(prev.get("blue_peak_idx"))
-            if trigger is None:
+            if trigger is None or os_defense_missing(prev_camp, prev):
                 return
             side = "short"
             setup = "blue camp break active low"
@@ -327,6 +427,8 @@ def add_ds03(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, current: float
             camp = "blue"
             reason = f"prev_active_low={trigger:.8g}, attack_idx={attack_idx}"
         else:
+            return
+        if status_from_price(side, float(cur["high"]), float(cur["low"]), trigger) == "TRIGGERED":
             return
         setup_key = f"{symbol}|DS03|{side.upper()}|watch|trigger={trigger:.10g}"
     else:
@@ -532,66 +634,44 @@ def add_ds05(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, current: float
     if len(d1) < 5:
         return
     i = len(d1) - 1
-    k1_idx, k2_idx, k3_idx = i - 2, i - 1, i
-    k1 = d1.iloc[k1_idx]
-    k2 = d1.iloc[k2_idx]
-    k3 = d1.iloc[k3_idx]
-    camp_k2 = int(k2.get("camp", 0))
-    camp_k3 = int(k3.get("camp", 0))
-    if camp_k2 != camp_k3 or camp_k3 not in {1, -1}:
-        return
-    if has_price_gap_with_prev(d1, k2_idx):
+    signal = make_ds05_signal(d1, i, extreme_atr_tol)
+    if signal is None:
         return
 
-    if camp_k3 == 1:
-        trigger = float(k2["high"])
-        ok = (
-            float(k2["low"]) < float(k1["low"])
-            and float(k2["low"]) == float(d1["low"].iloc[k2_idx - 3 : k2_idx + 1].min())
-            and float(k3["low"]) >= float(k2["low"])
-        )
-        if ok:
-            make_row(
-                rows,
-                symbol=symbol,
-                strategy_id="DS05",
-                timeframe="D1",
-                side="long",
-                status=status_from_price("long", float(k3["high"]), float(k3["low"]), trigger),
-                setup="red-camp finger: K2 possible extreme, K3 breaks K2 attack side",
-                current_price=current,
-                trigger_price=trigger,
-                stop_price=float(k2["low"]),
-                os_camp="red",
-                latest_time=k3["date"],
-                reason=f"k1={k1_idx}, k2={k2_idx}, k3={k3_idx}, k2_possible_extreme={float(k2['low']):.8g}, attack_ref=k2_high",
-                setup_key=f"{symbol}|DS05|LONG|k2={key_time(k2['date'])}|k3={key_time(k3['date'])}|trigger={trigger:.10g}",
-            )
-
-    if camp_k3 == -1:
-        trigger = float(k2["low"])
-        ok = (
-            float(k2["high"]) > float(k1["high"])
-            and float(k2["high"]) == float(d1["high"].iloc[k2_idx - 3 : k2_idx + 1].max())
-            and float(k3["high"]) <= float(k2["high"])
-        )
-        if ok:
-            make_row(
-                rows,
-                symbol=symbol,
-                strategy_id="DS05",
-                timeframe="D1",
-                side="short",
-                status=status_from_price("short", float(k3["high"]), float(k3["low"]), trigger),
-                setup="blue-camp finger: K2 possible extreme, K3 breaks K2 attack side",
-                current_price=current,
-                trigger_price=trigger,
-                stop_price=float(k2["high"]),
-                os_camp="blue",
-                latest_time=k3["date"],
-                reason=f"k1={k1_idx}, k2={k2_idx}, k3={k3_idx}, k2_possible_extreme={float(k2['high']):.8g}, attack_ref=k2_low",
-                setup_key=f"{symbol}|DS05|SHORT|k2={key_time(k2['date'])}|k3={key_time(k3['date'])}|trigger={trigger:.10g}",
-            )
+    k2 = d1.iloc[signal.k2]
+    k3 = d1.iloc[signal.k3]
+    side = "long" if signal.side == 1 else "short"
+    direction = "LONG" if signal.side == 1 else "SHORT"
+    camp = "red" if signal.side == 1 else "blue"
+    trigger = float(signal.entry_price)
+    attack_ref = "k2_high" if signal.side == 1 else "k2_low"
+    setup = (
+        "red-camp finger: K2 possible extreme, K3 breaks K2 attack side"
+        if signal.side == 1
+        else "blue-camp finger: K2 possible extreme, K3 breaks K2 attack side"
+    )
+    make_row(
+        rows,
+        symbol=symbol,
+        strategy_id="DS05",
+        timeframe="D1",
+        side=side,
+        status=status_from_price(side, float(k3["high"]), float(k3["low"]), trigger),
+        setup=setup,
+        current_price=current,
+        trigger_price=trigger,
+        stop_price=float(signal.initial_stop),
+        os_camp=camp,
+        latest_time=k3["date"],
+        reason=(
+            f"k1={signal.k1}, k2={signal.k2}, k3={signal.k3}, "
+            f"k2_possible_extreme={signal.k2_possible_extreme:.8g}, attack_ref={attack_ref}"
+        ),
+        setup_key=(
+            f"{symbol}|DS05|{direction}|k2={key_time(k2['date'])}|"
+            f"k3={key_time(k3['date'])}|trigger={trigger:.10g}"
+        ),
+    )
 
 
 def add_ds04(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, current: float) -> None:
@@ -643,53 +723,52 @@ def add_ds07(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, h1: pd.DataFra
     mapped = map_d1_to_h1_future(d1, h1)
     if len(mapped) < 2:
         return
-    cur = mapped.iloc[-1]
-    prev = mapped.iloc[-2]
-    d1_camp = int(cur.get("d1_camp", 0))
-    prev_h1_camp = int(prev.get("camp", 0))
-    h1_camp = int(cur.get("camp", 0))
+    i = len(mapped) - 1
+    cur = mapped.iloc[i]
+    prev = mapped.iloc[i - 1]
+    signal = make_ds07_signal(cur, i, set(), symbol=symbol, prev_row=prev, df=mapped)
+    if signal is None:
+        return
 
-    candidates: list[tuple[str, str, float | None, float | None, int | None, int | None, str]] = []
-    if d1_camp == 1 and has_n(prev):
-        if prev_h1_camp == -1:
-            candidates.append(("long", "D1 red + H1 blue-to-red alignment", safe_float(prev.get("blue_ext_price")), safe_float(cur.get("red_ext_price")), safe_int(prev.get("blue_ext_idx")), safe_int(cur.get("red_ext_idx")), "ALIGN"))
-        if prev_h1_camp == 1:
-            candidates.append(("long", "D1 red + H1 red continuation", safe_float(prev.get("red_peak_price")), safe_float(prev.get("red_ext_price")), safe_int(prev.get("red_peak_idx")), safe_int(prev.get("red_ext_idx")), "CONT"))
-    if d1_camp == -1 and has_n(prev):
-        if prev_h1_camp == 1:
-            candidates.append(("short", "D1 blue + H1 red-to-blue alignment", safe_float(prev.get("red_ext_price")), safe_float(cur.get("blue_ext_price")), safe_int(prev.get("red_ext_idx")), safe_int(cur.get("blue_ext_idx")), "ALIGN"))
-        if prev_h1_camp == -1:
-            candidates.append(("short", "D1 blue + H1 blue continuation", safe_float(prev.get("blue_peak_price")), safe_float(prev.get("blue_ext_price")), safe_int(prev.get("blue_peak_idx")), safe_int(prev.get("blue_ext_idx")), "CONT"))
+    side = "long" if signal.side == 1 else "short"
+    direction = "LONG" if signal.side == 1 else "SHORT"
+    trigger = float(signal.attack_price)
+    stop = float(signal.defense_price)
+    if side == "long" and stop >= max(float(cur["open"]), trigger):
+        return
+    if side == "short" and stop <= min(float(cur["open"]), trigger):
+        return
 
-    for side, setup, trigger, stop, attack_idx, defense_idx, mode in candidates:
-        if trigger is None or stop is None or attack_idx is None or defense_idx is None:
-            continue
-        if side == "long" and float(stop) >= max(float(cur["open"]), float(trigger)):
-            continue
-        if side == "short" and float(stop) <= min(float(cur["open"]), float(trigger)):
-            continue
-        direction = "LONG" if side == "long" else "SHORT"
-        setup_key = f"{symbol}|DS07|{direction}|{mode}|attack={attack_idx}|defense={defense_idx}|trigger={trigger:.10g}"
-        if side == "long":
-            status = "TRIGGERED" if float(cur["high"]) > float(trigger) else "PENDING"
-        else:
-            status = "TRIGGERED" if float(cur["low"]) < float(trigger) else "PENDING"
-        make_row(
-            rows,
-            symbol=symbol,
-            strategy_id="DS07",
-            timeframe="H1",
-            side=side,
-            status=status,
-            setup=setup,
-            current_price=current,
-            trigger_price=trigger,
-            stop_price=stop,
-            os_camp=f"D1={camp_name(d1_camp)},H1={camp_name(h1_camp)}",
-            latest_time=cur["date"],
-            reason=f"prev_h1_camp={camp_name(prev_h1_camp)}, hardened_count={int(prev.get('hardened_count', 0) or 0)}, attack_idx={attack_idx}, defense_idx={defense_idx}",
-            setup_key=setup_key,
-        )
+    setup = (
+        "D1 red + H1 red DS03 continuation"
+        if signal.trigger_type == "LONG_CONTINUE"
+        else "D1 blue + H1 blue DS03 continuation"
+    )
+    setup_key = f"{symbol}|DS07|{direction}|CONT|attack={signal.attack_idx}|defense={signal.defense_idx}|trigger={trigger:.10g}"
+    if side == "long":
+        status = "TRIGGERED" if float(cur["high"]) > trigger else "PENDING"
+    else:
+        status = "TRIGGERED" if float(cur["low"]) < trigger else "PENDING"
+    make_row(
+        rows,
+        symbol=symbol,
+        strategy_id="DS07",
+        timeframe="H1",
+        side=side,
+        status=status,
+        setup=setup,
+        current_price=current,
+        trigger_price=trigger,
+        stop_price=stop,
+        os_camp=f"D1={camp_name(signal.d1_camp)},H1={camp_name(signal.h1_camp)}",
+        latest_time=cur["date"],
+        reason=(
+            f"prev_h1_camp={camp_name(signal.prev_h1_camp)}, ds03={signal.pattern}, "
+            f"hardened_count={int(prev.get('hardened_count', 0) or 0)}, "
+            f"attack_idx={signal.attack_idx}, defense_idx={signal.defense_idx}"
+        ),
+        setup_key=setup_key,
+    )
 
 
 def add_ds08(rows: list[RadarRow], symbol: str, h1: pd.DataFrame, h1_engine: Any, current: float) -> None:
@@ -846,7 +925,10 @@ def add_ds09(rows: list[RadarRow], symbol: str, d1: pd.DataFrame, m15: pd.DataFr
         if side == "short" and float(stop) <= min(float(cur["open"]), trigger):
             return
         session_date = pd.to_datetime(cur["session_date"]).normalize()
-        setup_key = f"{symbol}|DS09|{mode}|{session_date}|attack={day_state['attack_idx']}|{trigger:.10g}"
+        setup_key = (
+            f"{symbol}|DS09|{mode}|{session_date}|"
+            f"lock={day_state.get('lock_idx')}|def={day_state.get('defense_idx')}|{trigger:.10g}"
+        )
         status = status_from_price(side, float(cur["high"]), float(cur["low"]), trigger)
         make_row(
             rows,
@@ -894,8 +976,11 @@ def analyze_symbol(data_dir: Path, symbol: str, args: argparse.Namespace) -> lis
         return []
     current = latest_price(paths, args.atr_window)
     state_dir = str(args.os_state_dir or "").strip()
-    d1_tail = 0 if state_dir else args.daily_tail
-    h1_tail = 0 if state_dir else args.h1_tail
+    # Runtime state is bounded by the agreed monitoring windows; full-history
+    # intraday state grows too large and is not the live monitoring contract.
+    d1_tail = max(int(args.daily_tail or 0), 1095)
+    h1_tail = max(int(args.h1_tail or 0), 2400)
+    m15_tail = max(int(getattr(args, "m15_tail", 0) or 0), 960)
     d1_raw = load_ohlcv(paths["1d"], args.atr_window, d1_tail)
     d1_state = os_state_path(state_dir, clean, "1d") if state_dir else None
     d1, d1_engine = build_os_detail_frame_stateful(d1_raw, args.gap, d1_state, record_hardened_by_bar=True)
@@ -912,7 +997,6 @@ def analyze_symbol(data_dir: Path, symbol: str, args: argparse.Namespace) -> lis
         add_ds07(rows, clean, d1, h1, current)
         add_ds08(rows, clean, h1, h1_engine, current)
     if paths["15m"].exists():
-        m15_tail = 0 if state_dir else max(args.h1_tail, 2400)
         m15_raw = load_ohlcv(paths["15m"], args.atr_window, m15_tail)
         m15_state = os_state_path(state_dir, clean, "15m") if state_dir else None
         m15, _ = build_os_detail_frame_stateful(m15_raw, args.gap, m15_state, record_hardened_by_bar=False)
@@ -925,24 +1009,35 @@ def analyze_symbol(data_dir: Path, symbol: str, args: argparse.Namespace) -> lis
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="FengJi total pattern market radar and pending-trigger preview.")
     parser.add_argument("--data-dir", default="data")
-    parser.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS))
+    parser.add_argument("--symbols", default="", help="Comma separated symbols. Empty means crypto defaults or futures data/1d discovery.")
     parser.add_argument("--out-dir", default="runtime/fengji_radar")
     parser.add_argument("--atr-window", type=int, default=14)
     parser.add_argument("--gap", type=int, default=3)
     parser.add_argument("--top-n", type=int, default=80)
-    parser.add_argument("--daily-tail", type=int, default=520)
-    parser.add_argument("--h1-tail", type=int, default=3200)
+    parser.add_argument("--daily-tail", type=int, default=1095, help="日线固化窗口（默认 1095≈3 年）")
+    parser.add_argument("--h1-tail", type=int, default=2400, help="小时线固化窗口（默认 2400）")
+    parser.add_argument("--m15-tail", type=int, default=960, help="15 分钟固化窗口（默认 960）")
     parser.add_argument("--os-state-dir", default="runtime/fengji_os_state")
     parser.add_argument("--extreme-atr-tol", type=float, default=0.80)
+    parser.add_argument(
+        "--market",
+        choices=["auto", "crypto", "futures"],
+        default="auto",
+        help="Market mode for data loading and OS state paths.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    market = resolve_market(args)
+    os.environ["FENGJI_MARKET"] = market
     data_dir = Path(args.data_dir)
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    symbols = [normalize_symbol(item) for item in args.symbols.split(",") if item.strip()]
+    symbols = resolve_symbols(args, market, data_dir)
+    if not symbols:
+        raise SystemExit(f"No symbols resolved for market={market} data_dir={data_dir}")
     rows: list[RadarRow] = []
     for symbol in symbols:
         try:
