@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -21,10 +22,7 @@ def verify_quota_alignment() -> list[str]:
         errors.append("normalize_custom_plan standard mismatch")
     if CUSTOM_PLAN_LIMITS.get("standard") != 3 or CUSTOM_PLAN_LIMITS.get("pro") != 20:
         errors.append("CUSTOM_PLAN_LIMITS unexpected values")
-    with __import__("unittest.mock").patch(
-        "db.custom_instruments.count_custom_requests_this_month",
-        return_value=3,
-    ):
+    with patch("db.custom_instruments.count_custom_requests_this_month", return_value=3):
         quota = check_custom_request_quota(user_id="w18-verify-user", plan_id="standard")
     if quota.get("allowed") is not False or int(quota.get("used") or 0) != 3:
         errors.append(f"quota_exceeded check failed: {quota}")
@@ -44,8 +42,10 @@ def verify_runtime_cache_age() -> list[str]:
 
 
 def verify_api_runtime_shape() -> list[str]:
+    src = ROOT / "src"
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
     from services.api.main import _build_paper_watchlist_runtime_response  # noqa: E402
-    from unittest.mock import patch
 
     errors: list[str] = []
     cached = {

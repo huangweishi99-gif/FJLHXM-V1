@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-07-07（D3 · W18 merge & 国内验收）
+
+- **PR #15** merge `main@2e5a3e3`。
+- 国内：`verify_w18_watchlist_api.py --with-pg` **OK** · `pending_runtime_users=4` · dry-run **4 items**。
+- 修补：`verify_w18` unittest.mock + src path · runtime job PG 不可用清晰退出。
+
 ## 2026-07-07（D3 · W18 watchlist MVP）
 
 - `paper_watchlist.list_distinct_watchlist_user_ids`：批量 runtime 缓存按用户枚举。
