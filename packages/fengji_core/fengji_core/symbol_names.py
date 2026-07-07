@@ -140,6 +140,14 @@ def futures_display(symbol: str) -> str:
     return f"{cn}({code})" if cn else code
 
 
+def domestic_display(symbol: str) -> str:
+    """国内期货/A股通知展示：A股 6 位代码走 a_stock_display，否则 futures_display。"""
+    code = _clean(symbol).removesuffix("USDT")
+    if code.isdigit() and len(code) <= 6:
+        return a_stock_display(symbol)
+    return futures_display(symbol)
+
+
 def crypto_display(symbol: str) -> str:
     """加密交易对 -> 「中文(BTCUSDT)」；缺映射时退回交易对本身。"""
     text = _clean(symbol)

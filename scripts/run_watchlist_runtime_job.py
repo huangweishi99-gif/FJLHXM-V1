@@ -90,7 +90,16 @@ def main() -> int:
         return 2
 
     include_signal_preview = not args.no_signal_preview
-    user_ids = [user_id] if user_id else list_distinct_watchlist_user_ids(status=args.status, limit_users=args.limit_users)
+    try:
+        user_ids = [user_id] if user_id else list_distinct_watchlist_user_ids(status=args.status, limit_users=args.limit_users)
+    except Exception as exc:  # noqa: BLE001
+        print(
+            "WATCHLIST_RUNTIME_JOB_FAIL",
+            "reason=database_unavailable",
+            f"error={type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
+        return 1
     if not user_ids:
         print(
             "WATCHLIST_RUNTIME_JOB_OK",

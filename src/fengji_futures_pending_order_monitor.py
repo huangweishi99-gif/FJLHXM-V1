@@ -14,6 +14,7 @@ from typing import Any
 import pandas as pd
 
 from fengji_core.os_state_store import find_data_file, market_symbol, normalize_symbol as os_normalize_symbol
+from fengji_core.symbol_names import domestic_display
 from fengji_core.state_lock import file_lock
 from fengji_feishu_notify import close_notify_key, fill_notify_key, send_feishu_once
 from fengji_pending_order_monitor import (
@@ -98,7 +99,13 @@ def normalize_symbol(symbol: str) -> str:
 
 
 def display_name(symbol: str) -> str:
+    """内部合约代码（乘数表、CSV 键），不含中文。"""
     return normalize_symbol(symbol).replace("USDT", "")
+
+
+def notify_symbol_label(symbol: str) -> str:
+    """飞书等用户可见展示：中文(代码)。"""
+    return domestic_display(symbol)
 
 
 def side_int(side: str | int) -> int:
@@ -278,7 +285,7 @@ def format_fill(order: dict[str, Any], fill_price: float, bar: dict[str, Any], r
     return (
         "🚨【峰极总定式01-08国内期货A股模拟挂单触发】\n"
         f"时间: {now_text()}\n"
-        f"品种: {display_name(str(order.get('symbol', '')))}\n"
+        f"品种: {notify_symbol_label(str(order.get('symbol', '')))}\n"
         f"定式: {order.get('strategy_id', '')}\n"
         f"周期: {order.get('timeframe', '')}\n"
         f"方向: {direction}\n"
@@ -299,7 +306,7 @@ def format_stop_exit(symbol: str, position: dict[str, Any], exit_price: float, p
     return (
         "✅【峰极总定式01-08国内期货A股模拟挂单平仓】\n"
         f"时间: {now_text()}\n"
-        f"品种: {display_name(symbol)}\n"
+        f"品种: {notify_symbol_label(symbol)}\n"
         f"定式: {position.get('strategy_id', '')}\n"
         f"方向: {'多头' if int(position.get('side', 0) or 0) == 1 else '空头'}\n"
         f"入场时间: {position.get('entry_time', '')}\n"
