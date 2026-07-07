@@ -119,6 +119,9 @@ scripts/smoke_w14_backtest_trade_pnl.py
 scripts/verify_domestic_backtest_trade_pnl.ps1
 scripts/w17_remote_acceptance.py
 scripts/run_w17_remote_acceptance.ps1
+scripts/run_watchlist_runtime_job.py
+scripts/run_watchlist_runtime_job_all.ps1
+scripts/verify_w18_watchlist_api.py
 
 migrations/env.py
 migrations/versions/001_instruments_bars.py

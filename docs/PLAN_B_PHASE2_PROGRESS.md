@@ -30,7 +30,7 @@
 | **D0** | PR #12 merge + 海内外 radar/pending 部署 | ✅ |
 | **D1** | OS 账本增量：国内 LC delta=0 pl=192 · 海外 BTC `INCREMENTAL_OK` pl=1095 · 本地 BTC/LC ok | ✅ |
 | **D2** | PR **#13** plan/apply · 海内外 pending 已部署重启（海外 PID 3345868 · 国内 1140） | ✅ |
-| **D3** | W18 watchlist / 自定义品种 MVP（`docs/W18_*`） | 待做 |
+| **D3** | W18：批量 runtime job + verify 脚本 + manifest（待 merge/deploy） | 进行中 |
 | **D4** | DS01/DS03/DS05 争议案例沙盒回归 | 待做 |
 | **D5** | 天勤账号环境变量复查 · 雷达频率/挂单撤销口径文档化 | 待做 |
 | **D6** | A股 60m / 期货日夜盘覆盖边界标注 | 待做 |

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-07-07（D3 · W18 watchlist MVP）
+
+- `paper_watchlist.list_distinct_watchlist_user_ids`：批量 runtime 缓存按用户枚举。
+- `run_watchlist_runtime_job.py`：`--all-users` / `--dry-run` / 可复用 payload builder。
+- 新增 `verify_w18_watchlist_api.py`（配额 + runtime 缓存年龄 + API shape 对齐）。
+- 新增 `run_watchlist_runtime_job_all.ps1`（本地/计划任务入口）。
+- 入库 `tests/test_custom_instruments.py` · manifest 补 3 脚本 · **43 passed**。
+
 ## 2026-07-06（D2 · pending monitor plan/apply · merge & deploy）
 
 - **PR #13** merge `main@4a09090`。

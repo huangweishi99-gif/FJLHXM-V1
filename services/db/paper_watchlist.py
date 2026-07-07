@@ -100,6 +100,17 @@ def list_paper_watchlist(*, user_id: str, status: str | None = None, limit: int 
         return [_watchlist_to_dict(row) for row in session.scalars(stmt).all()]
 
 
+def list_distinct_watchlist_user_ids(*, status: str | None = None, limit_users: int = 200) -> list[str]:
+    """Distinct user ids with at least one paper_watchlist row (for runtime cache jobs)."""
+    with Session(get_engine()) as session:
+        stmt = select(PaperWatchlist.user_id).distinct().order_by(PaperWatchlist.user_id.asc())
+        if status:
+            stmt = stmt.where(PaperWatchlist.status == status)
+        if limit_users > 0:
+            stmt = stmt.limit(limit_users)
+        return [uid for uid in session.scalars(stmt).all() if uid]
+
+
 def update_paper_watchlist_status(*, watchlist_id: str, user_id: str, status: str) -> dict[str, Any] | None:
     if status not in WATCHLIST_ALLOWED_STATUSES:
         raise ValueError(f"unsupported paper watchlist status: {status}")
