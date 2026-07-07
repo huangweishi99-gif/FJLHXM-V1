@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-07-07（D4 merge · 定式回归 + 飞书中文名）
+
+- **PR merge**（`feat/d4-pattern-regression`）：`verify_d4_pattern_cases.py` · `domestic_display` 飞书中文名。
+- 国内已 sync：`symbol_names` · `fengji_futures_pending_order_monitor` · `verify_d4_pattern_cases.py`。
+
 ## 2026-07-07（国内飞书品种中文名）
 
 - `fengji_futures_pending_order_monitor`：飞书通知改用 `domestic_display`（如 **纯碱(SA)**）。

@@ -31,7 +31,7 @@
 | **D1** | OS 账本增量：国内 LC delta=0 pl=192 · 海外 BTC `INCREMENTAL_OK` pl=1095 · 本地 BTC/LC ok | ✅ |
 | **D2** | PR **#13** plan/apply · 海内外 pending 已部署重启（海外 PID 3345868 · 国内 1140） | ✅ |
 | **D3** | PR **#15** W18 · 国内 verify OK · PG 4 users · dry-run 4 items | ✅ |
-| **D4** | `verify_d4_pattern_cases.py` · DS05 期货三品种 ok · IO/ETH DS03 窗口探针 | ✅ |
+| **D4** | PR merge · verify_d4 + 飞书 `纯碱(SA)` · 国内 sync | ✅ |
 | **D5** | 天勤账号环境变量复查 · 雷达频率/挂单撤销口径文档化 | 待做 |
 | **D6** | A股 60m / 期货日夜盘覆盖边界标注 | 待做 |
 | **D7** | stash@{0} 仅 cherry-pick · Phase2 收口 | 待做 |
