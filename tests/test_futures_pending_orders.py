@@ -143,3 +143,25 @@ def test_futures_pending_monitor_closes_stop_from_local_bar(tmp_path: Path) -> N
     assert summary["closed"] == 1
     assert saved["symbols"]["CJUSDT"]["open_positions"] == []
     assert "CLOSE" in Path(args.trade_csv).read_text(encoding="utf-8-sig")
+
+
+def test_format_fill_includes_chinese_futures_name() -> None:
+    from fengji_futures_pending_order_monitor import format_fill
+
+    msg = format_fill(
+        {
+            "symbol": "SA",
+            "side": "short",
+            "strategy_id": "DS03",
+            "timeframe": "D1",
+            "trigger_price": 1079,
+            "stop_price": 1117,
+            "os_camp": "blue",
+            "setup": "blue camp break true peak (starter bar only)",
+        },
+        1079.0,
+        {"timeframe": "15m", "date": "2026-07-07 05:45:00", "high": 1083, "low": 1076},
+        "DS03 非连续定式允许首次开仓",
+    )
+    assert "品种: 纯碱(SA)" in msg
+

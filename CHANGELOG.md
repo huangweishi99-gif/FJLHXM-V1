@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-07-07（国内飞书品种中文名）
+
+- `fengji_futures_pending_order_monitor`：飞书通知改用 `domestic_display`（如 **纯碱(SA)**）。
+- `symbol_names.domestic_display`：期货/A股统一中文(代码) 展示。
+
 ## 2026-07-07（D4 · 定式案例回归）
 
 - 新增 `scripts/verify_d4_pattern_cases.py`：DS01/03/05 单测 + DS05 K2 合成 + 国内期货（红枣/玻璃/纯碱）扫描 + IO/ETH DS03 窗口探针。
