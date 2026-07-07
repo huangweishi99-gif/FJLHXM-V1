@@ -19,4 +19,8 @@ Write-Host "`n=== Domestic deploy manifest ===" -ForegroundColor Cyan
 python -m pytest (Join-Path $root "tests\test_fengji_domestic_deploy_manifest.py") -q
 if ($LASTEXITCODE -ne 0) { throw "domestic deploy manifest pytest failed" }
 
+Write-Host "`n=== Phase 2 closeout manifest ===" -ForegroundColor Cyan
+python -m pytest (Join-Path $root "tests\test_phase2_closeout_manifest.py") -q
+if ($LASTEXITCODE -ne 0) { throw "phase2 closeout manifest pytest failed" }
+
 Write-Host "`n=== All project buckets OK ===" -ForegroundColor Green

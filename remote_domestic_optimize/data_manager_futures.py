@@ -11,8 +11,12 @@ from tqsdk2 import TqApi, TqAuth
 
 # --- 天勤账号配置 ---
 # 先兼容原有服务器运行方式；后续可以把账号密码放到系统环境变量。
-TQ_PHONE = os.getenv("TQ_PHONE", "15323854134")
-TQ_PASS = os.getenv("TQ_PASS", "Hwsgzjdqg1021")
+def require_tq_credentials() -> tuple[str, str]:
+    phone = os.getenv("TQ_PHONE", "").strip()
+    pwd = os.getenv("TQ_PASS", "").strip()
+    if not phone or not pwd:
+        raise RuntimeError("天勤账号未配置：请设置环境变量 TQ_PHONE / TQ_PASS。")
+    return phone, pwd
 
 # --- 目录配置 ---
 DATA_DIR = Path(r"C:\Users\Administrator\quant_futures\data")
@@ -116,7 +120,8 @@ def connect_api() -> TqApi:
     last_error: Exception | None = None
     for attempt in range(1, MAX_CONNECT_RETRIES + 1):
         try:
-            return TqApi(auth=TqAuth(TQ_PHONE, TQ_PASS))
+            phone, pwd = require_tq_credentials()
+            return TqApi(auth=TqAuth(phone, pwd))
         except Exception as exc:
             last_error = exc
             print(f"⚠️ [{ts()}] 天勤连接第 {attempt}/{MAX_CONNECT_RETRIES} 次失败: {exc}", flush=True)

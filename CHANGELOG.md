@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-07-07（Phase 2 签收文档）
+
+- 新增 `docs/PLAN_B_PHASE2_COMPLETE.md` · 更新 `PROJECT_CONTEXT.md` Phase 2 完成态。
+
+## 2026-07-07（D7 · Phase 2 收口）
+
+- 新增 `docs/PHASE2_CLOSEOUT.md` · `docs/STASH_BOUNDARY_AUDIT.md`（stash@{0} 411 文件分类）。
+- 新增 `scripts/fengji_phase2_closeout_manifest.txt` · `fengji_stash_residual_manifest.txt`。
+- 新增 `scripts/verify_phase2_closeout.py` · `tests/test_phase2_closeout_manifest.py`。
+- `verify_project_buckets.ps1` 纳入 Phase2 closeout manifest 检查。
+
+## 2026-07-07（D6 · 市场覆盖边界）
+
+- 新增 `fengji_core.market_coverage`：A股 H1≥500 / M15≥800 定式门槛 · 期货 34 品种夜盘结束表。
+- 新增 `docs/MARKET_COVERAGE_BOUNDARIES.md` · `scripts/verify_d6_market_coverage_boundaries.py`。
+- `backtest_a_stock_fengji`：H1 行数不足时自动跳过 DS07/DS08（不再仅判空文件）。
+
+## 2026-07-07（D5 · 数据与挂单口径）
+
+- **安全**：`data_manager_futures.require_tq_credentials()` — 移除 `TQ_PHONE`/`TQ_PASS` 代码默认明文。
+- **文档**：更新 `docs/RADAR_REFRESH_SCHEDULE.md`（海外 900s · 国内 600s 生产口径）；新增 `docs/PENDING_ORDER_CANCEL_RULES.md`。
+- **验收**：`scripts/verify_d5_data_pending_policy.py` · `tests/test_data_manager_futures_tq_env.py`。
+
 ## 2026-07-07（D4 merge · 定式回归 + 飞书中文名）
 
 - **PR merge**（`feat/d4-pattern-regression`）：`verify_d4_pattern_cases.py` · `domestic_display` 飞书中文名。

@@ -33,10 +33,16 @@ except ImportError:
     parse_tq_datetime_series = None  # type: ignore[assignment,misc]
     valid_futures_price_mask = None  # type: ignore[assignment,misc]
 
-# --- 天勤账号配置 ---
-# 先兼容原有服务器运行方式；后续可以把账号密码放到系统环境变量。
-TQ_PHONE = os.getenv("TQ_PHONE", "15323854134")
-TQ_PASS = os.getenv("TQ_PASS", "Hwsgzjdqg1021")
+# --- 天勤账号配置（仅环境变量，禁止代码默认明文） ---
+def require_tq_credentials() -> tuple[str, str]:
+    phone = os.getenv("TQ_PHONE", "").strip()
+    pwd = os.getenv("TQ_PASS", "").strip()
+    if not phone or not pwd:
+        raise RuntimeError(
+            "天勤账号未配置：请在国内服务器设置环境变量 TQ_PHONE / TQ_PASS。"
+            " 勿写入仓库；可用 scripts/check_domestic_tq_env.ps1 复查。"
+        )
+    return phone, pwd
 
 # --- 目录配置 ---
 DATA_DIR = Path(os.getenv("FUTURES_DATA_DIR", r"C:\Users\Administrator\quant_futures\data"))
@@ -504,7 +510,8 @@ def connect_api() -> Any:
     for attempt in range(1, MAX_CONNECT_RETRIES + 1):
         try:
             write_heartbeat(f"connect attempt={attempt}/{MAX_CONNECT_RETRIES} sdk={TQ_SDK_FLAVOR}")
-            return TqApi(auth=TqAuth(TQ_PHONE, TQ_PASS))
+            phone, pwd = require_tq_credentials()
+            return TqApi(auth=TqAuth(phone, pwd))
         except Exception as exc:
             last_error = exc
             write_heartbeat(f"connect_retry attempt={attempt}/{MAX_CONNECT_RETRIES}")

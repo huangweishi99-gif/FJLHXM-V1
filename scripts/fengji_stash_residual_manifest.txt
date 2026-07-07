@@ -1,0 +1,7 @@
+# stash@{0} 残留物清单 — 禁止整包 git stash pop
+# 仅作边界标注；这些路径在 stash 中体量大或与当前主线无关，应分桶处理或保留在 stash。
+
+data/
+FJLHXM-UI.pen
+FJLHXM-V1.md
+designs/

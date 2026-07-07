@@ -1,6 +1,6 @@
 # TODO
 
-更新时间：2026-07-06
+更新时间：2026-07-07
 
 ## 方案 B · Phase 2 后续 · N 日清单（自 2026-07-06）
 
@@ -11,9 +11,9 @@
 | D2 | **pending monitor 桶** | PR **#13** `4a09090` · 海内外已部署重启 · 海外 PID **3345868** · 国内 PID **1140** · hash match · 测 **13 passed** | ✅ |
 | D3 | **W18 watchlist MVP** | PR **#15** `2e5a3e3` · 国内 verify **OK** · PG **4 users** · dry-run **4 items** · 测 **44 passed** | ✅ |
 | D4 | **定式案例回归** | PR merge · `verify_d4_pattern_cases.py` · 飞书 **纯碱(SA)** · 国内已 sync | ✅ |
-| D5 | **数据与挂单口径** | 天勤账号仅环境变量（待复查）· 雷达刷新频率文档 · 同品种多定式挂单撤销规则 | 待做 |
-| D6 | **A股/期货覆盖边界** | A股 60m 缺口标注或临时只用 DS01–DS06 日线；fut 日夜盘表补全 | 待做 |
-| D7 | **stash/文档卫生** | stash@{0} 仍勿整包 pop · 只 cherry-pick 有价值文件 · Phase2 progress 收口 | 待做 |
+| D5 | **数据与挂单口径** | `require_tq_credentials` · `RADAR_REFRESH_SCHEDULE` · `PENDING_ORDER_CANCEL_RULES` · `verify_d5` | ✅ |
+| D6 | **A股/期货覆盖边界** | `market_coverage` · `MARKET_COVERAGE_BOUNDARIES.md` · `verify_d6` | ✅ |
+| D7 | **stash/文档卫生** | `STASH_BOUNDARY_AUDIT` · `verify_phase2_closeout` · Phase2 收口 | ✅ |
 
 操作约束：实盘权限未开；勿提交密钥；海内外部署后仍用 `verify_domestic_health` / `compare_overseas_core_hashes`。
 
@@ -21,7 +21,7 @@
 
 - [x] **海外 radar_loop 告警（10:53）**：部署 pkill 与 cron 竞态误报 · radar 已在跑 · `watchdog_overseas.sh` 已加固并部署。
 - [x] **D2 pending plan/apply**：PR #13 merge · 海内外 pending hash match · 均已重启。
-- [x] **D4 定式案例回归**：PR merge · `verify_d4` PASS · 飞书品种中文名（`domestic_display`）已部署国内。
+- [x] **D7 Phase 2 收口**：stash@{0} 边界审计（411 文件 · 332 data CSV）· `verify_phase2_closeout`（2026-07-07）。
 
 ## 2026-07-03 · 运行态处置
 
@@ -74,7 +74,7 @@
 - [x] **LC DS09 0 笔**：用户确认接受（2026-05-28）；`locks=0` 为行情结果，ETH 作引擎对照，勿用 `build_lc_bars_from_1h` 冒充验收。
 - [x] 国内服务器已安装 `matplotlib` 3.10.9（`domestic_install_matplotlib.ps1`，2026-05-28）。
 - [ ] **待复查**：有 `locks>0` 历史时再补 `LC_DS09_trade_*.png`。
-- [ ] **待复查**：`data_manager_futures.py` 中天勤账号默认值是否已迁到环境变量（勿提交密钥）。
+- [x] **天勤凭证仅环境变量**：`data_manager_futures.require_tq_credentials()`，无代码默认明文（2026-07-07）。
 
 ## 2026-05-28 增量 TODO
 
@@ -96,10 +96,11 @@
 
 1. ~~连接恢复后立即重传峰极OS增量连线最终版到海外服务器~~ → **已完成**（PR #12 · 2026-07-06 海内外部署）。
 2. ~~D1 OS 账本增量~~ → **已完成**（国内/海外/本地 `verify_os_state_*`）。
-3. **D5**：数据与挂单口径文档化（D4 已 merge 并国内 sync）。
-4. 固化峰极OS总工程交接文档（Cursor/Codex 以 Markdown 为准）。
-5. 实时检查国内/海外数据泵、模拟盘、雷达、挂单（节后巡检）。
-6. 继续 A股板块回测、失败股票重试和结果归档（D6）。
+3. ~~**D5**：数据与挂单口径文档化~~ → **已完成**（2026-07-07）。
+4. ~~**Phase 2 D0–D7**~~ → **已完成**（见 `docs/PLAN_B_PHASE2_COMPLETE.md`）。
+5. 固化峰极OS总工程交接文档（Cursor/Codex 以 Markdown 为准）。
+6. 实时检查国内/海外数据泵、模拟盘、雷达、挂单（节后巡检）。
+7. 继续 A股板块回测、失败股票重试和结果归档。
 
 ### 九大定式逐个待完成任务
 
@@ -125,7 +126,7 @@
 
 ### 挂单器待完成任务
 
-- [ ] 明确每日/每轮雷达刷新频率。
+- [x] 明确每日/每轮雷达刷新频率：`docs/RADAR_REFRESH_SCHEDULE.md`（2026-07-07）。
 - [x] 补齐 DS09 雷达/挂单器候选生成：D1安全阵营、昨日边界、M15锁定、第一进攻峰、防守极、二次攻击（`add_ds09` + 挂单默认含 DS09；2026-05-28）。【待复查】国内 LC 当前雷达 DS09 行数常为 0（无结构）。
 - [ ] 明确同品种一个定式触发后，其他定式挂单是否撤销及如何记录。
 - [ ] 确认国内期货/A股挂单器和海外虚拟货币挂单器规则一致，但市场交易时间不同。
@@ -137,8 +138,8 @@
 - [ ] 梳理虚拟货币数据源、更新频率、失败补偿和数据新鲜度检查。
 - [x] 梳理国内期货天勤 LC 15m 加长与脏数据边界：`FUTURES_15M_LENGTH`、最长 sane 档、`docs/LC_DS09_ACCEPTANCE.md`（2026-05-28）。【待复查】是否需天勤历史区间 API 突破 10000 根上限。
 - [ ] 梳理国内期货天勤数据源、日盘/夜盘开收盘时间、开盘前自动更新、收盘后停止规则（全品种表）。
-- [ ] 梳理 A股数据源；A股无夜盘。
-- [ ] 补齐或替换 A股 60 分钟历史数据源。
+- [x] 梳理 A股数据源；A股无夜盘（见 `docs/MARKET_COVERAGE_BOUNDARIES.md`）。
+- [x] 补齐或替换 A股 60 分钟历史数据源。【部分】已固化 H1&lt;500 降级 DS01–DS06；长历史源仍待接。
 - [x] 建立独立 `峰极OS_数据与回测说明.md`，交接数据类型、文件位置、字段、5m/60m状态、回测规则和九大定式回测状态。
 
 ### 国内服务器与国外服务器待验证任务
@@ -163,7 +164,7 @@
 - [ ] 回归总定式统一账本。
 - [ ] 继续 A股板块回测，复跑失败股票。
 - [ ] 对最近有争议的信号生成沙盒图并归档。
-- [ ] 对 A股 DS07/DS08 标注数据覆盖不足边界。
+- [x] 对 A股 DS07/DS08 标注数据覆盖不足边界（`market_coverage` · H1&lt;500 自动跳过）。
 
 ### Cursor 接手待完成任务
 
@@ -216,8 +217,8 @@
   - 国内期货/A股挂单逻辑
   - 启动工厂 bat/cmd
 - [ ] 继续 A股板块回测，复跑失败股票，归档结果。
-- [ ] 补齐 A股 60 分钟历史数据，或明确 A股正式筛选临时只用 DS01-DS06 日线口径。
-- [ ] 明确国内期货日盘/夜盘数据泵自动运行时间表；A股无夜盘。
+- [x] 补齐 A股 60 分钟历史数据，或明确 A股正式筛选临时只用 DS01-DS06 日线口径（H1&lt;500 降级，见 D6 文档）。
+- [x] 明确国内期货日盘/夜盘数据泵自动运行时间表；A股无夜盘（`docs/MARKET_COVERAGE_BOUNDARIES.md` §2–3）。
 - [ ] 把 `codex_assets\skills` 中的技能安装到全局 Codex 技能目录，若后续需要自动触发。
 
 ## 待验证问题

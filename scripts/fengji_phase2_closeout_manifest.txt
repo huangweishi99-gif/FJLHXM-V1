@@ -1,0 +1,37 @@
+# Phase 2 closeout manifest (D0–D7 deliverables; paths relative to repo root)
+# 验收：python scripts/verify_phase2_closeout.py
+
+# D0–D3 核心部署 / 验收
+scripts/compare_overseas_core_hashes.py
+scripts/verify_os_state_incremental.py
+scripts/verify_w18_watchlist_api.py
+scripts/run_watchlist_runtime_job.py
+
+# D4 定式回归
+scripts/verify_d4_pattern_cases.py
+
+# D5 数据与挂单口径
+scripts/verify_d5_data_pending_policy.py
+docs/RADAR_REFRESH_SCHEDULE.md
+docs/PENDING_ORDER_CANCEL_RULES.md
+data_manager_futures.py
+
+# D6 市场覆盖边界
+scripts/verify_d6_market_coverage_boundaries.py
+docs/MARKET_COVERAGE_BOUNDARIES.md
+packages/fengji_core/fengji_core/market_coverage.py
+
+# D7 stash 卫生 / Phase2 收口
+docs/PHASE2_CLOSEOUT.md
+docs/STASH_BOUNDARY_AUDIT.md
+scripts/fengji_stash_residual_manifest.txt
+scripts/verify_phase2_closeout.py
+scripts/verify_project_buckets.ps1
+
+# 已 cherry-pick 的 stash 桶 manifest（勿整包 pop）
+scripts/fengji_ops_domestic_manifest.txt
+scripts/fengji_phase2_data_manifest.txt
+scripts/fengji_archive_docs_manifest.txt
+scripts/deploy_domestic_ops_stash_bucket.ps1
+
+docs/PLAN_B_PHASE2_PROGRESS.md

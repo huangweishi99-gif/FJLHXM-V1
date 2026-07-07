@@ -1,8 +1,22 @@
 # PROJECT_CONTEXT
 
-更新时间：2026-07-05
+更新时间：2026-07-07
 
-## 2026-07-06 方案 B Phase 2 进行中（最新）
+## 2026-07-07 方案 B Phase 2 完成（D0–D7）
+
+### 摘要
+
+- **N 日清单 D0–D7 全部完成**；收口页 `docs/PHASE2_CLOSEOUT.md` · 验收 `python scripts/verify_phase2_closeout.py`。
+- **D5**：天勤 `require_tq_credentials`（无代码默认明文）· 雷达频率/挂单撤销规则文档。
+- **D6**：A股 H1≥500 定式门槛 · 期货 34 品种夜盘表 · `market_coverage`。
+- **D7**：`stash@{0}` 边界审计（411 文件 · 勿整包 pop）。
+- **D4**：`verify_d4_pattern_cases` · 国内飞书 `domestic_display`（纯碱 SA）。
+- **D2–D3**：PR #13 pending plan/apply · PR #15 W18 watchlist。
+- **D0–D1**：PR #12 os_engine/radar · OS 账本增量全绿。
+
+详见 `docs/PLAN_B_PHASE2_PROGRESS.md`。
+
+## 2026-07-06 方案 B Phase 2 进行中（归档）
 
 ### 摘要
 

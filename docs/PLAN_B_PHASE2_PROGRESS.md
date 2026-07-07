@@ -1,6 +1,6 @@
 # 方案 B · Phase 2 进度
 
-更新：2026-07-06
+更新：2026-07-07
 
 ## 已完成
 
@@ -32,11 +32,13 @@
 | **D2** | PR **#13** plan/apply · 海内外 pending 已部署重启（海外 PID 3345868 · 国内 1140） | ✅ |
 | **D3** | PR **#15** W18 · 国内 verify OK · PG 4 users · dry-run 4 items | ✅ |
 | **D4** | PR merge · verify_d4 + 飞书 `纯碱(SA)` · 国内 sync | ✅ |
-| **D5** | 天勤账号环境变量复查 · 雷达频率/挂单撤销口径文档化 | 待做 |
-| **D6** | A股 60m / 期货日夜盘覆盖边界标注 | 待做 |
-| **D7** | stash@{0} 仅 cherry-pick · Phase2 收口 | 待做 |
+| **D5** | 天勤仅环境变量 · 雷达频率/挂单撤销口径文档 · `verify_d5` | ✅ |
+| **D6** | A股 60m 门槛 · 期货日夜盘表 · `verify_d6` | ✅ |
+| **D7** | stash 边界审计 · Phase2 closeout manifest · `verify_phase2_closeout` | ✅ |
 
-stash@{0} 仍含大量 `data/` CSV 与 FJLHXM-UI · **勿整包 pop**。
+**Phase 2 N 日清单已全部完成**（2026-07-07）。收口页：`docs/PHASE2_CLOSEOUT.md`。
+
+stash@{0} 仍含大量 `data/` CSV 与 FJLHXM-UI · **勿整包 pop**（见 `docs/STASH_BOUNDARY_AUDIT.md`）。
 
 完整条目见 `TODO.md`「方案 B · Phase 2 后续 · N 日清单」。
 
@@ -53,5 +55,6 @@ docker compose up -d
 python scripts/w17_remote_acceptance.py --auto-server
 python scripts/w17_remote_acceptance.py --ssh-tunnel domestic-quant --local-port 8040 --wait-seconds 12
 powershell -File scripts/sync_deploy_fengji_api.ps1 -Verify
+python scripts/verify_phase2_closeout.py
 python scripts/assess_instruments_vs_coverage.py
 ```

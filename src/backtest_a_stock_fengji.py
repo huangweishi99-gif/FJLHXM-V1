@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
+from fengji_core.market_coverage import filter_strategies_for_a_stock_data
 from market_data_store import connect as connect_market_db
 from market_data_store import export_csv, import_frame, init_db
 from unified_whitelist_engine import DEFAULT_STRATEGIES_CSV, UnifiedConfig, merge_candidates, run_unified_symbol
@@ -507,15 +508,24 @@ def run_stock_backtest(args: argparse.Namespace) -> dict:
 
     daily, h1, daily_csv, h1_csv, data_source_used, data_warning = load_or_fetch_stock_data(args, code, cache_root)
     strategies_requested = [item.strip().upper() for item in args.strategies.split(",") if item.strip()]
-    strategies_to_run = strategies_requested
-    if h1_csv is None or h1.empty:
-        strategies_to_run = [strategy for strategy in strategies_requested if strategy not in {"DS07", "DS08"}]
-        print(f"{args.name}({code}): H1不可用，跳过DS07/DS08，仅运行 {','.join(strategies_to_run)}")
 
     m15_csv = cache_root / f"{code}_15m_qfq.csv"
-    if "DS09" in strategies_to_run and (not m15_csv.exists() or m15_csv.stat().st_size <= 5):
-        strategies_to_run = [strategy for strategy in strategies_to_run if strategy != "DS09"]
-        print(f"{args.name}({code}): M15不可用，跳过DS09，仅运行 {','.join(strategies_to_run)}")
+    m15_rows = 0
+    if m15_csv.exists() and m15_csv.stat().st_size > 5:
+        try:
+            m15_rows = len(pd.read_csv(m15_csv, usecols=["date"]))
+        except Exception:
+            m15_rows = 0
+
+    strategies_to_run, skip_notes = filter_strategies_for_a_stock_data(
+        strategies_requested,
+        h1_rows=len(h1),
+        m15_rows=m15_rows,
+    )
+    if skip_notes:
+        note = "; ".join(skip_notes)
+        data_warning = f"{data_warning}; {note}".strip("; ").strip()
+        print(f"{args.name}({code}): {note}；运行 {','.join(strategies_to_run)}")
 
     ledger = run_unified_symbol(
         symbol=args.name or code,
