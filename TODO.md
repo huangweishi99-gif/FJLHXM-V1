@@ -10,7 +10,7 @@
 | D1 | **OS 状态账本复核** | 国内 LC `delta1=0 delta2=0` pl=192 · 海外 BTC `INCREMENTAL_OK` pl=1095 · 本地 incremental BTC/LC **ok**（2026-07-06） | ✅ |
 | D2 | **pending monitor 桶** | PR **#13** `4a09090` · 海内外已部署重启 · 海外 PID **3345868** · 国内 PID **1140** · hash match · 测 **13 passed** | ✅ |
 | D3 | **W18 watchlist MVP** | PR **#15** `2e5a3e3` · 国内 verify **OK** · PG **4 users** · dry-run **4 items** · 测 **44 passed** | ✅ |
-| D4 | **定式案例回归** | DS01 左30≤2 · DS03 假峰/极（IOUSDT/ETH）· DS05 K2 可能极 · 沙盒图归档争议信号 | 待做 |
+| D4 | **定式案例回归** | `verify_d4_pattern_cases.py` · 测 **21 passed** · 红枣/玻璃/纯碱 DS05 ok · 报告 `results/sandbox/d4_phase2_*` | ✅ |
 | D5 | **数据与挂单口径** | 天勤账号仅环境变量（待复查）· 雷达刷新频率文档 · 同品种多定式挂单撤销规则 | 待做 |
 | D6 | **A股/期货覆盖边界** | A股 60m 缺口标注或临时只用 DS01–DS06 日线；fut 日夜盘表补全 | 待做 |
 | D7 | **stash/文档卫生** | stash@{0} 仍勿整包 pop · 只 cherry-pick 有价值文件 · Phase2 progress 收口 | 待做 |
@@ -21,7 +21,7 @@
 
 - [x] **海外 radar_loop 告警（10:53）**：部署 pkill 与 cron 竞态误报 · radar 已在跑 · `watchdog_overseas.sh` 已加固并部署。
 - [x] **D2 pending plan/apply**：PR #13 merge · 海内外 pending hash match · 均已重启。
-- [x] **D3 W18 watchlist**：PR #15 merge · 国内 `verify_w18` **OK** · PG 4 users · runtime job dry-run 4 items。
+- [x] **D4 定式案例回归**：`verify_d4_pattern_cases.py` PASS · DS01/03/05 单测 + DS05 K2 · 红枣/玻璃/纯碱 k2_possible_extreme ok。
 
 ## 2026-07-03 · 运行态处置
 
@@ -96,7 +96,7 @@
 
 1. ~~连接恢复后立即重传峰极OS增量连线最终版到海外服务器~~ → **已完成**（PR #12 · 2026-07-06 海内外部署）。
 2. ~~D1 OS 账本增量~~ → **已完成**（国内/海外/本地 `verify_os_state_*`）。
-3. **D4**：定式案例沙盒回归（D3 PR #15 已 merge 并国内验收）。
+3. **D5**：数据与挂单口径文档化（D4 回归脚本已落地）。
 4. 固化峰极OS总工程交接文档（Cursor/Codex 以 Markdown 为准）。
 5. 实时检查国内/海外数据泵、模拟盘、雷达、挂单（节后巡检）。
 6. 继续 A股板块回测、失败股票重试和结果归档（D6）。

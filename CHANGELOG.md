@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-07-07（D4 · 定式案例回归）
+
+- 新增 `scripts/verify_d4_pattern_cases.py`：DS01/03/05 单测 + DS05 K2 合成 + 国内期货（红枣/玻璃/纯碱）扫描 + IO/ETH DS03 窗口探针。
+- 报告输出：`results/sandbox/d4_phase2_YYYYMMDD/`（`SUMMARY.md` + `d4_report.json`）。
+- 测试：`test_verify_d4_pattern_cases.py` · 合计 **21 passed** · `D4_VERIFY_OK`。
+
 ## 2026-07-07（D3 · W18 merge & 国内验收）
 
 - **PR #15** merge `main@2e5a3e3`。
