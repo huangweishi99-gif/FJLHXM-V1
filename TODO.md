@@ -21,7 +21,7 @@
 
 - [x] **海外 radar_loop 告警（10:53）**：部署 pkill 与 cron 竞态误报 · radar 已在跑 · `watchdog_overseas.sh` 已加固并部署。
 - [x] **D2 pending plan/apply**：PR #13 merge · 海内外 pending hash match · 均已重启。
-- [x] **D7 Phase 2 收口**：stash@{0} 边界审计（411 文件 · 332 data CSV）· `verify_phase2_closeout`（2026-07-07）。
+- [x] **Codex 一键接手**：`CODEX_APP_HANDOFF.md` · README/AGENTS 入口更新（2026-07-07）。
 
 ## 2026-07-03 · 运行态处置
 

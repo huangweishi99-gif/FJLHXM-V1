@@ -7,6 +7,7 @@ Phase 2 **D0–D7** 已全部完成并验收。
 | 文档 | 用途 |
 |------|------|
 | [PHASE2_CLOSEOUT.md](./PHASE2_CLOSEOUT.md) | 收口总览 · 一键验收命令 |
+| [**CODEX_APP_HANDOFF.md**](../CODEX_APP_HANDOFF.md) | **Codex App 一键接手（首选）** |
 | [PLAN_B_PHASE2_PROGRESS.md](./PLAN_B_PHASE2_PROGRESS.md) | 进度表 · 命令速查 |
 | [STASH_BOUNDARY_AUDIT.md](./STASH_BOUNDARY_AUDIT.md) | stash@{0} 勿整包 pop |
 

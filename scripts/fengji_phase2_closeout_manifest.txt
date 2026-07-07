@@ -22,7 +22,9 @@ docs/MARKET_COVERAGE_BOUNDARIES.md
 packages/fengji_core/fengji_core/market_coverage.py
 
 # D7 stash 卫生 / Phase2 收口
+CODEX_APP_HANDOFF.md
 docs/PHASE2_CLOSEOUT.md
+docs/PLAN_B_PHASE2_COMPLETE.md
 docs/STASH_BOUNDARY_AUDIT.md
 scripts/fengji_stash_residual_manifest.txt
 scripts/verify_phase2_closeout.py

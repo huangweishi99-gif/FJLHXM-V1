@@ -1,5 +1,9 @@
 # AGENTS
 
+## Codex App 一键接手（2026-07-07）
+
+新 Codex / 新会话 **必须先读** 根目录 **`CODEX_APP_HANDOFF.md`**，再按其中顺序读 `PROJECT_CONTEXT.md` → `AGENTS.md` → `TODO.md` → `CHANGELOG.md`，跑 `python scripts/verify_phase2_closeout.py` 后输出接手报告。
+
 ## 2026-05-27 总工程接手规则
 
 ### 项目身份
@@ -10,6 +14,7 @@
 
 按顺序读取：
 
+0. **`CODEX_APP_HANDOFF.md`**（Codex App 一键接手入口）
 1. `PROJECT_CONTEXT.md`
 2. `AGENTS.md`
 3. `TODO.md`
@@ -76,6 +81,7 @@ Get-ChildItem -Force
 
 按顺序读取：
 
+0. **`CODEX_APP_HANDOFF.md`**
 1. `PROJECT_CONTEXT.md`
 2. `AGENTS.md`
 3. `TODO.md`

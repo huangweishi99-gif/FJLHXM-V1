@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-07-07（Codex App 一键接手文档）
+
+- 新增根目录 **`CODEX_APP_HANDOFF.md`**：开场白 · 60 秒检查 · Phase2 签收 · 目录/服务器/stash · 接手报告模板。
+- 更新 `README.md` · `AGENTS.md` · `PROJECT_CONTEXT.md` · `.cursor/rules/project.mdc` 指向该入口。
+
 ## 2026-07-07（Phase 2 签收文档）
 
 - 新增 `docs/PLAN_B_PHASE2_COMPLETE.md` · 更新 `PROJECT_CONTEXT.md` Phase 2 完成态。

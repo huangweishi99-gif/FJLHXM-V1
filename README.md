@@ -1,6 +1,18 @@
 # 峰极量化项目 / FengJi OS / FengJi Total Pattern
 
-更新时间：2026-05-27
+更新时间：2026-07-07
+
+## Codex App 一键接手（首选）
+
+**先读：** [`CODEX_APP_HANDOFF.md`](CODEX_APP_HANDOFF.md)（含可复制开场白、60 秒检查、Phase 2 签收、目录地图）
+
+```text
+你是峰极OS总工程助手。项目路径 C:\Users\guangwan\Documents\New project。
+请先只读 CODEX_APP_HANDOFF.md，再读 PROJECT_CONTEXT.md、AGENTS.md、TODO.md、CHANGELOG.md。
+跑 python scripts\verify_phase2_closeout.py 后输出接手报告。勿 stash pop；勿写密钥。
+```
+
+Phase 2（D0–D7）已完成 · `main` @ `2b04e8c` · 详情 `docs/PHASE2_CLOSEOUT.md`
 
 ## 2026-05-27 总工程接手版摘要
 
@@ -24,6 +36,7 @@
 
 ```text
 PROJECT_CONTEXT.md                  总交接上下文
+CODEX_APP_HANDOFF.md                Codex App 一键接手（首选入口）
 AGENTS.md                           AI 接手规则
 TODO.md                             当前任务和风险
 CHANGELOG.md                        变更记录
@@ -43,13 +56,14 @@ domestic_futures_ds07_update/        历史 DS07 更新包
 
 ### 如何让 Codex 接手
 
-在 Codex 新会话中使用：
+在 Codex 新会话中 **复制 `CODEX_APP_HANDOFF.md` 第 0 节开场白**，或：
 
 ```text
-请读取 C:\Users\guangwan\Documents\New project。先读 PROJECT_CONTEXT.md、AGENTS.md、TODO.md、CHANGELOG.md、README.md、峰极OS_最高宪法.md、峰极OS_阵营转换判断.md、峰极OS_九大定式规则总纲.md、峰极OS_CANONICAL_RULES.md，以及 docs/CANONICAL_RULES.md、docs/FENGJI_TOTAL_PATTERN_SPEC.md、docs/PLAN_A_ROADMAP.md。这个项目是峰极OS总工程，包含 DS01-DS09。不要删除文件，不要回滚已有改动，不要写入任何服务器密码、API Key、Token 或完整 webhook。读取后先汇报当前状态和下一步建议。
+请读取 C:\Users\guangwan\Documents\New project\CODEX_APP_HANDOFF.md 并严格执行。
+Phase 2 已完成；先跑 verify_phase2_closeout.py，再汇报。不要 stash pop，不要写密钥。
 ```
 
-Codex 修改代码前必须先说明计划；修改后必须更新 `CHANGELOG.md` 和 `TODO.md`，并说明测试或未测试原因。
+完整必读列表见 `CODEX_APP_HANDOFF.md` 第 3 节。
 
 ### 如何让 Cursor 接手
 
@@ -62,6 +76,7 @@ C:\Users\guangwan\Documents\New project
 然后要求 Cursor 先读取：
 
 ```text
+CODEX_APP_HANDOFF.md
 PROJECT_CONTEXT.md
 AGENTS.md
 TODO.md

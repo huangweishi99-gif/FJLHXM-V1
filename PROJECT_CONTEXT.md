@@ -2,6 +2,8 @@
 
 更新时间：2026-07-07
 
+> **Codex / Cursor 一键接手入口：** [`CODEX_APP_HANDOFF.md`](CODEX_APP_HANDOFF.md)
+
 ## 2026-07-07 方案 B Phase 2 完成（D0–D7）
 
 ### 摘要
