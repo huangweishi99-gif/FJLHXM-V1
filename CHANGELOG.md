@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-08-11 (P2 A股归档 + 60m补齐 + P3 untracked files batch commit)
+
+- **P2 A股板块回测归档**: 11 sectors (CPO 87%, 算力 67%, etc.), 274 trades across 233 stocks, 1.46M cumulative PnL; archive zip at `results/a_stock_sector_archive_ds07_fixed.zip`; 4/4 audit tests pass.
+- **P2 60m 长历史补齐**: audited all markets: A_stock 239/239 60m ✅, Crypto 16/16 1H_1825d ✅, US_stock 224/224 1H ✅, Futures 30/36 1h (6 gaps: AO/LH/P/PG/SC/TA - low-data exchange futures).
+- **P2 DS09 沙盒**: LC (碳酸锂) has **locks=0** (293 boundary sessions, 0 signals); ETH/BNB/TAO/生猪 already sandboxed; DS09 Live Watch ACTIVE on overseas.
+- **P3 untracked files batch commit**: 116 files, 10,190 insertions:
+  - **tests/**: 140 new test files added (audit, monitor, catalog, context, backtest, deployment, feishu, fill_sandbox, paper, market_data, DS08/DS03 pending_fill, total_radar, conftest.py)
+  - **docs/**: 40+ strategy/deployment/monitoring docs (DS01-DS09 CALIBRATION/DRAFT, CANONICAL_RULES, FENGJI_TOTAL_PATTERN_SPEC, PLAN_A_ROADMAP, POST_MERGE_ACCEPTANCE, LC_DS09_ACCEPTANCE, PG_SC_15M_ACCEPTANCE, DS09_LIVE_WATCH, FILL_SUPERVISION_SOP, etc.)
+  - **src/**: 5 new modules (backtest_us_stock_fengji, batch_backtest_us_stock_sector, feishu_paper_notify, market_data_resolve, overseas_paper_monitor)
+  - **designs/**: APPLE_UI_SPEC.md web design spec
+  - **codex_assets/**: AI handoff context (3 files)
+  - **峰极总定式规则版/**: 8 reference files (doc, PNGs) on N-字突破 and 未满足两点原则
+  - **二维码/**: 2 QR code assets
+  - **FJLHXM**: UI design + V1 spec
+  - **data/us_stock/gics_sectors.json**: GICS sector classification reference
+- **.gitignore**: added `test-results/`.
+- **Updated TODO.md**: marked P2/P3 tasks complete.
+
 ## 2026-08-11 (P1 strategy audit + missing tests + archival cleanup)
 
 - **DS04 standalone tests** (`tests/test_ds04.py`): 16 new unit tests covering `make_ds04_signal` (Yang-Yin-Yang long reclaim, Yin-Yang-Yin short reclaim), reject cases (gap, non-weakest K2, no-reclaim, short frame, no-next-bar), `k2_is_weakest`, `no_price_gap`, `update_ds04_stop` (red_ext/blue_ext upgrade with NaN guard), `check_stop` (gap/intraday long+short), `audit_ds04_structure`.

@@ -1,0 +1,116 @@
+{
+  "version": "2026-06-01",
+  "description": "US GICS 11 sectors × top tickers (按市值/流动性预排序；batch 默认取前 21)",
+  "sectors": [
+    {
+      "sector_code": "GICS_45",
+      "sector_name": "Information Technology",
+      "sector_name_zh": "信息技术",
+      "tickers": [
+        "AAPL", "MSFT", "NVDA", "AVGO", "ORCL", "CRM", "AMD", "ADBE", "CSCO", "ACN",
+        "IBM", "INTU", "QCOM", "TXN", "AMAT", "MU", "LRCX", "KLAC", "SNPS", "CDNS",
+        "PANW", "NOW", "ADI", "MRVL"
+      ]
+    },
+    {
+      "sector_code": "GICS_35",
+      "sector_name": "Health Care",
+      "sector_name_zh": "医疗保健",
+      "tickers": [
+        "LLY", "UNH", "JNJ", "MRK", "ABBV", "TMO", "ABT", "DHR", "PFE", "BMY",
+        "AMGN", "GILD", "ISRG", "VRTX", "SYK", "BSX", "MDT", "ELV", "CI", "HCA",
+        "REGN", "ZTS", "DXCM"
+      ]
+    },
+    {
+      "sector_code": "GICS_40",
+      "sector_name": "Financials",
+      "sector_name_zh": "金融",
+      "tickers": [
+        "BRK-B", "JPM", "V", "MA", "BAC", "WFC", "GS", "MS", "SPGI", "BLK",
+        "C", "AXP", "SCHW", "CB", "PGR", "MMC", "ICE", "CME", "USB", "PNC",
+        "AON", "TRV", "MET"
+      ]
+    },
+    {
+      "sector_code": "GICS_25",
+      "sector_name": "Consumer Discretionary",
+      "sector_name_zh": "可选消费",
+      "tickers": [
+        "AMZN", "TSLA", "HD", "MCD", "NKE", "LOW", "SBUX", "TJX", "BKNG", "CMG",
+        "ORLY", "MAR", "GM", "F", "RCL", "CCL", "ABNB", "DHI", "PHM", "ROST",
+        "YUM", "DPZ", "LEN"
+      ]
+    },
+    {
+      "sector_code": "GICS_50",
+      "sector_name": "Communication Services",
+      "sector_name_zh": "通信服务",
+      "tickers": [
+        "GOOGL", "META", "NFLX", "DIS", "CMCSA", "TMUS", "VZ", "T", "CHTR", "EA",
+        "TTWO", "WBD", "PARA", "FOX", "LYV", "MTCH", "NWSA", "OMC", "IPG", "TTD",
+        "RBLX", "SPOT"
+      ]
+    },
+    {
+      "sector_code": "GICS_20",
+      "sector_name": "Industrials",
+      "sector_name_zh": "工业",
+      "tickers": [
+        "GE", "CAT", "RTX", "UNP", "HON", "BA", "DE", "LMT", "UPS", "ADP",
+        "ETN", "WM", "NOC", "GD", "ITW", "CSX", "NSC", "EMR", "FDX", "JCI",
+        "CARR", "PCAR"
+      ]
+    },
+    {
+      "sector_code": "GICS_30",
+      "sector_name": "Consumer Staples",
+      "sector_name_zh": "必需消费",
+      "tickers": [
+        "WMT", "COST", "PG", "KO", "PEP", "PM", "MO", "MDLZ", "CL", "KMB",
+        "GIS", "K", "HSY", "SYY", "KR", "STZ", "KHC", "CHD", "CLX", "MKC",
+        "TSN", "CAG"
+      ]
+    },
+    {
+      "sector_code": "GICS_10",
+      "sector_name": "Energy",
+      "sector_name_zh": "能源",
+      "tickers": [
+        "XOM", "CVX", "COP", "SLB", "EOG", "MPC", "PSX", "VLO", "OXY", "WMB",
+        "KMI", "HES", "HAL", "BKR", "DVN", "FANG", "PXD", "TRGP", "OKE", "APA",
+        "MRO", "CTRA"
+      ]
+    },
+    {
+      "sector_code": "GICS_55",
+      "sector_name": "Utilities",
+      "sector_name_zh": "公用事业",
+      "tickers": [
+        "NEE", "SO", "DUK", "CEG", "AEP", "SRE", "D", "EXC", "XEL", "ED",
+        "PEG", "WEC", "ES", "AWK", "ETR", "FE", "PPL", "CMS", "NI", "LNT",
+        "EVRG", "PNW"
+      ]
+    },
+    {
+      "sector_code": "GICS_60",
+      "sector_name": "Real Estate",
+      "sector_name_zh": "房地产",
+      "tickers": [
+        "PLD", "AMT", "EQIX", "CCI", "PSA", "SPG", "O", "WELL", "DLR", "AVB",
+        "EQR", "VTR", "SBAC", "ARE", "MAA", "INVH", "ESS", "HST", "KIM", "REG",
+        "UDR", "CPT"
+      ]
+    },
+    {
+      "sector_code": "GICS_15",
+      "sector_name": "Materials",
+      "sector_name_zh": "原材料",
+      "tickers": [
+        "LIN", "SHW", "APD", "ECL", "FCX", "NEM", "NUE", "DOW", "DD", "VMC",
+        "MLM", "PPG", "ALB", "CF", "MOS", "IFF", "BALL", "AVY", "PKG", "CE",
+        "EMN", "FMC"
+      ]
+    }
+  ]
+}

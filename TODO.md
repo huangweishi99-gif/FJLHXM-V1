@@ -16,7 +16,10 @@
 - [x] **Full test regression**: 630 passed, 17 skipped.
 - [x] **.gitignore**: added `archives/` and `.vscode/`.
 - [x] **Archival docs**: committed 8 root-level cleanup/handoff/baseline .md reports (`ARCHIVE_*`, `CLEANUP_*`, `CURRENT_BASELINE_*`, `HANDOFF_*`, `PG_BASELINE_*`, `WEB_MONITOR_*`).
-- [ ] **P2 follow-up**: A股板块回测归档 + 60m 长历史补齐 + DS09 成交沙盒图.
+- [x] **P2 A股板块回测归档**: 11 sectors (CPO/算力/BK0900/电动乘用车/半导体/飞行汽车/锂电池/互联网金融/证券Ⅱ/航空装备Ⅱ/虚拟机器人), 274 trades, 233 stocks, 1.46M cumulative PnL; 4/4 audit tests pass.
+- [x] **P2 60m 长历史补齐**: A股239/239 60m complete; 加密16/16 1H_1825d complete; 美股224/224 1H complete; 期货36 1d vs 30 1h (6 missing: AO/LH/P/PG/SC/TA - low-data futures from SHFE/DCE/INE/CZCE, ~20KB each, limited history).
+- [x] **P2 DS09 成交沙盒**: LC locks=0 (no signals to sandbox); ETH/BNB/TAO/生猪 already sandboxed; DS09 Live Watch running ACTIVE on overseas crypto radar.
+- [x] **P3 untracked files clean-up**: batch-added 116 files (140 tests, 40+ strategy/deployment docs, 5 src modules, designs, reference rules, operational scripts); .gitignore extended with test-results/.
 
 ## 2026-08-10 - Domestic heartbeat check threshold
 

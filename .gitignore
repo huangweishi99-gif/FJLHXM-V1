@@ -18,4 +18,5 @@ runtime/feishu_webhook.env
 src.zip
 archives/
 .vscode/
+test-results/
 
