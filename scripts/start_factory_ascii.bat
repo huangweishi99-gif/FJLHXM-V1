@@ -12,9 +12,9 @@ start "fengji_data_manager" /min cmd /c "C:\Users\Administrator\quant_futures\ru
 
 start "fengji_paper" /min powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Administrator\quant_futures\run_futures_astock_paper.ps1"
 
-start "fengji_radar_loop" /min cmd /c "C:\Users\Administrator\quant_futures\run_futures_radar_loop.cmd"
+start "fengji_radar_loop" /min cmd /c "C:\Users\Administrator\quant_futures\scripts\run_futures_radar_loop.cmd"
 
-start "fengji_pending_monitor" /min cmd /c "C:\Users\Administrator\quant_futures\run_futures_pending_monitor.cmd"
+start "fengji_pending_monitor" /min cmd /c "C:\Users\Administrator\quant_futures\scripts\run_futures_pending_monitor.cmd"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$root='C:\Users\Administrator\quant_futures'; $py='C:\Users\Administrator\AppData\Local\Programs\Python\Python310\python.exe'; $dash=(Get-ChildItem -LiteralPath $root -File | Where-Object { $_.Name -like '*Dash.py' } | Select-Object -First 1 -ExpandProperty FullName); if ($dash) { Start-Process -FilePath $py -ArgumentList @($dash) -WorkingDirectory $root -WindowStyle Minimized }"
 

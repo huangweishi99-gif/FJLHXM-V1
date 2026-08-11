@@ -56,6 +56,8 @@ def test_w17_acceptance_auto_server() -> None:
         timeout=120,
         check=False,
     )
+    if proc.returncode != 0 and "auth storage unavailable" in proc.stdout:
+        pytest.skip("local PG auth storage is unavailable for W17 auto-server acceptance")
     assert proc.returncode == 0, proc.stdout + proc.stderr
     payload = json.loads(proc.stdout)
     assert payload.get("ok") is True

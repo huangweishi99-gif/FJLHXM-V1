@@ -23,6 +23,7 @@ from fengji_core.fill_supervision import (  # noqa: E402
     parse_events_jsonl,
     resolve_ohlcv_csv,
 )
+from fengji_core.futures_main_contract import detect_order_contract_switch, load_manifest  # noqa: E402
 
 PROFILES = {
     "domestic": {
@@ -76,6 +77,7 @@ def audit_fills(
     data_dir: Path,
     market: str,
     gap: int,
+    contract_manifest: dict | None = None,
 ) -> tuple[list[FillAuditResult], dict[str, tuple]]:
     cache: dict[str, tuple] = {}
     results: list[FillAuditResult] = []
@@ -95,6 +97,29 @@ def audit_fills(
                 )
             )
             continue
+
+        if market == "domestic":
+            contract_switch = detect_order_contract_switch(
+                record,
+                contract_manifest,
+                observed_at=record.get("time") or record.get("fill_time"),
+            )
+            if contract_switch is not None:
+                results.append(
+                    FillAuditResult(
+                        strategy_id=str(record.get("strategy_id", record.get("strategy", ""))).upper(),
+                        symbol=symbol,
+                        side=str(record.get("side", "")),
+                        entry_date=str(record.get("bar_time", record.get("entry_date", ""))),
+                        verdict="exec_gap",
+                        issues=["main contract switched between order creation and simulated fill"],
+                        checks={"contract_switch": contract_switch},
+                        order_id=str(record.get("order_id", "")),
+                        setup_key=str(record.get("setup_key", "")),
+                        fill_time=str(record.get("time", "")),
+                    )
+                )
+                continue
 
         tf = infer_record_timeframe(record)
         cache_key = (symbol, tf)
@@ -188,6 +213,7 @@ def write_report(
     ack_ids = ack_ids or set()
     exec_gap_ids = exec_gap_ids or set()
     invalid_ack = [r for r in invalid if r.order_id in ack_ids]
+    invalid_new = [r for r in invalid if r.order_id not in ack_ids]
 
     payload = {
         "generated_at": now_text(),
@@ -197,12 +223,13 @@ def write_report(
             "valid": len(valid),
             "invalid": len(invalid),
             "invalid_acknowledged": len(invalid_ack),
-            "invalid_new": len(invalid) - len(invalid_ack),
+            "invalid_new": len(invalid_new),
             "exec_gap": len(exec_gap),
             "needs_data": len(needs_data),
             "skipped": len(skipped),
         },
         "invalid_fills": [r.to_dict() for r in invalid],
+        "invalid_new_fills": [r.to_dict() for r in invalid_new],
         "exec_gap_fills": [r.to_dict() for r in exec_gap],
         "needs_data": [r.to_dict() for r in needs_data],
         "all_results": [r.to_dict() for r in results],
@@ -292,7 +319,14 @@ def main() -> int:
 
     since = None if args.since_hours <= 0 else args.since_hours
     fills = dedupe_fills(parse_events_jsonl(events_path, since_hours=since))
-    results, _ = audit_fills(fills, data_dir, market=preset["market"], gap=args.gap)
+    contract_manifest = load_manifest(root) if preset["market"] == "domestic" else {}
+    results, _ = audit_fills(
+        fills,
+        data_dir,
+        market=preset["market"],
+        gap=args.gap,
+        contract_manifest=contract_manifest,
+    )
     ack_ids = load_ack_order_ids(root / args.ack_file)
     exec_gap_ids = load_exec_gap_order_ids(root / args.exec_gap_file)
     report_path = write_report(

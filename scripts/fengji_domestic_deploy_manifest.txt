@@ -9,6 +9,7 @@ packages/fengji_core/fengji_core/ds07.py
 packages/fengji_core/fengji_core/ds09.py
 packages/fengji_core/fengji_core/os_state_store.py
 packages/fengji_core/fengji_core/state_lock.py
+packages/fengji_core/fengji_core/futures_main_contract.py
 src/fengji_total_radar.py
 src/fengji_radar_order_loop.py
 src/fengji_pending_orders.py
@@ -16,6 +17,18 @@ src/fengji_pending_order_monitor.py
 src/fengji_futures_pending_order_monitor.py
 src/fengji_feishu_notify.py
 data_manager_futures.py
+run_data_manager_futures.cmd
+run_data_manager_futures.ps1
+run_futures_astock_paper.ps1
+docs/MARKET_COVERAGE_BOUNDARIES.md
+scripts/audit_domestic_futures_data_schedule.py
+scripts/audit_domestic_notification_coverage.py
+scripts/audit_paper_fills.py
+scripts/watchdog_domestic.ps1
 scripts/sync_deploy_domestic.ps1
 scripts/deploy_domestic_paper_feishu.ps1
 scripts/domestic_paper_manifest.txt
+scripts/start_factory_ascii.bat
+scripts/run_futures_radar_loop.cmd
+scripts/run_futures_pending_monitor.cmd
+scripts/run_futures_astock_paper_ascii.cmd

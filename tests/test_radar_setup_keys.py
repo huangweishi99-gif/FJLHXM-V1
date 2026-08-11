@@ -30,8 +30,28 @@ def test_ds01_radar_carries_signal_stick_setup_key() -> None:
 def test_ds03_radar_carries_active_attack_setup_key() -> None:
     df = pd.DataFrame(
         [
-            {"date": "2026-05-25", "open": 9.0, "high": 9.8, "low": 8.8, "close": 9.6, "camp": 1, "active_high": 10.0, "red_peak_idx": 23},
-            {"date": "2026-05-26", "open": 9.6, "high": 9.9, "low": 9.2, "close": 9.5, "camp": 1, "active_high": 10.0, "red_peak_idx": 23},
+            {
+                "date": "2026-05-25",
+                "open": 9.0,
+                "high": 9.8,
+                "low": 8.8,
+                "close": 9.6,
+                "camp": 1,
+                "active_high": 10.0,
+                "active_low": 8.5,
+                "red_peak_idx": 23,
+            },
+            {
+                "date": "2026-05-26",
+                "open": 9.6,
+                "high": 9.9,
+                "low": 9.2,
+                "close": 9.5,
+                "camp": 1,
+                "active_high": 10.0,
+                "active_low": 8.5,
+                "red_peak_idx": 23,
+            },
         ]
     )
     df["date"] = pd.to_datetime(df["date"])

@@ -13,6 +13,7 @@ from typing import Any
 
 import pandas as pd
 
+from fengji_core.futures_main_contract import detect_order_contract_switch, load_manifest, lookup_data_contract
 from fengji_core.os_state_store import find_data_file, market_symbol, normalize_symbol as os_normalize_symbol
 from fengji_core.symbol_names import domestic_display
 from fengji_core.state_lock import file_lock
@@ -92,6 +93,14 @@ class PlannedSkip:
     order: dict[str, Any]
     bar: dict[str, Any]
     skip_reason: str
+
+
+@dataclass(frozen=True)
+class PlannedCancel:
+    order: dict[str, Any]
+    bar: dict[str, Any]
+    cancel_reason: str
+    contract_switch: dict[str, str]
 
 
 def normalize_symbol(symbol: str) -> str:
@@ -279,42 +288,82 @@ def calc_futures_pnl(position: dict[str, Any], exit_price: float, args: argparse
 
 
 def format_fill(order: dict[str, Any], fill_price: float, bar: dict[str, Any], reason: str) -> str:
-    direction = "买入做多" if str(order.get("side", "")).lower() == "long" else "卖出做空"
+    is_long = str(order.get("side", "")).lower() == "long"
+    direction = "买入做多" if is_long else "卖出做空"
+    fill_status = "已买入" if is_long else "已卖出"
+    pending_label = "预计挂单买入价格" if is_long else "预计挂单卖出价格"
+    fill_label = "挂单买入价格已成交" if is_long else "挂单卖出价格已成交"
     stop = safe_float(order.get("stop_price"))
     stop_text = "无" if stop is None else f"{stop:.8g}"
-    return (
-        "🚨【峰极总定式01-08国内期货A股模拟挂单触发】\n"
-        f"时间: {now_text()}\n"
-        f"品种: {notify_symbol_label(str(order.get('symbol', '')))}\n"
-        f"定式: {order.get('strategy_id', '')}\n"
-        f"周期: {order.get('timeframe', '')}\n"
-        f"方向: {direction}\n"
-        f"挂单触发价: {float(order.get('trigger_price', 0.0)):.8g}\n"
-        f"模拟成交价: {fill_price:.8g}\n"
-        f"初始止损: {stop_text}\n"
-        f"触发K线: {bar.get('timeframe', '')} {bar.get('date', '')} high={float(bar.get('high', 0.0)):.8g} low={float(bar.get('low', 0.0)):.8g}\n"
-        f"峰极阵营: {order.get('os_camp', '')}\n"
-        f"依据: {order.get('setup', '')}\n"
-        f"风控规则: {reason}\n"
-        "模式: 只模拟触发，不真实下单"
+    expected_close_lines = []
+    if stop is not None:
+        expected_close_lines = [
+            f"预计挂单平仓价格: {stop_text}",
+            "说明: 以上为当前动态止损价，持仓期间会随 OS 更新",
+        ]
+    lines = [
+        f"🟢【{fill_status} · {fill_label}{' · 含预计平仓' if expected_close_lines else ''}】",
+        f"消息类型: {fill_status} + {fill_label}{' + 预计挂单平仓价格' if expected_close_lines else ''}",
+        f"时间: {now_text()}",
+        f"品种: {notify_symbol_label(str(order.get('symbol', '')))}",
+        f"定式: {order.get('strategy_id', '')}",
+        f"周期: {order.get('timeframe', '')}",
+        f"状态: {fill_status}",
+        f"方向: {direction}",
+        f"{pending_label}: {float(order.get('trigger_price', 0.0)):.8g}",
+        f"{fill_label}: {fill_price:.8g}",
+        f"初始止损: {stop_text}",
+        *expected_close_lines,
+        f"触发K线: {bar.get('timeframe', '')} {bar.get('date', '')} high={float(bar.get('high', 0.0)):.8g} low={float(bar.get('low', 0.0)):.8g}",
+        f"峰极阵营: {order.get('os_camp', '')}",
+        f"依据: {order.get('setup', '')}",
+        f"风控规则: {reason}",
+        f"自检: 通过（成交状态={fill_status}，预计平仓价方向）" if expected_close_lines else f"自检: 通过（成交状态={fill_status}）",
+        "模式: 只模拟触发，不真实下单",
+    ]
+    return "\n".join(lines)
+
+
+def _domestic_close_status(side: int) -> str:
+    return "已卖出平仓" if side == 1 else "已买入平仓"
+
+
+def _domestic_position_side_text(side: int) -> str:
+    return "多头" if side == 1 else "空头"
+
+
+def _domestic_stop_text(position: dict[str, Any]) -> str:
+    stop = (
+        safe_float(position.get("current_stop"))
+        or safe_float(position.get("initial_stop"))
+        or safe_float(position.get("stop_price"))
     )
+    return "无" if stop is None else f"{stop:.8g}"
 
 
 def format_stop_exit(symbol: str, position: dict[str, Any], exit_price: float, pnl: dict[str, float], bar: dict[str, Any]) -> str:
     net = float(pnl.get("net_pnl", 0.0))
     result = "盈利" if net >= 0 else "亏损"
+    side = int(position.get("side", 0) or 0)
+    close_status = _domestic_close_status(side)
+    side_text = _domestic_position_side_text(side)
+    stop_text = _domestic_stop_text(position)
     return (
-        "✅【峰极总定式01-08国内期货A股模拟挂单平仓】\n"
+        f"✅【{close_status} · 平仓价格已成交】\n"
+        f"消息类型: {close_status} + 平仓价格已成交\n"
         f"时间: {now_text()}\n"
         f"品种: {notify_symbol_label(symbol)}\n"
         f"定式: {position.get('strategy_id', '')}\n"
-        f"方向: {'多头' if int(position.get('side', 0) or 0) == 1 else '空头'}\n"
+        f"状态: {close_status}\n"
+        f"方向: {side_text}\n"
         f"入场时间: {position.get('entry_time', '')}\n"
-        f"平仓价格: {exit_price:.8g}\n"
-        f"平均入场: {float(position.get('entry_price', 0.0) or 0.0):.8g}\n"
+        f"入场价格: {float(position.get('entry_price', 0.0) or 0.0):.8g}\n"
+        f"预计挂单平仓价格: {stop_text}\n"
+        f"平仓价格已成交: {exit_price:.8g}\n"
         f"结果: {result} {net:.2f} 元\n"
         f"触发K线: {bar.get('timeframe', '')} {bar.get('date', '')}\n"
         "退出原因: stop\n"
+        "自检: 通过（平仓价与止损规则一致）\n"
         "模式: 只模拟触发，不真实下单"
     )
 
@@ -362,6 +411,11 @@ def update_paper_state_on_fill(
         "timeframe": order.get("timeframe", ""),
         "setup": order.get("setup", ""),
     }
+    entry_contract = str(order.get("data_contract") or "").strip()
+    if not entry_contract:
+        entry_contract = lookup_data_contract(symbol, load_manifest(Path(args.data_dir).resolve().parent))
+    if entry_contract:
+        position["entry_data_contract"] = entry_contract
     symbol_state.setdefault("open_positions", []).append(position)
     symbol_state.setdefault("seen_entries", [])
     seen = [*symbol_state["seen_entries"], key, order_id]
@@ -440,6 +494,7 @@ def close_position_on_stop(
 def precompute_stop_exit_plans(
     paper_snapshot: dict[str, Any],
     bars: dict[str, dict[str, Any]],
+    contract_manifest: dict[str, Any] | None = None,
 ) -> list[PlannedStopExit]:
     plans: list[PlannedStopExit] = []
     for symbol, symbol_state in (paper_snapshot.get("symbols") or {}).items():
@@ -450,6 +505,9 @@ def precompute_stop_exit_plans(
         if bar is None:
             continue
         for position in active_positions(symbol_state.get("open_positions", [])):
+            contract_probe = position if position.get("symbol") else {**position, "symbol": clean}
+            if detect_order_contract_switch(contract_probe, contract_manifest, observed_at=now_text()) is not None:
+                continue
             if not stop_crossed(position, bar):
                 continue
             position_key = str(position.get("key", "") or position.get("order_id", ""))
@@ -507,15 +565,32 @@ def plan_fill_actions(
     paper_snapshot: dict[str, Any],
     filled_ids: set[str],
     cancelled_ids: set[str],
-) -> tuple[list[PlannedFill], list[PlannedSkip]]:
+    contract_manifest: dict[str, Any] | None = None,
+) -> tuple[list[PlannedFill], list[PlannedSkip], list[PlannedCancel]]:
     fills: list[PlannedFill] = []
     skips: list[PlannedSkip] = []
+    cancellations: list[PlannedCancel] = []
     for order in sorted(active_orders, key=lambda item: float(item.get("priority", 9999) or 9999)):
         order_id = str(order.get("order_id", ""))
         if order_id in filled_ids or order_id in cancelled_ids:
             continue
         symbol = normalize_symbol(str(order.get("symbol", "")))
         bar = bars.get(symbol)
+        contract_switch = detect_order_contract_switch(
+            order,
+            contract_manifest,
+            observed_at=now_text(),
+        )
+        if contract_switch is not None:
+            cancellations.append(
+                PlannedCancel(
+                    order=order,
+                    bar=bar or {"symbol": symbol},
+                    cancel_reason="main_contract_switched",
+                    contract_switch=contract_switch,
+                )
+            )
+            continue
         if bar is None:
             continue
         symbol_state = ensure_symbol_state(paper_snapshot, symbol)
@@ -535,7 +610,32 @@ def plan_fill_actions(
             continue
         fill_price = float(order.get("trigger_price", bar.get("close", 0.0)) or bar.get("close", 0.0))
         fills.append(PlannedFill(order=order, bar=bar, fill_price=fill_price, risk_rule=risk_rule))
-    return fills, skips
+    return fills, skips, cancellations
+
+
+def apply_contract_switch_cancellations(
+    state: dict[str, Any],
+    plans: list[PlannedCancel],
+    cancelled_ids: set[str],
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for plan in plans:
+        order_id = str(plan.order.get("order_id", ""))
+        if not order_id or order_id in cancelled_ids:
+            continue
+        cancelled_ids.add(order_id)
+        records.append(
+            {
+                "time": now_text(),
+                "event_type": "cancel",
+                "cancel_reason": plan.cancel_reason,
+                "contract_switch": plan.contract_switch,
+                "bar": plan.bar,
+                **plan.order,
+            }
+        )
+    state["cancelled_order_ids"] = sorted(cancelled_ids)
+    return records
 
 
 def apply_fill_plans(
@@ -681,17 +781,20 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
             symbols.add(normalize_symbol(symbol))
 
     bars = load_bar_snapshot(args, symbols) if symbols else {}
+    project_root = Path(args.data_dir).resolve().parent
+    contract_manifest = load_manifest(project_root)
     stop_exit_plans: list[PlannedStopExit] = []
     if paper_updates:
         planning_snapshot = load_json(Path(args.paper_state_file), {})
-        stop_exit_plans = precompute_stop_exit_plans(planning_snapshot, bars)
-    planned_fills, planned_skips = plan_fill_actions(
+        stop_exit_plans = precompute_stop_exit_plans(planning_snapshot, bars, contract_manifest)
+    planned_fills, planned_skips, planned_contract_cancels = plan_fill_actions(
         args,
         active_orders,
         bars,
         discovery_snapshot,
         filled_ids,
         cancelled_ids,
+        contract_manifest,
     )
 
     filled_records: list[dict[str, Any]] = []
@@ -699,6 +802,13 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
     closed_records: list[dict[str, Any]] = []
     close_notify_queue: list[tuple[dict[str, Any], dict[str, Any], dict[str, Any]]] = []
     fill_notify_queue: list[tuple[dict[str, Any], dict[str, Any], dict[str, Any], str, dict[str, Any]]] = []
+
+    contract_cancel_records = apply_contract_switch_cancellations(
+        state,
+        planned_contract_cancels,
+        cancelled_ids,
+    )
+    skipped_records.extend(contract_cancel_records)
 
     lock_cm = file_lock(Path(args.paper_state_file)) if paper_updates else nullcontext()
     with lock_cm:
@@ -741,6 +851,7 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
         "bar_count": len(bars),
         "filled": len(filled_records),
         "skipped": len(skipped_records),
+        "cancelled": len(contract_cancel_records),
         "closed": len(closed_records),
     }
 
@@ -795,7 +906,8 @@ def main() -> None:
             print(
                 f"[{now_text()}] checked={summary['checked_orders']} "
                 f"bars={summary['bar_count']} filled={summary['filled']} "
-                f"closed={summary['closed']} skipped={summary['skipped']}",
+                f"closed={summary['closed']} skipped={summary['skipped']} "
+                f"cancelled={summary['cancelled']}",
                 flush=True,
             )
             if args.once:

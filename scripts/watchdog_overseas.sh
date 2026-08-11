@@ -162,10 +162,10 @@ ensure_proc() {
   send_feishu "proc_${name}" "进程【$name】掉线且自动拉起失败 ❌，请人工介入"
 }
 
-CMD_DATA="cd $ROOT && setsid $PY -u data_manager.py >> data_sync.log 2>&1 &"
-CMD_RADAR="cd $ROOT && setsid env FENGJI_MARKET=$FENGJI_MARKET $PY -u src/fengji_radar_order_loop.py --market $FENGJI_MARKET --data-dir data --radar-dir runtime/fengji_radar --pending-dir runtime/fengji_pending_orders --monitor-state runtime/fengji_pending_orders/state.json --include-triggered --loop-seconds 900 --top-n 40 --daily-tail 1095 --h1-tail 2400 --m15-tail 960 >> radar_order_loop.log 2>&1 &"
-CMD_PENDING="cd $ROOT && set -a && [ -f runtime/feishu_webhook.env ] && . runtime/feishu_webhook.env; set +a; setsid $PY -u src/fengji_pending_order_monitor.py --orders-file runtime/fengji_pending_orders/pending_orders.json --out-dir runtime/fengji_pending_orders --state-file runtime/fengji_pending_orders/state.json --paper-state-file runtime/fengji_paper/state.json --data-dir data --os-state-dir runtime/fengji_os_state --initial-cash 1000 --margin-per-trade 200 --leverage 2 --loop-seconds 5 >> pending_order_monitor.log 2>&1 &"
-CMD_PAPER="cd $ROOT && set -a && [ -f runtime/feishu_webhook.env ] && . runtime/feishu_webhook.env; set +a; setsid $PY -u src/overseas_paper_monitor.py --data-dir data --initial-cash 1000 --margin-per-trade 200 --leverage 2 >> paper_run.log 2>&1 &"
+CMD_DATA="cd $ROOT && exec 9>&- && setsid $PY -u data_manager.py >> data_sync.log 2>&1 &"
+CMD_RADAR="cd $ROOT && exec 9>&- && setsid env FENGJI_MARKET=$FENGJI_MARKET $PY -u src/fengji_radar_order_loop.py --market $FENGJI_MARKET --data-dir data --radar-dir runtime/fengji_radar --pending-dir runtime/fengji_pending_orders --monitor-state runtime/fengji_pending_orders/state.json --include-triggered --loop-seconds 900 --top-n 40 --daily-tail 1095 --h1-tail 2400 --m15-tail 960 >> radar_order_loop.log 2>&1 &"
+CMD_PENDING="cd $ROOT && set -a && [ -f runtime/feishu_webhook.env ] && . runtime/feishu_webhook.env; set +a; exec 9>&- && setsid $PY -u src/fengji_pending_order_monitor.py --orders-file runtime/fengji_pending_orders/pending_orders.json --out-dir runtime/fengji_pending_orders --state-file runtime/fengji_pending_orders/state.json --paper-state-file runtime/fengji_paper/state.json --data-dir data --os-state-dir runtime/fengji_os_state --initial-cash 1000 --margin-per-trade 200 --leverage 2 --loop-seconds 5 >> pending_order_monitor.log 2>&1 &"
+CMD_PAPER="cd $ROOT && set -a && [ -f runtime/feishu_webhook.env ] && . runtime/feishu_webhook.env; set +a; exec 9>&- && setsid $PY -u src/overseas_paper_monitor.py --data-dir data --initial-cash 1000 --margin-per-trade 200 --leverage 2 >> paper_run.log 2>&1 &"
 
 ensure_proc "data_manager\.py"              "data_manager"   "$CMD_DATA"
 ensure_proc "src/fengji_radar_order_loop\.py" "radar_loop"   "$CMD_RADAR"

@@ -35,10 +35,18 @@ def test_length_candidates_include_5m_fallbacks(monkeypatch: pytest.MonkeyPatch,
 def test_fetch_symbol_writes_5m_csv(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     dm = load_data_manager(monkeypatch, tmp_path)
     seen_seconds: list[int] = []
+    data_contract = "SHFE.rb2609"
 
     class DummyApi:
+        def get_quote(self, tq_code: str):
+            return type("Quote", (), {"underlying_symbol": data_contract, "instrument_id": tq_code})()
+
+        def wait_update(self, deadline=None):
+            return False
+
         def get_kline_serial(self, tq_code, seconds, data_length):
             seen_seconds.append(seconds)
+            assert tq_code == data_contract
             base = pd.Timestamp("2026-06-01 09:00:00")
             if seconds == 86400:
                 delta = pd.Timedelta(days=1)

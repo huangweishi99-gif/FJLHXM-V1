@@ -1,7 +1,7 @@
 # FUTURES 5m 数据桶规划
 
 更新：2026-07-03  
-状态：**PR-A 已部署国内 · 待首轮回填**
+状态：**PR-A 已部署国内 · PR-B 脚本就绪 · 待首轮回填**
 
 ## PR-A · 数据泵（✅ 2026-07-03）
 
@@ -16,18 +16,25 @@
 
 环境变量：`FUTURES_5M_LENGTH`（默认 6000）
 
-## PR-B · 本机同步 + SQLite（待办）
+## PR-B · 本机同步 + SQLite（✅ 脚本 2026-07-03）
 
-1. 参照 `sync_domestic_futures_15m_for_context.py` 增加 **5m 同步脚本**
-2. `market_data_store` ingest · 重跑 B0-2 对账
+1. `scripts/sync_domestic_futures_5m_for_context.py` — SSH scp 国内 `data/5m/{CODE}.csv`
+2. `scripts/run_sync_domestic_futures_5m_for_context.ps1` — sync + `market_data_store import-futures-local`
+3. `assess_instruments_vs_coverage.py` — FUTURES 5m 周期对账
 
-**前置**：国内 `data/5m/*.csv` 有数据后执行。
+**前置**：国内 `data/5m/*.csv` 有数据后执行（午休 12:27 仍为 0，约 13:00 日盘写入）。
+
+```powershell
+powershell -File scripts\run_sync_domestic_futures_5m_for_context.ps1
+python scripts/assess_instruments_vs_coverage.py
+```
 
 ## 验收
 
 ```powershell
-python -m pytest tests/test_data_manager_futures_5m.py -q
-python scripts/assess_instruments_vs_coverage.py  # PR-B 后 FUTURES 5m pass
+python -m pytest tests/test_sync_domestic_futures_5m_for_context.py tests/test_market_data_store_futures_local.py -q
+python -m pytest tests/test_data_manager_futures_5m.py -q  # 需 tqsdk2 环境
+python scripts/assess_instruments_vs_coverage.py  # sync+ingest 后 FUTURES 5m pass
 ```
 
 ## 非目标

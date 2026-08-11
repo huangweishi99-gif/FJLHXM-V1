@@ -4,11 +4,14 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+from fengji_core.futures_main_contract import lookup_data_contract
 
 
 ACTIONABLE_STATUSES = {"PENDING"}
@@ -47,6 +50,7 @@ class PendingOrder:
     priority: float
     reason: str
     setup_key: str
+    data_contract: str = ""
 
 
 def now_text() -> str:
@@ -84,7 +88,7 @@ def read_radar(path: Path) -> list[dict[str, Any]]:
     return frame.to_dict("records")
 
 
-def order_id_for(row: dict[str, Any]) -> str:
+def order_id_for(row: dict[str, Any], *, data_contract: str = "") -> str:
     setup_identity = str(row.get("setup_key", "") or row.get("latest_time", ""))
     parts = [
         normalize_symbol(str(row.get("symbol", ""))),
@@ -95,6 +99,8 @@ def order_id_for(row: dict[str, Any]) -> str:
         f"{safe_float(row.get('stop_price')) or 0.0:.12g}",
         setup_identity,
     ]
+    if data_contract:
+        parts.append(str(data_contract).upper())
     digest = hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:16]
     return "-".join(parts[:4] + [digest]).replace(" ", "")
 
@@ -165,10 +171,14 @@ def convert_radar_rows(
         base_priority = DEFAULT_STRATEGY_PRIORITY.get(strategy_id, 999)
         distance_priority = 0.0 if radar_status == "TRIGGERED" else max(dist, 0.0) * 100
         priority = base_priority + distance_priority
+        symbol = normalize_symbol(str(row.get("symbol", "")))
+        data_contract = ""
+        if os.getenv("FENGJI_MARKET", "").strip().lower() == "futures":
+            data_contract = lookup_data_contract(symbol)
         orders.append(
             PendingOrder(
-                order_id=order_id_for(row),
-                symbol=normalize_symbol(str(row.get("symbol", ""))),
+                order_id=order_id_for(row, data_contract=data_contract),
+                symbol=symbol,
                 strategy_id=strategy_id,
                 timeframe=str(row.get("timeframe", "")).upper(),
                 side=side,
@@ -190,6 +200,7 @@ def convert_radar_rows(
                 priority=float(priority),
                 reason=str(row.get("reason", "")),
                 setup_key=setup_key,
+                data_contract=data_contract,
             )
         )
     return sorted(orders, key=lambda item: (item.priority, item.symbol, item.strategy_id, item.side))

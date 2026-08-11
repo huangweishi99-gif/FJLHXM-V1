@@ -6,15 +6,47 @@ import subprocess
 import sys
 import time
 
-from fengji_core.os_state_store import is_futures_market
 from contextlib import contextmanager
 from pathlib import Path
 
 import pandas as pd
 
+VALID_MARKETS = {"crypto", "futures"}
+
 
 def now_text() -> str:
     return pd.Timestamp.now(tz="Asia/Shanghai").strftime("%Y-%m-%d %H:%M:%S")
+
+
+def split_symbols(text: str) -> list[str]:
+    return [item.strip().upper() for item in str(text or "").split(",") if item.strip()]
+
+
+def resolve_market(args: argparse.Namespace, environ: dict[str, str] | None = None) -> str:
+    explicit = str(getattr(args, "market", "") or "").strip().lower()
+    if explicit in VALID_MARKETS:
+        return explicit
+
+    env = environ if environ is not None else os.environ
+    from_env = str(env.get("FENGJI_MARKET", "") or "").strip().lower()
+    if from_env in VALID_MARKETS:
+        return from_env
+
+    symbols = split_symbols(str(getattr(args, "symbols", "") or ""))
+    if symbols:
+        return "crypto" if all(symbol.endswith("USDT") for symbol in symbols) else "futures"
+
+    monitor_state = str(getattr(args, "monitor_state", "") or "").lower()
+    if "futures" in monitor_state:
+        return "futures"
+
+    data_hint = str(getattr(args, "data_dir", "") or "").lower()
+    if "futures" in data_hint:
+        return "futures"
+    if "crypto" in data_hint:
+        return "crypto"
+
+    return "crypto"
 
 
 @contextmanager
@@ -64,11 +96,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Refresh FengJi radar and pending-order files in a loop.")
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--symbols", default="")
+    parser.add_argument("--market", choices=["auto", "crypto", "futures"], default="auto")
     parser.add_argument("--radar-dir", default="runtime/fengji_radar")
     parser.add_argument("--pending-dir", default="runtime/fengji_pending_orders")
     parser.add_argument("--top-n", type=int, default=80)
     parser.add_argument("--daily-tail", type=int, default=520)
     parser.add_argument("--h1-tail", type=int, default=3200)
+    parser.add_argument("--m15-tail", type=int, default=960)
     parser.add_argument("--max-distance-pct", type=float, default=0.08)
     parser.add_argument("--loop-seconds", type=int, default=300)
     parser.add_argument("--include-triggered", action="store_true")
@@ -93,6 +127,8 @@ def main() -> None:
     if extra:
         py_paths.append(extra)
     env["PYTHONPATH"] = os.pathsep.join(py_paths)
+    market = resolve_market(args, env)
+    env["FENGJI_MARKET"] = market
     python = sys.executable
     radar_json = Path(args.radar_dir) / "radar.json"
     lock_path = Path(args.radar_dir) / ".radar_refresh.lock"
@@ -116,6 +152,8 @@ def main() -> None:
                         args.radar_dir,
                         "--os-state-dir",
                         "runtime/fengji_os_state",
+                        "--market",
+                        market,
                         *(
                             [
                                 "--symbols",
@@ -130,12 +168,14 @@ def main() -> None:
                         str(args.daily_tail),
                         "--h1-tail",
                         str(args.h1_tail),
+                        "--m15-tail",
+                        str(args.m15_tail),
                     ],
                     env,
                 )
                 if str(args.monitor_state).strip():
                     monitor_state = Path(args.monitor_state)
-                elif is_futures_market():
+                elif market == "futures":
                     monitor_state = Path(args.pending_dir) / "futures_pending_state.json"
                 else:
                     monitor_state = Path(args.pending_dir) / "state.json"

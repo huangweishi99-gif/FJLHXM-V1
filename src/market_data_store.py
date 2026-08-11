@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import re
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Iterable
 
@@ -243,6 +244,66 @@ def parse_futures_minute_file(path: Path) -> tuple[str, str] | None:
     return match.group(1), normalize_timeframe(match.group(2))
 
 
+FUTURES_INTRADAY_TIMEFRAMES = ("5m", "15m", "1h")
+
+
+def futures_intraday_dir(root: Path, timeframe: str) -> Path | None:
+    for candidate in (root / "data" / "futures" / timeframe, root / "data" / timeframe):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def import_futures_local(conn: sqlite3.Connection, root: str | Path, *, market: str = "FUTURES") -> list[dict]:
+    """Import short-code futures intraday CSVs from data/futures/{5m,15m,1h} or data/{tf}."""
+    root_path = Path(root)
+    try:
+        packages = Path(__file__).resolve().parents[1] / "packages" / "fengji_core"
+        if str(packages) not in sys.path:
+            sys.path.insert(0, str(packages))
+        from fengji_core.symbol_names import FUTURES_CN_NAMES  # noqa: WPS433
+    except Exception as exc:
+        raise RuntimeError("import_futures_local requires fengji_core.symbol_names.FUTURES_CN_NAMES") from exc
+
+    valid_codes = set(FUTURES_CN_NAMES)
+    rows: list[dict] = []
+    for timeframe in FUTURES_INTRADAY_TIMEFRAMES:
+        directory = futures_intraday_dir(root_path, timeframe)
+        if directory is None:
+            continue
+        for path in sorted(directory.glob("*.csv")):
+            symbol = path.stem.upper()
+            if symbol not in valid_codes:
+                continue
+            try:
+                count = import_csv(
+                    conn,
+                    path,
+                    market,
+                    symbol,
+                    timeframe,
+                    name=FUTURES_CN_NAMES.get(symbol, symbol),
+                )
+                status = "ok"
+                error = ""
+            except Exception as exc:
+                count = 0
+                status = "error"
+                error = str(exc)
+            item = {
+                "path": str(path),
+                "market": market,
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "rows": count,
+                "status": status,
+                "error": error,
+            }
+            rows.append(item)
+            print(f"{status}: {market} {symbol} {timeframe} rows={count} {path.name}")
+    return rows
+
+
 def import_directory(conn: sqlite3.Connection, directory: str | Path, market: str, parser_name: str) -> list[dict]:
     root = Path(directory)
     parsers = {
@@ -340,6 +401,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--daily-dir", required=True)
     p.add_argument("--minute-dir", required=True)
 
+    p = sub.add_parser("import-futures-local")
+    p.add_argument("--root", default=str(Path(__file__).resolve().parents[1]))
+
     p = sub.add_parser("coverage")
     p.add_argument("--market", default="")
     p.add_argument("--symbol", default="")
@@ -376,6 +440,12 @@ def main() -> None:
         rows.extend(import_directory(conn, args.daily_dir, "FUTURES", "futures_daily"))
         rows.extend(import_directory(conn, args.minute_dir, "FUTURES", "futures_minute"))
         pd.DataFrame(rows).to_csv(Path(args.db).with_name("market_data_import_futures.csv"), index=False, encoding="utf-8-sig")
+    elif args.cmd == "import-futures-local":
+        rows = import_futures_local(conn, args.root)
+        out_csv = Path(args.db).with_name("market_data_import_futures_local.csv")
+        pd.DataFrame(rows).to_csv(out_csv, index=False, encoding="utf-8-sig")
+        ok = sum(1 for row in rows if row["status"] == "ok")
+        print(f"import-futures-local ok={ok} total={len(rows)} log={out_csv}")
     elif args.cmd == "coverage":
         frame = coverage(conn, args.market, args.symbol)
         if args.out:

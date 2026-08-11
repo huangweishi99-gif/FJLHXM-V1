@@ -98,6 +98,18 @@ python src\market_data_store.py --db data\market_data.sqlite import-futures `
   --minute-dir "D:\BaiduNetdiskDownload\期货\实盘数据\5-60分钟csv"
 ```
 
+导入国内期货短代码 intraday（本机 `data/futures/{5m,15m,1h}` 或 `data/{tf}`）：
+
+```powershell
+python src\market_data_store.py --db data\market_data.sqlite import-futures-local --root .
+```
+
+同步国内 5m 后一键 ingest（见 `docs/FUTURES_5M_SYNC.md`）：
+
+```powershell
+powershell -File scripts\run_sync_domestic_futures_5m_for_context.ps1
+```
+
 查看覆盖率：
 
 ```powershell

@@ -191,6 +191,52 @@ def test_load_exec_gap_order_ids(tmp_path) -> None:
     }
 
 
+def test_domestic_contract_switch_fill_is_exec_gap_without_kline_replay(tmp_path) -> None:
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "audit_paper_fills_contract_switch",
+        Path(__file__).resolve().parents[1] / "scripts" / "audit_paper_fills.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    record = {
+        "time": "2026-07-15 13:02:40",
+        "event_type": "fill",
+        "order_id": "JDUSDT-DS01-D1-short-b3b8ea0653c242ea",
+        "symbol": "JDUSDT",
+        "strategy_id": "DS01",
+        "side": "short",
+        "created_at": "2026-07-15 13:01:04",
+        "bar_time": "2026-07-15 03:15:00",
+        "setup_key": "JDUSDT|DS01|SHORT|signal=20260713160000|trigger=4590",
+    }
+    manifest = {
+        "symbols": {
+            "JD": {
+                "data_contract": "DCE.jd2609",
+                "previous_data_contract": "DCE.jd2608",
+                "contract_switched_at": "2026-07-15 13:02:29",
+            }
+        }
+    }
+
+    results, cache = mod.audit_fills(
+        [record],
+        tmp_path / "missing-data",
+        market="domestic",
+        gap=3,
+        contract_manifest=manifest,
+    )
+
+    assert cache == {}
+    assert len(results) == 1
+    assert results[0].verdict == "exec_gap"
+    assert results[0].checks["contract_switch"]["order_contract"] == "DCE.jd2608"
+
+
 def test_audit_ds08_exec_gap_acknowledged(tmp_path, monkeypatch) -> None:
     from fengji_core.fill_supervision import audit_ds08_fill, load_exec_gap_order_ids
     from fengji_core.os_engine import RawNode
@@ -480,6 +526,42 @@ def test_audit_fill_record_routes_ds05_unparseable_key() -> None:
     assert result.strategy_id == "DS05"
     assert result.verdict == "needs-data"
     assert "unparseable DS05 setup_key" in result.issues
+
+
+def test_ds05_intraday_setup_repaint_skips_when_pending_fill_ok() -> None:
+    from fengji_core.fill_supervision import audit_ds05_fill
+
+    dates = pd.date_range("2026-07-01", periods=6, freq="D")
+    os_df = pd.DataFrame(
+        {
+            "date": dates,
+            "open": [58000.0, 59000.0, 60000.0, 62583.26, 63144.01, 63650.01],
+            "high": [61000.0, 62000.0, 62979.86, 63461.99, 63999.0, 64700.0],
+            "low": [57000.0, 58000.0, 61248.86, 62328.24, 62436.59, 61306.84],
+            "close": [60024.0, 61560.0, 62583.26, 63144.01, 63650.0, 64042.02],
+            "camp": [-1, -1, -1, -1, -1, -1],
+        }
+    )
+    record = {
+        "latest_time": "2026-07-06 00:00:00",
+        "trigger_price": 62436.59,
+        "fill_price": 62069.8,
+        "stop_price": 63999.0,
+    }
+
+    result = audit_ds05_fill(
+        side=-1,
+        record=record,
+        os_df=os_df,
+        symbol="BTCUSDT",
+        order_id="BTCUSDT-DS05-D1-short-da008ccaf48b8587",
+        setup_key="BTCUSDT|DS05|SHORT|k2=20260705000000|k3=20260706000000|trigger=62436.59",
+        fill_time="2026-07-06 20:18:49",
+    )
+
+    assert result.verdict == "skipped"
+    assert result.checks["pending_fill_ok"] is True
+    assert "not reproducible from final D1 bar" in result.issues[0]
 
 
 def test_audit_fill_record_routes_ds07_missing_d1() -> None:

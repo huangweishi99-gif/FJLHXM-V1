@@ -31,9 +31,16 @@ FILES = [
 ]
 
 
-def local_hash(rel: str) -> str:
+def local_hash_bytes(rel: str) -> bytes:
     p = ROOT / rel
-    return hashlib.sha256(p.read_bytes()).hexdigest()
+    data = p.read_bytes()
+    if p.suffix == ".sh":
+        return data.replace(b"\r\n", b"\n")
+    return data
+
+
+def local_hash(rel: str) -> str:
+    return hashlib.sha256(local_hash_bytes(rel)).hexdigest()
 
 
 def remote_hashes(host: str, remote_root: str, rels: list[str]) -> dict[str, str]:

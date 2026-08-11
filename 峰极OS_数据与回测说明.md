@@ -25,6 +25,14 @@
 
 虚拟货币回测当前既有 DS01-DS08 旧结果，也有 DS01-DS09 总定式相关脚本；DS09 依赖 M15 数据。
 
+2026-07-10 运行态口径补充：
+
+- 海外模拟盘主数据源为 `data_manager.py`，通过 Binance 拉取 16 个主监控币种：BTC、ETH、SOL、AVAX、TRUMP、RENDER、IO、TAO、DASH、LTC、DOGE、ADA、APT、LINK、BNB、ZEC 的 `1d`、`1h`、`15m`。
+- Binance 无现货源或需要补偿的 HYPE、ATH 由 `scripts/sync_missing_crypto_15m.py` 走 OKX fallback，覆盖 `M15`、`H1`、`D1`，并可在同步后增量修复 OS state。
+- `scripts/watchdog_overseas.sh` 每分钟看护海外运行态；主数据新鲜度阈值默认 `WATCHDOG_DATA_STALE_LIMIT=1800` 秒；OKX fallback 默认 `WATCHDOG_OKX_15M_INTERVAL=600` 秒补偿一次；OKX 新鲜度由 `scripts/check_okx_csv_freshness.py` 校验。
+- `scripts/audit_crypto_data_pipeline.py` 为只读审计入口，用于检查 Binance 主源、OKX fallback、watchdog 补偿、新鲜度脚本和当前 `data/1d`、`data/1h`、`data/15m` runtime 快照。
+- 2026-07-10 海外实测：18 个币种（16 个 Binance 主源 + HYPE/ATH OKX fallback）在 `15m`、`1h`、`1d` 三周期均存在；`15m` 最大滞后约 802 秒，`1h` 最大滞后约 1702 秒，HYPE/ATH 的 OKX 新鲜度检查均为 `ok`。
+
 ### 股票数据
 
 股票数据主要包括：

@@ -153,6 +153,41 @@ def test_setup_key_keeps_order_id_stable_across_refreshes() -> None:
     assert orders_1[0].order_id == orders_2[0].order_id
 
 
+def test_futures_pending_order_stamps_contract_and_rotates_order_id(tmp_path: Path, monkeypatch) -> None:
+    manifest = tmp_path / "manifest.json"
+    monkeypatch.setenv("FENGJI_MARKET", "futures")
+    monkeypatch.setenv("FUTURES_MAIN_CONTRACT_MANIFEST", str(manifest))
+    row = radar_row("JDUSDT", "DS01", "PENDING", setup_key="JDUSDT|DS01|SHORT|signal=x|trigger=4590")
+
+    manifest.write_text(
+        json.dumps({"symbols": {"JD": {"data_contract": "DCE.jd2608"}}}),
+        encoding="utf-8",
+    )
+    old_order = convert_radar_rows(
+        [row],
+        include_strategies={"DS01"},
+        include_triggered=False,
+        max_distance_pct=0.08,
+        created_at="2026-07-15 13:01:04",
+    )[0]
+
+    manifest.write_text(
+        json.dumps({"symbols": {"JD": {"data_contract": "DCE.jd2609"}}}),
+        encoding="utf-8",
+    )
+    new_order = convert_radar_rows(
+        [row],
+        include_strategies={"DS01"},
+        include_triggered=False,
+        max_distance_pct=0.08,
+        created_at="2026-07-15 13:03:04",
+    )[0]
+
+    assert old_order.data_contract == "DCE.jd2608"
+    assert new_order.data_contract == "DCE.jd2609"
+    assert old_order.order_id != new_order.order_id
+
+
 def test_pending_monitor_records_filled_setup_key(tmp_path: Path) -> None:
     setup_key = "RENDERUSDT|DS01|LONG|signal=20260701000000|trigger=10"
     orders = convert_radar_rows(

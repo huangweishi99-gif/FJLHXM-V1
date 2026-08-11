@@ -13,13 +13,19 @@ from typing import Any
 import pandas as pd
 import requests
 
-# 智能寻路：关联大本营旁边的 src 工具箱
+# 智能寻路：部署时脚本位于项目根目录，本地审计时位于 remote_domestic_optimize。
 ROOT = Path(__file__).resolve().parent
-if str(ROOT / "src") not in sys.path:
-    sys.path.insert(0, str(ROOT / "src"))
+PROJECT_ROOT = ROOT if (ROOT / "packages" / "fengji_core").is_dir() else ROOT.parent
+SRC_ROOT = PROJECT_ROOT / "src"
+CORE_ROOT = PROJECT_ROOT / "packages" / "fengji_core"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+if str(CORE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CORE_ROOT))
 
 try:
     from batch_unified_crypto_whitelist import pct_return_trade
+    from fengji_core.state_lock import update_state_file
     from unified_whitelist_engine import UnifiedConfig, run_unified_symbol
 except ModuleNotFoundError as exc:
     raise SystemExit(f"⚠️ 策略引擎零件不完整。请确保你的 src 文件夹已经完整放入 quant_futures 目录下！原始错误: {exc}")
@@ -152,6 +158,21 @@ def send_msg(webhook: str, text: str) -> bool:
         return False
 
 
+def dispatch_effects(args: argparse.Namespace, effects: list[dict[str, Any]]) -> None:
+    for effect in effects:
+        kind = effect.get("kind")
+        if kind == "log":
+            log_event(args, effect["level"], effect["message"], **effect.get("payload", {}))
+        elif kind == "trade":
+            record = effect["record"]
+            append_trade_csv(args, record)
+            log_event(args, "INFO", effect["event_message"], **record)
+            send_msg(args.feishu_webhook, effect["feishu_message"])
+            print(effect["success_message"], flush=True)
+        elif kind == "print":
+            print(effect["message"], flush=True)
+
+
 def read_source_csv(path: Path) -> pd.DataFrame:
     frame = pd.read_csv(path)
     frame.columns = [c.strip().lower() for c in frame.columns]
@@ -270,21 +291,21 @@ def write_status(args: argparse.Namespace, state: dict, run_id: str) -> None:
     save_json(runtime_path(args, "status_futures_astock.json"), summary)
 
 
-def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: str) -> None:
+def prepare_symbol_scan(
+    symbol: str,
+    args: argparse.Namespace,
+    last_bar_key: str,
+    run_id: str,
+) -> dict[str, Any] | None:
     clean = normalize_symbol(symbol)
     disp = display_name(clean)
     data_dir = Path(args.data_dir)
 
     bar_key = current_bar_key(data_dir, clean)
     if not bar_key:
-        return
-
-    symbol_state = init_symbol_state(state, clean)
-    if symbol_state["last_bar_key"] == bar_key:
-        return
-
-    current_equity = safe_float(symbol_state.get("equity"), DEFAULT_SYMBOL_EQUITY)
-    trade_lots = 2 if current_equity >= 200000.0 else 1
+        return None
+    if last_bar_key == bar_key:
+        return None
 
     cache_root = Path(args.runtime_dir) / "cache" / clean
     out_dir = Path(args.runtime_dir) / "runs" / run_id / clean
@@ -294,7 +315,7 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
         h1_csv, h1_time = write_engine_csv(data_dir / "1h" / f"{clean}.csv", cache_root / f"{clean}_1H_runtime.csv", args.h1_tail_rows)
     except Exception as exc:
         log_event(args, "ERROR", "准备策略引擎输入数据失败", symbol=disp, error=str(exc))
-        return
+        return None
 
     engine_cfg = UnifiedConfig(
         initial_cash=DEFAULT_SYMBOL_EQUITY,
@@ -311,36 +332,66 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
         run_unified_symbol(clean.replace("USDT", ""), engine_cfg, daily_csv, h1_csv, None, TOTAL_PATTERN_STRATEGIES, out_dir)
     except Exception as exc:
         log_event(args, "ERROR", "策略引擎运行失败", symbol=disp, error=str(exc), traceback=traceback.format_exc())
-        return
+        return None
+
+    accepted_path = out_dir / "accepted_trades.csv"
+    accepted = pd.read_csv(accepted_path) if accepted_path.exists() else pd.DataFrame()
+    if not accepted.empty:
+        if "strategy_priority" not in accepted.columns:
+            accepted["strategy_priority"] = 999
+        accepted["entry_time"] = pd.to_datetime(accepted["entry_time"], errors="coerce")
+        accepted["exit_time"] = pd.to_datetime(accepted["exit_time"], errors="coerce")
+        accepted = accepted.dropna(subset=["entry_time"]).sort_values(["entry_time", "strategy_priority"])
+        accepted["trade_key"] = accepted.apply(trade_key, axis=1)
+
+    return {
+        "clean": clean,
+        "display": disp,
+        "bar_key": bar_key,
+        "h1_time": h1_time,
+        "accepted": accepted,
+    }
+
+
+def apply_symbol_scan(
+    symbol: str,
+    args: argparse.Namespace,
+    state: dict,
+    run_id: str,
+    scan: dict[str, Any],
+) -> list[dict[str, Any]]:
+    clean = str(scan["clean"])
+    disp = str(scan["display"])
+    bar_key = str(scan["bar_key"])
+    h1_time = pd.to_datetime(scan["h1_time"])
+    accepted = scan["accepted"]
+    effects: list[dict[str, Any]] = []
+
+    symbol_state = init_symbol_state(state, clean)
+    if symbol_state.get("last_bar_key") == bar_key:
+        return effects
+
+    current_equity = safe_float(symbol_state.get("equity"), DEFAULT_SYMBOL_EQUITY)
+    trade_lots = 2 if current_equity >= 200000.0 else 1
+    multiplier = FUTURES_MULTIPLIERS.get(disp, 10)
 
     symbol_state["last_bar_key"] = bar_key
     symbol_state["last_updated"] = now_text()
 
-    accepted_path = out_dir / "accepted_trades.csv"
-    accepted = pd.read_csv(accepted_path) if accepted_path.exists() else pd.DataFrame()
-
     if accepted.empty:
         symbol_state["initialized"] = True
         trim_state_lists(symbol_state)
-        return
-
-    if "strategy_priority" not in accepted.columns:
-        accepted["strategy_priority"] = 999
-    accepted["entry_time"] = pd.to_datetime(accepted["entry_time"], errors="coerce")
-    accepted["exit_time"] = pd.to_datetime(accepted["exit_time"], errors="coerce")
-    accepted = accepted.dropna(subset=["entry_time"]).sort_values(["entry_time", "strategy_priority"])
-    accepted["trade_key"] = accepted.apply(trade_key, axis=1)
+        return effects
 
     if not symbol_state.get("initialized"):
         symbol_state["initialized"] = True
         symbol_state["seen_entries"] = [str(key) for key in accepted["trade_key"].tail(100).tolist()]
         trim_state_lists(symbol_state)
-        print(f"[{disp}] 完成基线数据初始化", flush=True)
-        return
+        effects.append({"kind": "print", "message": f"[{disp}] 完成基线数据初始化"})
+        return effects
 
     ref_time = h1_time
     lookback_start = ref_time - pd.Timedelta(hours=args.entry_lookback_hours)
-    multiplier = FUTURES_MULTIPLIERS.get(disp, 10)
 
     # 1. 严格检查并执行模拟平仓
     still_open = []
@@ -379,9 +430,6 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
                     "trade_key": key,
                     "run_id": run_id,
                 }
-                append_trade_csv(args, trade_record)
-                log_event(args, "INFO", "模拟平仓", **trade_record)
-
                 msg = (
                     f"✅【峰极总定式01-08国内期货A股模拟实盘 平仓】\n"
                     f"时间: {now_text()}\n"
@@ -393,9 +441,14 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
                     f"平仓结果: {'盈利' if real_net_pnl >= 0 else '亏损'} {real_net_pnl:.2f} 元\n"
                     f"退出原因: {row.get('exit_reason', '')}"
                 )
-                send_msg(args.feishu_webhook, msg)
                 symbol_state.setdefault("closed_entries", []).append(key)
-                print(f"[{disp}] 模拟平仓信号播报成功", flush=True)
+                effects.append({
+                    "kind": "trade",
+                    "record": trade_record,
+                    "event_message": "模拟平仓",
+                    "feishu_message": msg,
+                    "success_message": f"[{disp}] 模拟平仓信号播报成功",
+                })
                 continue
         still_open.append(pos)
     symbol_state["open_positions"] = still_open
@@ -416,13 +469,29 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
             side = safe_int(row.get("side"), 0)
             if strategy_id not in TOTAL_PATTERN_STRATEGIES or side not in (1, -1):
                 symbol_state["seen_entries"].append(key)
-                log_event(args, "WARN", "忽略异常开仓信号", symbol=disp, strategy_id=strategy_id, side=side, trade_key=key)
+                effects.append({
+                    "kind": "log",
+                    "level": "WARN",
+                    "message": "忽略异常开仓信号",
+                    "payload": {"symbol": disp, "strategy_id": strategy_id, "side": side, "trade_key": key},
+                })
                 continue
 
             allowed, reason = can_open_position(symbol_state.get("open_positions", []), strategy_id, side, args)
             if not allowed:
                 symbol_state["seen_entries"].append(key)
-                log_event(args, "INFO", "开仓信号被风控跳过", symbol=disp, strategy_id=strategy_id, side=side, reason=reason, trade_key=key)
+                effects.append({
+                    "kind": "log",
+                    "level": "INFO",
+                    "message": "开仓信号被风控跳过",
+                    "payload": {
+                        "symbol": disp,
+                        "strategy_id": strategy_id,
+                        "side": side,
+                        "reason": reason,
+                        "trade_key": key,
+                    },
+                })
                 continue
 
             ep = safe_float(row.get("entry_price"))
@@ -459,9 +528,6 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
                 "trade_key": key,
                 "run_id": run_id,
             }
-            append_trade_csv(args, trade_record)
-            log_event(args, "INFO", "模拟开仓", **trade_record)
-
             msg = (
                 f"🚨【峰极总定式01-08国内期货A股模拟实盘 开仓】\n"
                 f"时间: {now_text()}\n"
@@ -476,11 +542,45 @@ def process_symbol(symbol: str, args: argparse.Namespace, state: dict, run_id: s
                 f"手续费设定: 万分之1\n"
                 f"数据截至: {h1_time}"
             )
-            send_msg(args.feishu_webhook, msg)
-            print(f"[{disp}] 模拟开仓信号播报成功", flush=True)
+            effects.append({
+                "kind": "trade",
+                "record": trade_record,
+                "event_message": "模拟开仓",
+                "feishu_message": msg,
+                "success_message": f"[{disp}] 模拟开仓信号播报成功",
+            })
             break
 
     trim_state_lists(symbol_state)
+    return effects
+
+
+def new_state() -> dict[str, Any]:
+    return {"version": 3, "started_at": now_text(), "symbols": {}}
+
+
+def normalize_state(state: dict[str, Any]) -> dict[str, Any]:
+    state.setdefault("version", 3)
+    state.setdefault("started_at", now_text())
+    state.setdefault("symbols", {})
+    return state
+
+
+def commit_symbol_scan(
+    state_path: Path,
+    symbol: str,
+    args: argparse.Namespace,
+    run_id: str,
+    scan: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    effects: list[dict[str, Any]] = []
+
+    def mutator(latest: dict[str, Any]) -> None:
+        normalize_state(latest)
+        effects.extend(apply_symbol_scan(symbol, args, latest["symbols"], run_id, scan))
+
+    state = update_state_file(state_path, mutator, default=new_state())
+    return state, effects
 
 
 def main() -> None:
@@ -505,10 +605,7 @@ def main() -> None:
             pass
 
     state_path = Path(args.state_file)
-    state = load_json(state_path, {"version": 3, "started_at": now_text(), "symbols": {}})
-    state.setdefault("version", 3)
-    state.setdefault("started_at", now_text())
-    state.setdefault("symbols", {})
+    state = normalize_state(load_json(state_path, new_state()))
 
     startup = (
         f"🚀【峰极总定式01-08国内期货A股模拟实盘 已启动】\n"
@@ -527,11 +624,18 @@ def main() -> None:
         run_id = pd.Timestamp.now(tz="Asia/Shanghai").strftime("%Y%m%d_%H%M%S")
         for symbol in MONITOR_FUTURES:
             try:
-                process_symbol(symbol, args, state["symbols"], run_id)
-                save_json(state_path, state)
+                state = normalize_state(load_json(state_path, new_state()))
+                clean = normalize_symbol(symbol)
+                symbol_state = state["symbols"].get(clean, {})
+                scan = prepare_symbol_scan(symbol, args, str(symbol_state.get("last_bar_key", "")), run_id)
+                if scan is None:
+                    continue
+                state, effects = commit_symbol_scan(state_path, symbol, args, run_id, scan)
+                dispatch_effects(args, effects)
             except Exception as exc:
                 log_event(args, "ERROR", "单品种处理异常", symbol=symbol, error=str(exc), traceback=traceback.format_exc())
                 send_msg(args.feishu_webhook, f"⚠️【国内期货A股模拟盘异常】\n时间: {now_text()}\n品种: {symbol}\n错误: {exc}")
+        state = normalize_state(load_json(state_path, new_state()))
         write_status(args, state, run_id)
         time.sleep(args.loop_seconds)
 

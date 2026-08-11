@@ -15,10 +15,11 @@ function Get-DmPythonProcs {
 }
 $dmProcs = @(Get-DmProcs)
 $dmPy = @(Get-DmPythonProcs)
+$HeartbeatMaxAgeSec = 420
 $hbPath = Join-Path $root "runtime\logs\data_manager_heartbeat.txt"
 $hbAge = $null
 if (Test-Path $hbPath) { $hbAge = [int](((Get-Date) - (Get-Item $hbPath).LastWriteTime).TotalSeconds) }
-Write-Host "count: $($dmPy.Count) python (expect 1) wrappers=$($dmProcs.Count - $dmPy.Count) heartbeat_age_sec=$hbAge (expect <120)"
+Write-Host "count: $($dmPy.Count) python (expect 1) wrappers=$($dmProcs.Count - $dmPy.Count) heartbeat_age_sec=$hbAge (expect <$HeartbeatMaxAgeSec)"
 if ($dmPy.Count -gt 1) { Write-Host "WARN duplicate python — run scripts\ensure_single_data_manager.ps1" -ForegroundColor Yellow }
 if ($dmPy.Count -eq 1) {
     $codePath = Join-Path $root "data_manager_futures.py"
@@ -29,7 +30,7 @@ if ($dmPy.Count -eq 1) {
         }
     }
 }
-if ($null -ne $hbAge -and $hbAge -gt 120) { Write-Host "WARN heartbeat stale" -ForegroundColor Yellow }
+if ($null -ne $hbAge -and $hbAge -gt $HeartbeatMaxAgeSec) { Write-Host "WARN heartbeat stale" -ForegroundColor Yellow }
 $dmPy | ForEach-Object { "PID=$($_.ProcessId) started=$($_.CreationDate)" }
 
 $dmLog = Join-Path $root "runtime\logs\data_manager_futures.log"

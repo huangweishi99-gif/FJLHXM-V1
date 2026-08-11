@@ -20,9 +20,10 @@ for path in ROOT.glob("*.py"):
         continue
     new_text, n = PATTERN.subn(REPLACEMENT, text)
     if n == 0 and "open.feishu.cn" in text:
-        new_text = text.replace(
-            '"https://open.feishu.cn/open-apis/bot/v2/hook/',
-            '"',
+        new_text = re.sub(
+            r'(["\'])https://open\.feishu\.cn/open-apis/bot/v2/hook/[^"\']+(["\'])',
+            r"\1\2",
+            text,
         )
         n = 1 if new_text != text else 0
     if n:

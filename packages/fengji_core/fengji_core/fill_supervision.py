@@ -370,6 +370,15 @@ def parse_ds05_setup_key(setup_key: str) -> dict[str, Any] | None:
         return None
 
 
+def compact_key_time_matches_bar(key_time: str, row: pd.Series) -> bool:
+    try:
+        key_ts = pd.to_datetime(str(key_time), format="%Y%m%d%H%M%S")
+        row_ts = pd.to_datetime(row.get("date"))
+    except (TypeError, ValueError):
+        return False
+    return key_ts.normalize() == row_ts.normalize()
+
+
 def parse_ds08_setup_key(setup_key: str) -> dict[str, Any] | None:
     """Radar/setup_key: LONG|defense_v3|attack_p2|trigger  SHORT|defense_p3|attack_v2|trigger"""
     parts = str(setup_key).split("|")
@@ -701,6 +710,10 @@ def audit_ds05_fill(
     signal = make_ds05_signal(os_df, i)
     issues: list[str] = []
     checks: dict[str, Any] = {"setup_bar_idx": i}
+    if i < len(os_df):
+        checks["setup_bar_date"] = str(os_df.iloc[i].get("date"))
+    checks["setup_key_k2"] = parsed["k2_time"]
+    checks["setup_key_k3"] = parsed["k3_time"]
     if signal is None:
         issues.append("make_ds05_signal returned None at setup bar")
     else:
@@ -732,6 +745,15 @@ def audit_ds05_fill(
             issues.append(f"fill_price={fill_price} does not satisfy trigger={trigger}")
         else:
             checks["pending_fill_ok"] = True
+
+    if signal is None and checks.get("pending_fill_ok") and i < len(os_df):
+        if compact_key_time_matches_bar(parsed["k3_time"], os_df.iloc[i]):
+            base.checks = checks
+            base.issues = [
+                "DS05 setup not reproducible from final D1 bar; pending fill OK"
+            ]
+            base.verdict = "skipped"
+            return base
 
     base.checks = checks
     base.issues = issues

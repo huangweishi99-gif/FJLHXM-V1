@@ -1,8 +1,10 @@
 # 峰极OS_挂单器与模拟实盘说明.md
 
-更新时间：2026-05-27
+更新时间：2026-07-08
 
 本文用于交接峰极OS总工程中的挂单器、模拟实盘、交易执行与日志审计逻辑。所有内容必须服从 `峰极OS_最高宪法.md`、`峰极OS_阵营转换判断.md`、`峰极OS_九大定式规则总纲.md`。本文只描述当前项目已有实现和待开发边界，不包含任何 API Key、Token、服务器密码、完整 webhook 或私钥。
+
+补充复核：2026-07-08 已用 `scripts/audit_paper_ledger_contract.py` 固化模拟开仓、平仓、止损、费用滑点和账本字段契约；已用 `scripts/audit_pending_order_contract.py` 固化挂单触发与冲突撤单契约。
 
 ## 1. 挂单器目标
 
@@ -51,8 +53,9 @@
 - `DS05`
 - `DS07`
 - `DS08`
+- `DS09`
 
-代码中存在 DS09 优先级常量，但 DS09 尚未进入默认挂单策略集合。DS02 当前更偏收线确认或占位逻辑，尚未完整接入挂单器。
+DS02 当前更偏收线确认或占位逻辑，尚未完整接入价格型挂单器。DS06 外扩峰式规则已补齐，但当前默认挂单策略集合尚未包含 DS06，仍需专门接入验证。
 
 ### 2.4 风控模块
 
@@ -74,13 +77,15 @@
 
 ### 2.6 撤单模块
 
-当前撤单是模拟撤单。`src/fengji_pending_order_monitor.py` 和 `src/fengji_futures_pending_order_monitor.py` 在挂单触发后，会把同品种其他冲突挂单写入 `events.jsonl`，撤销原因使用类似 `conflict_after_fill` 的记录。
+当前撤单是模拟撤单。`src/fengji_pending_order_monitor.py` 和 `src/fengji_futures_pending_order_monitor.py` 在挂单触发后，共用 `cancel_conflicting_orders` 逻辑，把同品种其他冲突挂单写入 `events.jsonl`，撤销原因使用 `conflict_after_fill`。
 
-待确认事项：
+当前实现口径：
 
-- 同品种一个定式触发后，所有其他定式是否全部撤销。
-- 同向加仓定式是否保留。
-- DS01最多三次开仓与其他定式互斥关系的最终规则。
+- 非 DS01 挂单成交后，同品种其他未成交挂单都会标记撤销，无论同向或反向。
+- DS01 挂单成交后，同品种同方向 DS01 挂单保留，用于 DS01 同向连续开仓；同品种反向 DS01 和其他定式挂单撤销。
+- 撤销状态写入 `cancelled_order_ids`；如果原挂单有 `setup_key`，同步写入 `cancelled_setup_keys`。
+- 撤销事件包含 `event_type=cancel`、`cancel_reason=conflict_after_fill`、`filled_order_id`，用于后续审计。
+- DS01 最多开仓次数当前默认 `max_ds01_entries = 3`；国内链路另有 `max_open_positions_per_symbol = 3`。
 
 ### 2.7 日志模块
 
@@ -184,12 +189,15 @@ DS09 正确规则已由用户确认：D1 是天，M15 是针。D1 提供战略�
 - 数据泵更新本地 `data` 目录。
 - 主模拟盘读取 D1/H1/15m 等本地K线。
 - 挂单监控可读取 Binance 现价接口，也可通过 `--price-file` 使用测试价格快照。
+- 触发口径：多头现价 `>= trigger_price`，空头现价 `<= trigger_price`。
 
 国内期货/A股链路：
 
 - 数据泵更新本地 `data` 目录。
 - 国内挂单监控读取 `data/<timeframe>/<symbol>.csv`。
 - 默认按 `15m,1h,1d` 顺序读取最新K线，用高低点判断是否触达挂单价。
+- 触发口径：多头 K 线 `high >= trigger_price`，空头 K 线 `low <= trigger_price`。
+- 国内期货/A股链路按市场交易时段由数据泵与计划任务控制；挂单触发规则与海外共享订单状态、冲突撤单、`setup_key` 去重等核心契约，但价格来源和交易时间窗口不同。
 
 ### 4.2 生成信号
 
@@ -308,6 +316,32 @@ DS09 正确规则已由用户确认：D1 是天，M15 是针。D1 提供战略�
 
 爆仓逻辑需要继续确认。若进入真实实盘，必须单独实现逐仓/全仓、强平价、维持保证金、交易所风控和异常价格保护，不能只用当前模拟盈亏估算。
 
+### 5.5 模拟账本字段与盈亏公式（2026-07-08 复核）
+
+当前海外虚拟货币挂单监控入口为 `src/fengji_pending_order_monitor.py`，默认资金参数为：
+
+- `--initial-cash 1000.0`
+- `--margin-per-trade 200.0`
+- `--leverage 2.0`
+- `--fee-rate 0.0005`
+- `--slippage-rate 0.0003`
+
+海外模拟开仓字段至少包含：`source`、`trade_key`、`order_id`、`symbol`、`strategy_id`、`side`、`direction`、`entry_time`、`entry_price`、`initial_stop`、`current_stop`、`units`、`entries`、`legs`、`margin`、`leverage`、`notional`、`virtual_initial_cash`。其中 `notional = margin * leverage`。
+
+海外模拟平仓字段至少包含：`closed_at`、`source`、`symbol`、`strategy_id`、`direction`、`side`、`entry_time`、`exit_time`、`entry_price`、`exit_price`、`initial_stop`、`exit_reason`、`entries`、`margin`、`leverage`、`notional`、`gross_pnl`、`costs`、`net_pnl`、`return_on_symbol_cash`、`equity_after`、`order_id`。当前公式为：`gross_pnl = notional * side * (exit_price - entry_price) / entry_price`，`costs = notional * (fee_rate + slippage_rate) * 2`，`net_pnl = gross_pnl - costs`。
+
+当前国内期货/A股挂单监控入口为 `src/fengji_futures_pending_order_monitor.py`，默认资金参数为：
+
+- `--lots 1`
+- `--fee-rate 0.0001`
+- `--slippage-rate 0.0002`
+
+国内模拟开仓字段至少包含：`key`、`source`、`order_id`、`setup_key`、`symbol`、`strategy_id`、`side`、`direction`、`entry_time`、`entry_price`、`trigger_price`、`initial_stop`、`current_stop`、`stop_price`、`lots`、`multiplier`、`created_at`、`entry_bar`、`risk_rule`、`timeframe`、`setup`。
+
+国内模拟交易 CSV 字段至少包含：`event_time`、`symbol`、`strategy_id`、`side`、`action`、`lots`、`entry_time`、`entry_price`、`exit_time`、`exit_price`、`net_pnl`、`equity`、`reason`、`trade_key`、`run_id`；平仓记录另含 `gross_pnl`、`costs`。当前公式为：`gross_pnl = (exit_price - entry_price) * side * multiplier * lots`，`costs = (entry_price + exit_price) * multiplier * lots * (fee_rate + slippage_rate)`，`net_pnl = gross_pnl - costs`。
+
+止损触发口径：海外多头现价或止损 K 线触及/跌破 `current_stop` 或 `initial_stop` 平仓，空头现价或止损 K 线触及/突破止损平仓；国内多头按 K 线 `low <= stop`，空头按 K 线 `high >= stop`。当前退出原因主要为 `stop` 或止损 K 线派生原因；止盈、反向信号退出、爆仓和交易所拒单仍属待设计范围。
+
 ### 5.4 实盘操作确认
 
 任何真实下单、真实撤单、真实账户资金查询、真实 API 权限修改，都必须先向用户明确说明操作内容、账户范围、风险和回滚方式，并取得确认。
@@ -359,12 +393,11 @@ DS09 正确规则已由用户确认：D1 是天，M15 是针。D1 提供战略�
 - 已有海外虚拟货币模拟挂单监控：`fengji_pending_order_monitor.py`。
 - 已有国内期货/A股模拟挂单监控：`fengji_futures_pending_order_monitor.py`。
 - 已有模拟成交、模拟止损、模拟账本、事件日志、冲突撤单记录。
-- DS01、DS03、DS05、DS07、DS08 已在挂单器默认集合中。
-- DS04 可进入默认集合，但仍需按其特殊规则继续验证。
+- DS01、DS03、DS04、DS05、DS07、DS08、DS09 已在挂单器默认集合中；DS09 全链路仍需按其 M15 点火规则继续验收。
 
 ### 7.2 未完成
 
-- DS09 九重天尚未完整接入雷达、挂单器、模拟盘全链路。
+- DS09 九重天虽已在默认挂单集合中，但雷达、挂单器、模拟盘全链路仍需继续按固定样本验收。
 - DS02 阴阳相吃式尚未形成明确价格型挂单处理。
 - DS06 外扩峰式规则已补齐，但未进入默认挂单集合，接入仍需验证。
 - 真实交易下单器未开发，当前只有模拟触发。
@@ -374,7 +407,7 @@ DS09 正确规则已由用户确认：D1 是天，M15 是针。D1 提供战略�
 ### 7.3 待验证
 
 - 本地、国内服务器、海外服务器是否都已经同步最新 DS01、DS03、DS05、DS07、DS09 规则。
-- 同品种一个挂单触发后，其他定式挂单的撤销范围是否符合用户最终规则。
+- 当前同品种冲突撤单实现已由 `audit_pending_order_contract.py` 固化；是否需要改成其他最终规则仍待用户另行裁定。
 - DS04 夹棍式在国内期货玻璃、纯碱等案例中是否能准确触发。
 - RENDERUSDT、IOUSDT、ETHUSDT、DOGEUSDT、LTCUSDT 等争议案例是否均可通过沙盒图复核。
 - `packages/fengji_core` 与 `src/quant` 的权威源关系。

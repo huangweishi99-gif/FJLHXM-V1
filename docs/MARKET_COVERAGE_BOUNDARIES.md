@@ -66,6 +66,7 @@ DS09 夜盘 session 映射见 `fengji_core.ds09.assign_cn_futures_session_date` 
 
 ```powershell
 python scripts\verify_d6_market_coverage_boundaries.py
+python scripts\audit_domestic_futures_data_schedule.py
 python -m pytest tests\test_market_coverage_boundaries.py -q
 ```
 
