@@ -10,4 +10,6 @@ runtime/feishu_webhook.env
 **/feishu_webhook.env
 *.egg-info/
 src.zip
+archives/
+.vscode/
 

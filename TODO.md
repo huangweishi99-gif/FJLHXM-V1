@@ -8,8 +8,15 @@
 - [x] **WIP classification**: separated modified files into code+tests (15 files), docs (9 files), scripts/deploy (7 files), and data-only (7 CSV files restored to HEAD).
 - [x] **Data CSV restore**: `git checkout -- data/overseas_1d/*.csv` to revert daily-refresh cache files.
 - [x] **Feishu paper trade signal strength analysis**: collected 622 fill events from JSONL, 552 Feishu claims; DS01 strongest (303 fills, 48.7%), DS05/DS07 tied second (81 each, 13%), DS08 (68, 10.9%), DS03 (53, 8.5%); domestic 81 open positions; overseas paper positions tracked.
-- [ ] **P1 follow-up**: per-strategy re-audit for DS01 (left30<=2 cases), DS02 (Yin-Yang pattern missing standalone test), DS04 (clip pattern K1-K4), DS05 (finger pattern K2 extreme), DS08 (denial-confirmation 5-point structure).
-- [ ] **P1 follow-up**: camp-conversion sandbox verification for DOGE/LTC/RENDER/IO recent camps.
+- [x] **P1**: DS02 standalone tests created (15 tests: make_ds02_signal, update_stop, check_stop, audit_camp_direction).
+- [x] **P1**: DS04 standalone tests created (16 tests: make_ds04_signal, k2_is_weakest, no_price_gap, update_stop, check_stop, audit_structure).
+- [x] **P1**: DS05 K2 extreme sandbox verified (9 tests pass; CJ/FG/SA sandbox images archived in runtime/ds05_sandbox/).
+- [x] **P1**: DS08 5-point denial-confirmation verified (12 tests pass including test_ds08_pending_fill.py).
+- [x] **P1**: camp-conversion sandbox 4/4 crypto (RENDER/IO/DOGE/LTC) confirmed VALID in sandbox archive.
+- [x] **Full test regression**: 630 passed, 17 skipped.
+- [x] **.gitignore**: added `archives/` and `.vscode/`.
+- [x] **Archival docs**: committed 8 root-level cleanup/handoff/baseline .md reports (`ARCHIVE_*`, `CLEANUP_*`, `CURRENT_BASELINE_*`, `HANDOFF_*`, `PG_BASELINE_*`, `WEB_MONITOR_*`).
+- [ ] **P2 follow-up**: A股板块回测归档 + 60m 长历史补齐 + DS09 成交沙盒图.
 
 ## 2026-08-10 - Domestic heartbeat check threshold
 

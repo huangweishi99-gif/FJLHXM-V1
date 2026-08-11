@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-08-11 (P1 strategy audit + missing tests + archival cleanup)
+
+- **DS04 standalone tests** (`tests/test_ds04.py`): 16 new unit tests covering `make_ds04_signal` (Yang-Yin-Yang long reclaim, Yin-Yang-Yin short reclaim), reject cases (gap, non-weakest K2, no-reclaim, short frame, no-next-bar), `k2_is_weakest`, `no_price_gap`, `update_ds04_stop` (red_ext/blue_ext upgrade with NaN guard), `check_stop` (gap/intraday long+short), `audit_ds04_structure`.
+- **DS02 standalone tests** (`tests/test_ds02.py`): 15 new unit tests covering `make_ds02_signal` (Red Yang-Eats-Yin long, Blue Yin-Eats-Yang short), reject cases (camp mismatch, camp=0, no-devour, short frame, no-next-bar), `DS02Signal.to_dict`, `update_ds02_stop` (yang/yin trailing), `check_stop` (gap/intraday), `audit_ds02_camp_direction`.
+- **DS05 K2 extreme**: verified 9 tests pass; CJ/FG/SA sandbox images confirmed archived in `runtime/ds05_sandbox/`.
+- **DS08 5-point**: verified 12 tests pass (radar + pending_fill); denial-confirmation structure correct.
+- **Camp verification**: 4/4 crypto camps (RENDER/IO/DOGE/LTC) confirmed VALID from sandbox archive.
+- **Full test regression**: 630 passed, 17 skipped (was 582 before DS04+DS02 tests).
+- **.gitignore**: added `archives/` and `.vscode/` to prevent auto-generated artifacts from entering the repo.
+- **Archival docs**: committed 7 root-level cleanup/handoff/baseline `.md` reports from June 2026 Phase 1/2 activity.
+- **`.vscode/extensions.json`**: committed workspace extension recommendations.
+
 ## 2026-08-11 (Codex handoff + WIP commit + paper signal strength analysis)
 
 - Full Codex handoff: read all constitutional/canonical/rule/handoff docs; git status confirmed 29 modified + 170+ new/untracked; Phase 2 closeout `PHASE2_CLOSEOUT_OK`.
