@@ -1,0 +1,27 @@
+# FengJi Phase 2 — local data pipeline manifest (B2 / SQLite / FUTURES 5m)
+# Cherry-pick bucket; do NOT full `git stash pop`.
+# Web static assets remain in fengji_web_phase1_manifest.txt (PR #10).
+
+docs/FUTURES_5M_SYNC.md
+docs/FUTURES_5M_DATA_PLAN.md
+docs/LOCAL_MARKET_DATA_DB.md
+
+src/market_data_store.py
+
+scripts/sync_domestic_futures_1d_for_web.py
+scripts/sync_domestic_futures_5m_for_context.py
+scripts/run_sync_domestic_futures_5m_for_context.ps1
+scripts/assess_instruments_vs_coverage.py
+scripts/fengji_phase2_data_manifest.txt
+scripts/verify_phase2_web_manifest_bucket.ps1
+scripts/verify_project_buckets.ps1
+scripts/verify_domestic_health.ps1
+scripts/verify_pg_sc_15m_csv.ps1
+scripts/probe_domestic_futures_15m.py
+scripts/wait_pg_sc_15m_acceptance.ps1
+scripts/ensure_single_data_manager.ps1
+
+tests/test_sync_domestic_futures_5m_for_context.py
+tests/test_market_data_store_futures_local.py
+tests/test_fengji_web_phase1_manifest.py
+tests/test_fengji_phase2_data_manifest.py

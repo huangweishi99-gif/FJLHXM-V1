@@ -1,0 +1,19 @@
+# FengJi results archive docs manifest (2026-06-02 batches)
+# Reference only — zip blobs stay outside git; see docs/archives/INDEX.md
+
+docs/archives/INDEX.md
+
+ARCHIVE_MANIFEST_2026-06-02.md
+ARCHIVE_MANIFEST_PHASE2_2026-06-02.md
+ARCHIVE_DECISION_REPORT_2026-06-02.md
+ARCHIVE_CANDIDATES_2026-06-02.csv
+CLEANUP_REPORT_2026-06-02.md
+CURRENT_BASELINE_2026-06-02.md
+
+archives/2026-06-02_results_phase1/manifest.csv
+archives/2026-06-02_results_phase1/verify.csv
+archives/2026-06-02_results_phase2/manifest.csv
+archives/2026-06-02_results_phase2/verify.csv
+
+scripts/fengji_archive_docs_manifest.txt
+scripts/verify_archive_docs_bucket.ps1

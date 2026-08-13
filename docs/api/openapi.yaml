@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  title: FengJi Quant API
+  version: 0.1.0
+  description: FJLHXM-V1 Web 后端草案（MVP）
+paths:
+  /api/v1/health:
+    get:
+      summary: 健康检查
+      responses:
+        "200":
+          description: OK
+  /api/v1/strategies:
+    get:
+      summary: 定式列表（含中文名）
+      responses:
+        "200":
+          description: 策略元数据数组
+  /api/v1/backtests/chart-bundle:
+    get:
+      summary: 回测 chart-bundle（K线+OS+标记）
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: strategy_id
+          in: query
+          schema:
+            type: string
+            default: DS03
+        - name: years
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+            default: 3
+        - name: market
+          in: query
+          schema:
+            type: string
+            default: CRYPTO
+      responses:
+        "200":
+          description: chart-bundle JSON
+        "404":
+          description: 品种 CSV 不存在
