@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-08-13 (服务器部署说明更新：记录双服务器 DS07 复核结论)
+
+- `峰极OS_服务器与部署说明.md` 追加更新：
+  - 2.6/3.6「当前状态」段落补充 2026-08-13 国内/海外服务器 DS07 实时复核结论（SHA256 与权威源一致、无 ALIGN_TURN、运行时加载权威文件、进程/数据新鲜度、遗留观察）。
+  - 第 7 节待完成事项「确认国内外服务器代码版本与本地 DS01-DS09 一致」中 DS07 勾选完成（国内/海外均有专项报告），DS01/DS03/DS05/DS09 仍待单独复核。
+- 报告：`results/domestic_ds07_recheck_20260813.md`、`results/overseas_ds07_recheck_20260813.md`（`results/` 按 .gitignore 约定仅保留本地）。
+
 ## 2026-08-13 (海外服务器 DS07 口径实时复核通过)
 
 - 通过 SSH 实时复核 `overseas-quant`（`VM-0-7-ubuntu`，远程根 `/home/ubuntu/quant_crypto`）：

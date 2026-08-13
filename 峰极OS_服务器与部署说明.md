@@ -1,6 +1,6 @@
 # 峰极OS_服务器与部署说明.md
 
-更新时间：2026-05-27
+更新时间：2026-05-27（2026-08-13 追加双服务器 DS07 实时复核结论）
 
 本文用于交接峰极OS总工程的国内服务器、国外服务器、部署脚本、模拟实盘运行环境和安全边界。本文不记录服务器密码、API Key、Token、交易所密钥、数据源密码、完整 webhook、私钥、服务器 IP、域名或登录用户名。所有敏感连接信息均以“见本地私密配置文件/环境变量/服务器控制台”处理。
 
@@ -76,6 +76,13 @@
 根据项目文件，国内服务器部署链路已存在，包含启动、重启、检查、SSH 修复和 OpenSSH 安装脚本。
 
 当前实时运行状态：待实时 SSH 检查。本文不把历史日志作为当前状态。
+
+2026-08-13 实时复核结论（SSH `domestic-quant`，见 `results/domestic_ds07_recheck_20260813.md`）：
+
+- 远程 `src\quant\ds07.py` SHA256 与本地权威源 `packages/fengji_core/fengji_core/ds07.py` 逐字节一致，无 ALIGN_TURN，关键标记齐全。
+- 运行时 `import fengji_core.ds07` 实际加载权威文件；模拟盘 3 个 Python 进程运行中。
+- 全仓活动路径 ALIGN_TURN 仅命中 `packages\fengji_core\fengji_core_temp\ds07.py`（2026-05-28 历史暂存，零引用、不在 sys.path、不可达）；嵌套 `fengji_core\fengji_core\fengji_core\`（2026-06-04 旧副本，NO_ALIGN）零引用。
+- 遗留观察：`fengji_core_temp/` 与嵌套旧副本建议用户授权后清理归档（未删除任何文件）；状态文件 mtime 较复核时间早约 1 小时，需结合交易时段确认。
 
 ### 2.7 敏感连接信息存放位置
 
@@ -163,6 +170,14 @@
 根据项目文件，国外服务器部署链路已存在，包含源码同步脚本和运行时重启脚本。
 
 当前实时运行状态：待实时 SSH 检查。本文不把历史日志作为当前状态。
+
+2026-08-13 实时复核结论（SSH `overseas-quant`，见 `results/overseas_ds07_recheck_20260813.md`）：
+
+- 远程 `src/quant/ds07.py` 与 `packages/fengji_core/fengji_core/ds07.py` 双副本 SHA256 均与本地权威源逐字节一致，均无 ALIGN_TURN，关键标记齐全。
+- 全仓活动路径 ALIGN_TURN 零命中（无 `fengji_core_temp` 目录）。
+- 运行时 `import fengji_core.ds07` 加载权威文件（pip editable 安装）；嵌套 `packages\fengji_core\fengji_core\fengji_core\`（2026-06-01 旧副本，NO_ALIGN）零引用不可达。
+- 进程健康：data_manager / overseas_paper_monitor / fengji_total_radar / fengji_radar_order_loop / fengji_pending_order_monitor 运行中；`data/15m/*.csv` 与 OS 状态文件实时更新。
+- 遗留观察：嵌套旧副本建议用户授权后清理归档（未删除任何文件）。
 
 ### 3.7 敏感连接信息存放位置
 
@@ -331,7 +346,7 @@
 
 - [ ] 实时 SSH 检查国内服务器数据泵、模拟盘、雷达循环、挂单监控和 Dash 是否正常运行。
 - [ ] 实时 SSH 检查国外服务器数据泵、主模拟盘、雷达循环、挂单监控是否正常运行。
-- [ ] 确认国内服务器和国外服务器代码版本与本地最新 DS01、DS03、DS05、DS07、DS09 规则一致。
+- [x] 确认国内服务器和国外服务器代码版本与本地最新 DS07 规则一致。（2026-08-13：国内 `domestic_ds07_recheck_20260813.md` + 海外 `overseas_ds07_recheck_20260813.md` 均通过——SHA256 与权威源逐字节一致、无 ALIGN_TURN、运行时加载权威文件；DS01/DS03/DS05/DS09 仍待单独复核）
 - [ ] 把脚本中的 webhook、服务器连接默认值、数据源账号默认值等敏感信息移出仓库，改为环境变量或本地私密配置。
 - [ ] 为国外服务器补齐独立数据泵启动/停止/守护说明。
 - [ ] 为国内服务器补齐独立停止脚本，避免只能通过重启脚本停止旧进程。
