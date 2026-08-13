@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-08-13 (DS07 口径裁决：以权威源代码为准，仅同向延续；统一修订文档与技能)
+
+- **用户裁决**: DS07 最终口径**以权威源代码为准（仅延续）**——维持 `e596aca`（2026-07-05）冻结的 DS03 二四棒同向延续逻辑（`LONG_CONTINUE`/`SHORT_CONTINUE`，`prev_h1_camp==1` 启动前已同阵营），放弃 2026-05-27 文档"两类触发（同向延续 + 反向并轨）"要求。服务器代码/部署不变。
+- **文档修订**（从"并轨"改为"仅延续"）：
+  - `峰极OS_九大定式规则总纲.md`：DS07 章节整体重写（策略定义/共振来源/阵营要求/入场/防守/平仓/回测/已补齐/待确认），总览表 DS07 行同步更新。
+  - `峰极OS_最高宪法.md` §6.7、`峰极OS_CANONICAL_RULES.md` DS07 段、`峰极OS_阵营转换判断.md` 定式07 段、`PROJECT_CONTEXT.md`（3 处）、`峰极OS_数据与回测说明.md`（2 处）、`峰极OS_挂单器与模拟实盘说明.md`（1 处）全部统一为新口径。
+  - `docs/DS07_CALIBRATION.md`：校准依据更新为 2026-08-13 用户裁决，多头/空头逻辑与审计硬条件改为仅延续。
+  - `docs/DS07_DRAFT.md`：头部口径说明更新为仅延续，正文（本就是窄口径）不动。
+  - `docs/W15_STRATEGY_ANIMATIONS_MVP_2026-06-09.md`：DS07 动画表行更新。
+- **技能修订**: `codex_assets/skills/fengji-signal-sandbox-audit/SKILL.md` 与全局已安装版 `%USERPROFILE%\.codex\skills\fengji-signal-sandbox-audit\SKILL.md` 的 DS07 描述改为"仅 DS03 二四棒同向延续 + prev_h1_camp 同向 + 禁 ALIGN_TURN"；原"使用启动前已对齐旧逻辑"的 common failure mode 反转修正为"使用 ALIGN_TURN 反向并轨旧逻辑"。
+- **契约确认**: `scripts/audit_ds_consistency_contract.py` 的 DS07 forbidden 口径（禁 `LONG_ALIGN_TURN`/`SHORT_ALIGN_TURN`）与权威源代码一致，**无需改动**。
+- **代码/服务器**: 未修改任何策略代码、峰极线、阵营转换、模拟成交规则；服务器部署（2026-07-10 已审计 mismatches=0）保持不变。
+- **TODO**: 待验证问题"DS07 口径三方不一致"标记完成（记录裁决与修订范围）；旧完成项 L402 加注口径被推翻说明。
+- 未写入密钥/Token/密码/webhook。
+
 ## 2026-08-13 (codex_assets/skills 三技能安装到全局 Codex 技能目录)
 
 - **TODO 完成**: "把 `codex_assets\skills` 中的技能安装到全局 Codex 技能目录，若后续需要自动触发"。

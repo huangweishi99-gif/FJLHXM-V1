@@ -2,7 +2,7 @@
 
 状态：`CALIBRATED`
 
-校准依据：用户已确认 DS07 双周期沙盒图正确；2026-05-27 当前工程口径同步为“同向延续 + 反向并轨”两类触发。
+校准依据：2026-08-13 用户裁决——以权威源代码为准（仅延续）。权威源 `packages/fengji_core/fengji_core/ds07.py`（2026-07-05 `e596aca` 冻结）：D1 提供战略授权，H1 必须通过 DS03 二四棒同向触发 `LONG_CONTINUE`/`SHORT_CONTINUE`，要求 `prev_h1_camp` 与 `d1_camp` 同向；反向并轨（`LONG_ALIGN_TURN`/`SHORT_ALIGN_TURN`）已废止。本文件为当前唯一生效口径，旧文档中“两类触发（同向延续 + 反向并轨）”表述已作废。
 
 ## 当前最高 OS 迁移
 
@@ -16,39 +16,36 @@
 
 1. D1 安全桥接阵营为红：`d1_camp == 1`。
 2. H1 必须独立运行峰极 OS。
-3. 多头允许两类触发：
-   - 同向延续：H1 前一状态为红，当前 K 线向上攻击 H1 红峰：`high > red_peak`。
-   - 反向并轨：H1 前一状态为蓝，当前 K 线突破 H1 蓝极，H1 转红并完成 D1/H1 同向。
-4. 同向延续入场价为 `max(open, red_peak)`。
-5. 反向并轨入场价按触发价与开盘价取不利成交。
-6. 防守点必须是 H1 完成触发后的同向防守极；无有效防守极时信号无效。
-7. 同一个攻击结构只能消费一次。
+3. H1 启动前已同阵营：`prev_h1_camp == 1` 且当前 `h1_camp == 1`。
+4. H1 需通过 DS03 二四棒同向判定（`resolve_ds03_attack` 返回 `side=1`），触发类型为 `LONG_CONTINUE`。
+5. 入场价为 `max(open, ds03.entry_ref)`，防守价为 `prev_row.red_ext_price`（H1 红极）。
+6. 防守价必须低于入场价（`defense_price < entry_price`），否则信号无效。
+7. 同一个攻击结构只能消费一次（`attack_key` 去重）。
 8. 后续只接受更高的 H1 红极上移止损。
 
 ## 空头逻辑
 
 1. D1 安全桥接阵营为蓝：`d1_camp == -1`。
 2. H1 必须独立运行峰极 OS。
-3. 空头允许两类触发：
-   - 同向延续：H1 前一状态为蓝，当前 K 线向下攻击 H1 蓝峰：`low < blue_peak`。
-   - 反向并轨：H1 前一状态为红，当前 K 线跌破 H1 红极，H1 转蓝并完成 D1/H1 同向。
-4. 同向延续入场价为 `min(open, blue_peak)`。
-5. 反向并轨入场价按触发价与开盘价取不利成交。
-6. 防守点必须是 H1 完成触发后的同向防守极；无有效防守极时信号无效。
-7. 同一个攻击结构只能消费一次。
+3. H1 启动前已同阵营：`prev_h1_camp == -1` 且当前 `h1_camp == -1`。
+4. H1 需通过 DS03 二四棒同向判定（`resolve_ds03_attack` 返回 `side=-1`），触发类型为 `SHORT_CONTINUE`。
+5. 入场价为 `min(open, ds03.entry_ref)`，防守价为 `prev_row.blue_ext_price`（H1 蓝极）。
+6. 防守价必须高于入场价（`defense_price > entry_price`），否则信号无效。
+7. 同一个攻击结构只能消费一次（`attack_key` 去重）。
 8. 后续只接受更低的 H1 蓝极下移止损。
 
 ## 审计硬条件
 
 - D1 与 H1 必须分别是完整峰极 OS 结果，不能用裸 K 线替代。
 - `d1_camp` 必须来自上一根已收盘 D1 的安全状态。
-- 多头启动完成后必须 `d1_camp=1` 且 `h1_camp=1`。
-- 空头启动完成后必须 `d1_camp=-1` 且 `h1_camp=-1`。
-- 触发可以是 H1 同向进攻峰，也可以是 H1 反向防守极被突破/跌破后的并轨第一启动棍。
-- 防守点必须是 H1 完成触发后的同向防守极：多头红极，空头蓝极。
-- 同一攻击峰只允许触发一次，止损后不得重复消费同一结构。
+- 多头启动完成后必须 `d1_camp=1`、`prev_h1_camp=1` 且 `h1_camp=1`。
+- 空头启动完成后必须 `d1_camp=-1`、`prev_h1_camp=-1` 且 `h1_camp=-1`。
+- 只允许 `trigger_type ∈ {LONG_CONTINUE, SHORT_CONTINUE}`；`LONG_ALIGN_TURN`/`SHORT_ALIGN_TURN` 为 forbidden。
+- 多头 `attack_price > entry_price` 为 bad；空头 `attack_price < entry_price` 为 bad。
+- 多头 `defense_price >= entry_price` 为 bad；空头 `defense_price <= entry_price` 为 bad。
+- 防守点必须是 H1 同向防守极：多头红极，空头蓝极。
+- 同一攻击结构只允许触发一次，止损后不得重复消费同一结构。
 - 止损只守 H1 防守极，并且只向有利方向移动。
-- 禁止恢复旧窄逻辑：不得要求 H1 在启动前早已和 D1 同阵营。
 
 ## 本轮校准结果
 

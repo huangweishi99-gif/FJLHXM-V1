@@ -399,7 +399,7 @@
 - [x] DS04《夹棍式》：复核 K1/K2/K3 结构和触发条件；重点复核玻璃、纯碱 2026-05-26。
 - [x] DS05《指形式》：确认 K2 是可能形成"极"的位置，不要求靠近旧 active extreme，不与峰混淆；重点复核红枣案例。
 - [x] DS06《外扩峰式》：核心规则已补齐为转势授权 + D/E/F 外扩峰启动；后续只剩服务器/更多市场运行覆盖验证。
-- [x] DS07《共振式》：核心规则已补齐为同向延续 + 反向并轨；已同步 `docs/DS07_CALIBRATION.md` 和 `docs/DS07_DRAFT.md`，后续继续排查服务器旧逻辑残留。
+- [x] DS07《共振式》：核心规则已补齐为同向延续 + 反向并轨；已同步 `docs/DS07_CALIBRATION.md` 和 `docs/DS07_DRAFT.md`，后续继续排查服务器旧逻辑残留。（2026-08-13 注：该条目中"反向并轨"口径已被用户裁决推翻，最终口径以权威源代码为准——DS03 二四棒仅同向延续，见下方待验证问题更新）
 - [x] DS08《否认确定式》：复核五点结构、否认、确定、触发和撤销规则（2026-08-13：否认=结构校验、确定=T+3、触发=首破攻击点、撤销=3禁令+key消费；测试 14/14 通过）。
 - [x] DS09《股票式 / 九重天》：用户已确认股票式/A股专属版本等同九重天；2026-05-27 已修正为 D1 OS战略阵营 + 昨日D1战略边界 + M15二次攻击点火；缺少 M15 数据时只跳过 DS09，不影响 DS01-DS08。
 - [x] DS09 国内 LC：夜盘 `assign_cn_futures_session_date`、雷达/挂单接入、天勤 15m 回填与验收清单（2026-05-28）；**成交沙盒图**待有 `locks>0` 历史后再补。
@@ -513,7 +513,7 @@
 ## 待验证问题
 
 - [ ] `左三线` 的最终定义仍待确认。不要自行编造；需要从用户确认或权威白皮书/代码冻结版中确认。
-- [ ] DS07 口径三方不一致：`codex_assets/skills/fengji-signal-sandbox-audit/SKILL.md` 中 DS07 描述（H1 可蓝转红/红转蓝并轨或同阵营延续）与总纲"两类触发（同向延续+反向并轨）"口径一致，但与权威源代码 `fengji_core/ds07.py`（仅 `LONG/SHORT_CONTINUE` 同向延续，且要求 `prev_h1_camp==1` 启动前已同阵营——恰为总纲 L587-592 废止的窄口径）不一致。以何为准需用户确认；技能已安装但未改动，`audit_ds_consistency_contract.py` 的 DS07 forbidden 口径（禁 ALIGN_TURN）与总纲要求的关系亦需一并澄清。
+- [x] DS07 口径三方不一致：`codex_assets/skills/fengji-signal-sandbox-audit/SKILL.md` 中 DS07 描述与总纲"两类触发（同向延续+反向并轨）"口径一致，但与权威源代码 `fengji_core/ds07.py`（仅 `LONG/SHORT_CONTINUE` 同向延续，且要求 `prev_h1_camp==1` 启动前已同阵营）不一致。（2026-08-13 用户裁决：**以权威源代码为准（仅延续）**。已反向修订总纲/最高宪法/CANONICAL_RULES/阵营转换判断/数据回测说明/挂单器说明/PROJECT_CONTEXT/校准/DRAFT/W15/技能（项目内+全局已安装）为 DS03 二四棒同向延续口径；`audit_ds_consistency_contract.py` forbidden ALIGN_TURN 与权威源一致，无需改动；服务器代码/部署不变）
 - [x] 当前 `src/quant` 与 `packages/fengji_core` 是否完全一致，是否存在双实现不同步。（2026-07-10：`scripts/audit_quant_import_shims.py` 确认本地 `src/quant` 仅为 `fengji_core` re-export shim，无第二套策略实现；国内同步脚本仍以 `packages/fengji_core` 为源码）
 - [x] 国内服务器当前代码是否已经包含 DS01 左30 <=2、DS03 failed peak/low、DS05 K2 可能极、DS07 新逻辑。（2026-07-10：`scripts/audit_server_core_logic_deploy.py --remote domestic` live 审计 `mismatches=0`，核心文件 hash 与本地一致且关键 token 无缺失）
 - [x] 海外服务器当前代码是否已经包含 DS01 左30 <=2、DS03 failed peak/low、DS05 K2 可能极、DS07 新逻辑。（2026-07-10：`scripts/audit_server_core_logic_deploy.py --remote overseas` live 审计 `mismatches=0`，核心文件 hash 与本地一致且关键 token 无缺失）

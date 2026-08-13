@@ -24,7 +24,7 @@ Every DS01-DS08 judgment must run under FengJi OS highest constitution. Do not v
 - DS01: Current bar is in camp direction. Previous bar is the trigger stick. Long triggers above previous bullish high in red camp; short triggers below previous bearish low in blue camp. Left-30 line filter means horizontal trigger line crosses at most the allowed number of peak-extreme line segments, not "30 peaks".
 - DS03: Two-four-stick logic can break active attack peak/low or a legal failed peak/failed low after a complete in-camp N structure. Long uses red camp and attack peak/failed high. Short mirrors in blue camp.
 - DS05: K2 is a possible new extreme in both red and blue camps. K2 is not a possible peak. Peak is the attack direction; extreme is the defense and turn key.
-- DS07: D1 grants strategic camp authorization. H1 may align by blue-to-red/red-to-blue transition or continue in the same camp. H1 must have legal peak-extreme N structure and use first launch-stick logic.
+- DS07: D1 grants strategic camp authorization (d1_camp from last closed daily bar). H1 must already be in the same camp before the launch stick (prev_h1_camp matches d1_camp) and must trigger only via DS03 two-four-stick same-camp continuation (LONG_CONTINUE/SHORT_CONTINUE). H1 must have legal hardened N structure (hardened_count >= 4) and a valid defense extreme. Reverse-camp merge (ALIGN_TURN) is forbidden.
 
 ## Sandbox chart standard
 
@@ -52,7 +52,7 @@ results\sandbox\
 
 ## Common failure modes
 
-- Using old DS07 logic that requires H1 to already be aligned before the launch stick.
+- Using reverse-merge DS07 logic (ALIGN_TURN) that lets H1 turn camp on the launch stick instead of the canonical DS03 two-four-stick same-camp continuation.
 - Treating a raw high/low as a FengJi peak/extreme without OS identity.
 - Misreading DS01 left-30 as number of peaks instead of number of crossed line segments.
 - Treating DS05 K2 as a peak candidate instead of an extreme candidate.

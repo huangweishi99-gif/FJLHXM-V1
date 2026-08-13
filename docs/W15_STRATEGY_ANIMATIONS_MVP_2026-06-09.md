@@ -93,7 +93,7 @@ python scripts/run_o1_lottie_placeholder_acceptance.py
 | `DS04.json` | 夹棍 | K1/K2/K3 夹棍 |
 | `DS05.json` | 指形 | K2 可能成极 |
 | `DS06.json` | 外扩峰 | 转势授权 + 外扩峰 |
-| `DS07.json` | 共振 | 同向延续 / 反向并轨 |
+| `DS07.json` | 共振 | DS03 二四棒同向延续（`LONG/SHORT_CONTINUE`） |
 | `DS08.json` | 否认确定 | 五点 + 否认/确定 |
 | `DS09.json` | 九重天 | D1 阵营 + M15 二次攻击 |
 | `TOTAL.json` | 峰极总定式 | DS01–08 合一，不反仓 |
