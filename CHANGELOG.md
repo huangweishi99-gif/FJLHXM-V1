@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-08-13 (阵营转换判断复核：字段来源 + 4 币种沙盒图验证)
+
+- **active_high / active_low 字段来源审计**: 读取 `fengji_core.os_engine` 确认：
+  - `active_high` = `red_peak.price`（红营）/ `blue_ext.price`（蓝营）
+  - `active_low` = `red_ext.price`（红营）/ `blue_peak.price`（蓝营）
+  - 红极/蓝极来源：seed（种阵营 `last_low`/`last_high`）→ `confirmed_raw`（阵营内部推进 `red_ext`/`blue_ext`）→ `redefined`（转势时 `last_failed_low`/`last_failed_high` 或旧峰重定义）
+  - 合法假峰/假极 `FAILED_HIGH`/`FAILED_LOW` 均来自硬化节点（`update_hardened_nodes` 确认后的 `accepted_node`），非几何 raw high/low
+- **4 币种阵营判断复核（沙盒图）**:
+  - **DOGEUSDT**: 红营，`active_high=NaN`（刚转红，红峰尚未 3-3 硬化确立），`active_low=0.06822`（红极），价格 0.07017 在红极上方 → 合理
+  - **LTCUSDT**: 蓝营，`active_high=46.5`（蓝极），`active_low=43.62`（蓝峰），价格 44.94 在区间内 → 合理
+  - **RENDERUSDT**: 蓝营，`active_high=1.565`（蓝极），`active_low=1.448`（蓝峰），价格 1.274 在蓝峰下方（蓝营攻击深入），high 未突破蓝极 → **合理（非 bug）**
+  - **IOUSDT**: 蓝营，`active_high=0.1309`（蓝极），`active_low=0.1177`（蓝峰），价格 0.1122 在蓝峰下方（蓝营攻击深入），high 未突破蓝极 → 合理
+- **沙盒图目视验证**: `results/crypto_camp_sandbox_review_20260813/` 4 张 PNG 显示所有转势标记均在破极位置，硬化连线与身份标签正确，无异常跳变。
+- **澄清误区**: 蓝营转红条件为 `high >= blue_ext.price`（突破蓝极），而非"跌破蓝峰"；蓝营价格下跌跌破蓝峰是正常攻击行为。RENDERUSDT 曾被误认为"跌破 active_low 应转红"，实际完全符合宪法破极转势规则。
+- **Tests**: 630 passed, 17 skipped.
+
 ## 2026-08-13 (DS04/DS05 audit + check_ds05 fix)
 
 - **DS04 夹棍式复核**: FG(玻璃)/SA(纯碱) 2026-05-26 K1/K2/K3 structure check passed — no signal (K3 close did not reclaim K1 extreme); no_gap/k2_weakest/dir_combo all correct. Data sourced from SQLite `bars` (Chinese symbol 玻璃/纯碱), exported 189 rows each to temporary CSV for the legacy check script.

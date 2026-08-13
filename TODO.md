@@ -407,10 +407,10 @@
 ### 阵营转换判断待验证任务
 
 - [x] 海外服务器连接恢复后，确认峰极OS状态账本 `runtime/fengji_os_state` 按品种/周期生成，并验证第二轮雷达只追加新K线，不重连历史峰极线。（2026-07-06 D1：BTC `INCREMENTAL_OK` · 国内 LC delta=0）
-- [ ] 用沙盒图验证红蓝阵营切换是否严格遵守峰极OS最高宪法。
-- [ ] 复核 active high/active low、红极/蓝极、合法假峰/假极的字段来源。
-- [ ] 确认 DOGEUSDT、LTCUSDT、RENDERUSDT、IOUSDT 的近期阵营判断是否和图形一致。
-- [ ] 补充或更新 `tests/test_os_engine.py` 的争议案例。
+- [x] 用沙盒图验证红蓝阵营切换是否严格遵守峰极OS最高宪法。（2026-08-13：4 币种沙盒图目视通过，转势均在破极位置）
+- [x] 复核 active high/active low、红极/蓝极、合法假峰/假极的字段来源。（2026-08-13：os_engine.py 源码审计通过，字段来源与最高宪法一致）
+- [x] 确认 DOGEUSDT、LTCUSDT、RENDERUSDT、IOUSDT 的近期阵营判断是否和图形一致。（2026-08-13：快照+沙盒图全部 verdict=ok）
+- [ ] 补充或更新 `tests/test_os_engine.py` 的争议案例。（本轮复核未发现新增争议案例；如后续发现再补充）
 - [ ] 用DS09固定样本验证 D1红阵营+昨日阴线多头、D1蓝阵营+昨日阳线空头，确保不再只按昨日阴阳线触发。
 
 ### 挂单器待完成任务
