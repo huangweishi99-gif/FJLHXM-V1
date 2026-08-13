@@ -76,6 +76,85 @@ def add_camp_legend(ax) -> None:
     ax.text(0.01, 0.92, "蓝色背景 = 蓝阵营", transform=ax.transAxes, color="#0d47a1", fontsize=10, va="top")
 
 
+# Identity display mapping for OS hardened nodes (fengji_core.os_engine.IdentityNode.identity)
+IDENTITY_STYLE = {
+    "RED_PEAK": ("红峰", "#d62728"),
+    "BLUE_PEAK": ("蓝峰", "#1f77b4"),
+    "RED_EXT": ("红极", "#e91e63"),
+    "BLUE_EXT": ("蓝极", "#3949ab"),
+    "FAILED_HIGH": ("失败峰", "#8d6e63"),
+    "FAILED_LOW": ("失败极", "#6d4c41"),
+}
+
+
+def identity_display(ident) -> tuple[str, str]:
+    """Return (label, color) for an IdentityNode (or identity string)."""
+    if isinstance(ident, str):
+        identity = ident
+    else:
+        identity = str(getattr(ident, "identity", ident))
+    return IDENTITY_STYLE.get(identity, (identity, "#607d8b"))
+
+
+def _identity_rank(node) -> int:
+    """Rank identity nodes so redefined > normal > failed for label selection."""
+    source = str(getattr(node, "source", "") or "")
+    if source == "redefined":
+        return 3
+    if str(getattr(node, "identity", "")) in ("FAILED_HIGH", "FAILED_LOW"):
+        return 1
+    return 2
+
+
+def draw_identity_labels(ax, df: pd.DataFrame, identity_nodes: list, hardened_nodes: list, last_row, turns, start: int, end: int) -> None:
+    """Annotate the best OS identity label at each hardened node in [start, end].
+
+    ``last_row`` / ``turns`` are kept for signature compatibility with legacy audit scripts;
+    turn markers are drawn separately via ``draw_turn_marks``.
+    """
+    best: dict[int, object] = {}
+    for node in identity_nodes:
+        idx = int(node.point_idx)
+        if best.get(idx) is None or _identity_rank(node) > _identity_rank(best[idx]):
+            best[idx] = node
+    for node in hardened_nodes:
+        idx = int(node.point_idx)
+        if not (start <= idx <= end):
+            continue
+        ident = best.get(idx)
+        if ident is None:
+            continue
+        label, color = identity_display(ident)
+        x = mdates.date2num(pd.to_datetime(df.iloc[idx]["date"]))
+        y = float(node.price)
+        va = "bottom" if str(node.raw_type) == "HIGH" else "top"
+        ax.scatter([x], [y], s=66, color=color, edgecolors="white", linewidths=0.7, zorder=6)
+        ax.annotate(
+            label, (x, y), textcoords="offset points",
+            xytext=(0, 13 if va == "bottom" else -15), ha="center", va=va,
+            color=color, fontsize=8.5, fontweight="bold",
+            bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "edgecolor": color, "alpha": 0.92},
+        )
+
+
+def draw_turn_marks(ax, df: pd.DataFrame, turns: list, start: int, end: int) -> None:
+    """Draw camp-turn (阵营转换) markers at their bar index within [start, end]."""
+    for turn in turns:
+        idx = int(turn.idx)
+        if not (start <= idx <= end):
+            continue
+        x = mdates.date2num(pd.to_datetime(df.iloc[idx]["date"]))
+        color = "#0d47a1" if turn.turn == "RED_TO_BLUE" else "#b71c1c"
+        label = "红→蓝" if turn.turn == "RED_TO_BLUE" else "蓝→红"
+        y_hi = float(df.iloc[idx]["high"])
+        ax.annotate(
+            label, (x, y_hi), textcoords="offset points", xytext=(0, 8),
+            ha="center", color=color, fontsize=9, fontweight="bold",
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": color, "alpha": 0.9},
+        )
+        ax.axvline(x, color=color, linestyle=":", linewidth=1.0, alpha=0.6)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Plot FengJi hardened line and red/blue camp background.")
     parser.add_argument("--csv", required=True)

@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-08-13 (DS01 fix + DS01/DS03 audit)
+
+- **Fix `src/plot_fengji_structure.py` dead imports**: restored `identity_display`, `draw_identity_labels`, `draw_turn_marks` (3 functions, 79 lines) to repair 6 legacy audit/sandbox scripts that failed with `ImportError`.
+- **DS01 左30线数复核**: code/radar/pending/execution-supervision all share `ds01_left_filter_pass`; 3-coin audit (RENDER left=0, IO left=0, DOGE left=2 all <=2); generated 3 sandbox PNGs + report in `results/ds01_three_coin_review_20260618/`.
+- **DS03 二四棒复核**: IOUSDT 2026-05-26 / ETHUSDT 2026-05-27: no DS03 signal (trigger not crossed, camp structure consistent); `active_high=red_peak`, `active_low=red_ext`, `last_failed_high` tracked correctly.
+- **Tests**: 630 passed, 17 skipped.
+
 ## 2026-08-13 (P4 ops batch commit: 307 files)
 
 - **Batch committed 307 files (36,292 insertions)** in `9cb8c98`:
