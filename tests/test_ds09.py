@@ -60,6 +60,37 @@ def test_ds09_boundary_uses_prev_completed_d1_camp() -> None:
     assert jan4["boundary"] == pytest.approx(7.7)
 
 
+def test_ds09_boundary_rejects_candle_without_camp_match() -> None:
+    """固定样本反向验证：昨日阴线但非红营不产 LONG，昨日阳线但非蓝营不产 SHORT。
+
+    防止"只按昨日阴阳线触发"的退化行为：camp 必须与阴阳线方向匹配，
+    即红营+阴线 → LONG、蓝营+阳线 → SHORT，其余组合一律不生成边界。
+    """
+    d1 = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05"]),
+            "open": [10.0, 12.0, 9.0, 8.0, 8.0],
+            "high": [11.0, 12.5, 9.5, 8.5, 8.8],
+            "low": [9.0, 8.8, 7.7, 7.5, 7.4],
+            "close": [10.5, 11.5, 9.4, 8.2, 8.6],
+            "camp": [RED, BLUE, RED, BLUE, BLUE],
+        }
+    )
+    boundary_map = build_prev_day_boundary_map(d1)
+
+    # 01-02：昨日(01-01)红营+阳线 → 不产 LONG
+    assert pd.Timestamp("2026-01-02") not in boundary_map
+    # 01-03：昨日(01-02)蓝营+阴线 → 不产 SHORT（也非红营阴线 → 不产 LONG）
+    assert pd.Timestamp("2026-01-03") not in boundary_map
+    # 01-04：昨日(01-03)红营+阳线 → 不产 LONG
+    assert pd.Timestamp("2026-01-04") not in boundary_map
+    # 01-05：昨日(01-04)蓝营+阳线 → 唯一合法 SHORT
+    jan5 = boundary_map[pd.Timestamp("2026-01-05")]
+    assert jan5["mode"] == "SHORT"
+    assert jan5["d1_camp"] == BLUE
+    assert jan5["boundary"] == pytest.approx(7.5)
+
+
 def test_unified_smoke_outputs_if_present() -> None:
     smoke_dir = ROOT / "results" / "ds09_inclusion_smoke" / "ETH"
     bad_path = smoke_dir / "strategy_bad_trades.csv"

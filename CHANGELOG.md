@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-08-13 (DS09 固定样本反向验证)
+
+- **DS09 固定样本验证**: TODO 遗留项"用DS09固定样本验证 D1红阵营+昨日阴线多头、D1蓝阵营+昨日阳线空头，确保不再只按昨日阴阳线触发"完成。
+- **新增反向固定样本测试** `test_ds09_boundary_rejects_candle_without_camp_match`（`tests/test_ds09.py`）：昨日红营+阳线不产 LONG、昨日蓝营+阴线不产 SHORT、昨日红营+阴线仍不产 LONG；唯一合法样本为蓝营+阳线 → SHORT（boundary=昨日 low）。
+- **验证结论**: `build_prev_day_boundary_map` 的 camp+阴阳线匹配过滤正确，不会退化为"只按昨日阴阳线触发"。
+- **Tests**: core suite 46 passed, 1 skipped（含 os_engine/ds01/ds03/ds05/ds09/radar_ds09）。
+
 ## 2026-08-13 (阵营转换判断复核：字段来源 + 4 币种沙盒图验证)
 
 - **active_high / active_low 字段来源审计**: 读取 `fengji_core.os_engine` 确认：

@@ -411,7 +411,7 @@
 - [x] 复核 active high/active low、红极/蓝极、合法假峰/假极的字段来源。（2026-08-13：os_engine.py 源码审计通过，字段来源与最高宪法一致）
 - [x] 确认 DOGEUSDT、LTCUSDT、RENDERUSDT、IOUSDT 的近期阵营判断是否和图形一致。（2026-08-13：快照+沙盒图全部 verdict=ok）
 - [ ] 补充或更新 `tests/test_os_engine.py` 的争议案例。（本轮复核未发现新增争议案例；如后续发现再补充）
-- [ ] 用DS09固定样本验证 D1红阵营+昨日阴线多头、D1蓝阵营+昨日阳线空头，确保不再只按昨日阴阳线触发。
+- [x] 用DS09固定样本验证 D1红阵营+昨日阴线多头、D1蓝阵营+昨日阳线空头，确保不再只按昨日阴阳线触发。（2026-08-13：新增 `test_ds09_boundary_rejects_candle_without_camp_match` 反向固定样本，红营+阳线、蓝营+阴线均不产边界，只有红+阴→LONG、蓝+阳→SHORT 合法；10 passed）
 
 ### 挂单器待完成任务
 
