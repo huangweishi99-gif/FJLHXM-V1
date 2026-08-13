@@ -140,7 +140,7 @@
 - [x] **防旧逻辑回流**：审计覆盖 `packages/fengji_core/fengji_core/ds01.py` / `ds03.py` / `ds05.py` / `ds07.py`、`src/fengji_total_radar.py`、`src/fengji_pending_order_monitor.py`、`src/overseas_paper_monitor.py`、`packages/fengji_core/fengji_core/fill_supervision.py`、`scripts/generate_fill_sandbox_review.py`、DS03/DS07 沙盒图入口。
 - [x] **验证**：`python scripts\audit_ds_consistency_contract.py` -> `failures=0`；`python -m pytest tests\test_audit_ds_consistency_contract.py -q` -> **4 passed**；`python -m py_compile scripts\audit_ds_consistency_contract.py` 通过。
 - [x] **安全边界**：本次只增加只读审计和测试，不生成/改写交易数据，不修改峰极线、阵营转换、DS01-DS09 核心逻辑、雷达触发、挂单、止损或模拟成交规则。
-- [x] **后续仍需图形复核**：RENDERUSDT、IOUSDT、DOGEUSDT、ETHUSDT、红枣、玻璃、纯碱等争议样本仍需按沙盒图逐笔归档；本次静态审计不替代人工看图。（2026-08-13：`audit_disputed_signal_sandbox_archive.py` 盘点 **12/12 全部 archived**，`failures=0`；DS01 左30×3、DS03×2、OS 阵营图×4、DS05 K2×3 均已存在 PNG/SVG 视觉归档；仅 ETHUSDT DS03 为 SVG 非 PNG 已在 note 标注）
+- [x] **后续仍需图形复核**：RENDERUSDT、IOUSDT、DOGEUSDT、ETHUSDT、红枣、玻璃、纯碱等争议样本仍需按沙盒图逐笔归档；本次静态审计不替代人工看图。（2026-08-13：`audit_disputed_signal_sandbox_archive.py` 盘点 **12/12 全部 archived**，`failures=0`；DS01 左30×3、DS03×2、OS 阵营图×4、DS05 K2×3 均已存在 PNG/SVG 视觉归档；仅 ETHUSDT DS03 为 SVG 非 PNG。2026-08-13 晚已补充 PNG，12/12 全部视觉归档完成，source 因代码版本演进由 active_low 变为 trigger_ref，核心场景一致）
 
 ## 2026-07-10 · 总定式统一账本回归
 

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-08-13 (ETHUSDT DS03 蓝阵营空头 PNG 补充，争议样本归档 12/12 全部视觉化完成)
+
+- **补充 PNG**：`scripts/plot_live_ds03_sandbox.py`（PYTHONPATH=src）生成 `results/sandbox/ETHUSDT_DS03_20260527_short.png`，camp=blue, trigger=2077.23, fill=2073.2, stop=2140.49。
+- **版本差异**：原始 SVG（2026-05-27 生成）`source=active_low`，当前 PNG 渲染 `source=trigger_ref`，系 DS03 代码演进导致标识文字差异；核心场景（蓝阵营空头、价格、硬化线、PEAK/EXT 节点）与原始 SVG 一致。
+- **索引更新**：`results/disputed_signal_sandbox_archive_20260712/INDEX.md` 与 `archive_index.json` 均已追加 PNG 路径并更新 note；该案例不再标记为 "SVG, not PNG"。
+- **验证**：重新运行 `scripts/plot_live_ds03_sandbox_svg.py` 复现参数，标题行一致（ETHUSDT DS03 sandbox | 2026-05-27 | SHORT），仅 source 因版本差异不同；删除临时 SVG。
+- **安全边界**：未修改策略逻辑、挂单、止损或模拟成交规则；未写入密钥/Token/Webhook。
+
 ## 2026-08-13 (争议样本沙盒图归档盘点 + 基线全绿)
 
 - **基线检查**：核心测试套件 `55 passed`（os_engine/ds01/ds03/ds05/pending_orders/futures_pending_orders）；`verify_phase2_closeout.py` -> `PHASE2_CLOSEOUT_OK`（stash_files=411, data_csv=332）；双服务器运行时检查 **PASS**（国内 DS01:7/DS03:10/DS08:3/DS09:2 挂单、actionable=15；海外 exit_code=0），日志见 `runtime/logs/dual_runtime_check/20260813_182638/`。
