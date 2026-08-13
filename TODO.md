@@ -140,7 +140,7 @@
 - [x] **防旧逻辑回流**：审计覆盖 `packages/fengji_core/fengji_core/ds01.py` / `ds03.py` / `ds05.py` / `ds07.py`、`src/fengji_total_radar.py`、`src/fengji_pending_order_monitor.py`、`src/overseas_paper_monitor.py`、`packages/fengji_core/fengji_core/fill_supervision.py`、`scripts/generate_fill_sandbox_review.py`、DS03/DS07 沙盒图入口。
 - [x] **验证**：`python scripts\audit_ds_consistency_contract.py` -> `failures=0`；`python -m pytest tests\test_audit_ds_consistency_contract.py -q` -> **4 passed**；`python -m py_compile scripts\audit_ds_consistency_contract.py` 通过。
 - [x] **安全边界**：本次只增加只读审计和测试，不生成/改写交易数据，不修改峰极线、阵营转换、DS01-DS09 核心逻辑、雷达触发、挂单、止损或模拟成交规则。
-- [ ] **后续仍需图形复核**：RENDERUSDT、IOUSDT、DOGEUSDT、ETHUSDT、红枣、玻璃、纯碱等争议样本仍需按沙盒图逐笔归档；本次静态审计不替代人工看图。
+- [x] **后续仍需图形复核**：RENDERUSDT、IOUSDT、DOGEUSDT、ETHUSDT、红枣、玻璃、纯碱等争议样本仍需按沙盒图逐笔归档；本次静态审计不替代人工看图。（2026-08-13：`audit_disputed_signal_sandbox_archive.py` 盘点 **12/12 全部 archived**，`failures=0`；DS01 左30×3、DS03×2、OS 阵营图×4、DS05 K2×3 均已存在 PNG/SVG 视觉归档；仅 ETHUSDT DS03 为 SVG 非 PNG 已在 note 标注）
 
 ## 2026-07-10 · 总定式统一账本回归
 
@@ -452,7 +452,7 @@
 - [x] 回归九大定式单定式测试。（2026-07-10：现有 DS 单测/雷达定式重点集 `56 passed, 1 skipped`；DS02/DS04/DS06/DS07 后续仍需补同等强度核心案例单测和沙盒图）
 - [x] 回归总定式统一账本。（2026-07-10：新增 `audit_unified_ledger_regression.py`，合成账本审计 `failures=0`；账本/监控/回测接口重点集补 `PYTHONPATH=services;src;packages/fengji_core` 后 `16 passed, 5 skipped`）
 - [x] 继续 A股板块回测，复跑失败股票。（2026-08-13：000425 徐工机械 60m 数据补齐并重跑成功，`a_stock_all_sectors_master_summary.csv` error 行清零；DS01-DS08 全策略，trades=134, return=-16.74%）
-- [ ] 对最近有争议的信号生成沙盒图并归档。
+- [x] 对最近有争议的信号生成沙盒图并归档。（2026-08-13：`audit_disputed_signal_sandbox_archive.py` 盘点 12/12 案例已视觉归档，`archived_visuals=12, failures=0`，见 `results/disputed_signal_sandbox_archive_20260712/INDEX.md`；仅 ETHUSDT DS03 为 SVG 待后续可补 PNG）
 - [x] 对 A股 DS07/DS08 标注数据覆盖不足边界（`market_coverage` · H1&lt;500 自动跳过）。
 
 ### Cursor 接手待完成任务

@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-08-13 (争议样本沙盒图归档盘点 + 基线全绿)
+
+- **基线检查**：核心测试套件 `55 passed`（os_engine/ds01/ds03/ds05/pending_orders/futures_pending_orders）；`verify_phase2_closeout.py` -> `PHASE2_CLOSEOUT_OK`（stash_files=411, data_csv=332）；双服务器运行时检查 **PASS**（国内 DS01:7/DS03:10/DS08:3/DS09:2 挂单、actionable=15；海外 exit_code=0），日志见 `runtime/logs/dual_runtime_check/20260813_182638/`。
+- **争议样本归档盘点**：`scripts/audit_disputed_signal_sandbox_archive.py` -> **12/12 archived**（archived_visuals=12, missing_visuals=0, missing_evidence=0, failures=0），明细见 `results/disputed_signal_sandbox_archive_20260712/INDEX.md`。
+  - DS01 左30：RENDERUSDT/IOUSDT/DOGEUSDT 均已 PNG 归档（`ds01_three_coin_review_20260618/`）。
+  - DS03：IOUSDT 假峰/真峰 PNG+SVG；ETHUSDT 蓝阵营空头为 SVG（note 标注，后续可补 PNG）。
+  - OS 阵营图：RENDERUSDT/IOUSDT/DOGEUSDT/LTCUSDT D1 均 PNG 归档。
+  - DS05 K2 可能极：红枣 CJ / 玻璃 FG / 纯碱 SA 均 PNG 归档（`d4_phase2_20260707|20260712/`），d4_status=ok。
+- **TODO 落账**：L143 争议样本图形复核、L455 争议信号沙盒图归档，均由 `[ ]` 转 `[x]`（2026-08-13 盘点 12/12）。
+- **验证**：`test_audit_disputed_signal_sandbox_archive.py` -> 4 passed；仅文档/归档索引更新，未改策略逻辑，无密钥/Token/Webhook 写入。
+
 ## 2026-08-13 (左三线定义冻结，用户审阅确认)
 
 - **用户裁决**（审阅 3 项）：① 窗口口径 = 启动棍向左最近 3 段峰极线段（"三线"= 3 条线段，不设 K 线数量窗口）；② 左三线为**独立术语**，与左30无线并存、各自独立冻结（可同时检查或用于不同定式，使用场景待定式实现时明确）；③ 确认并冻结写入文档。
