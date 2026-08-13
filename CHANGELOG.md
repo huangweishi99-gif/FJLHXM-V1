@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-13 (双服务器核心 DS 逻辑部署再审计通过)
+
+- 重跑 `scripts/audit_server_core_logic_deploy.py --remote domestic` 与 `--remote overseas`（只读审计，哈希对比 + 关键功能 token）：
+  - **国内**：DS01/DS03/DS05/DS07 + `src/fengji_total_radar.py` 五文件规范化 hash 与本地权威源完全一致，无缺失 token，`mismatches=0`。
+  - **海外**：同上，`mismatches=0`。
+  - 本地特征检查 ok；`failures=0`。
+- 意义：本次在 **DS07 裁决（仅延续）之后**重跑，确认权威源在两端服务器均为现行版本；与 2026-07-10 首次审计结论一致。结合当日双服务器 DS07 逐字节复核，**本地→国内→海外三端 DS01/03/05/07 核心逻辑口径一致**。
+- 报告：`results/server_core_logic_reaudit_20260813.md`。说明：脚本 hash 为 CRLF 规范化后前16位；`src/quant/ds07.py` 逐字节一致性由当日双复核报告独立覆盖。审计不覆盖 DS09 部署一致性（既有口径即 DS01/03/05/07 + 雷达）。
+
 ## 2026-08-13 (服务器部署说明更新：记录双服务器 DS07 复核结论)
 
 - `峰极OS_服务器与部署说明.md` 追加更新：
