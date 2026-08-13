@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-08-13 (历史更新包 `domestic_futures_ds07_update/` 标注废弃)
+
+- 复核 `domestic_futures_ds07_update/`（未跟踪、非活跃历史更新包）：其 `src/quant/ds07.py` 含 DS07 **反向并轨（ALIGN_TURN）完整逻辑**，安装脚本 `install_domestic_futures_ds07_update.ps1` 强制校验 `LONG_ALIGN_TURN`/`SHORT_ALIGN_TURN` 标记，与 2026-08-13 DS07 裁决（仅同向延续）冲突。
+- 处置：新增 `domestic_futures_ds07_update/README_DEPRECATED.md` 标注**已废弃、禁止安装、禁止作为代码参考**，防止未来误装把 ALIGN_TURN 带回服务器；未删除任何文件，目录保留作历史存档。
+- 权威源不变：`packages/fengji_core/fengji_core/ds07.py`（e596aca 冻结）。
+
 ## 2026-08-13 (DS07 口径裁决：以权威源代码为准，仅同向延续；统一修订文档与技能)
 
 - **用户裁决**: DS07 最终口径**以权威源代码为准（仅延续）**——维持 `e596aca`（2026-07-05）冻结的 DS03 二四棒同向延续逻辑（`LONG_CONTINUE`/`SHORT_CONTINUE`，`prev_h1_camp==1` 启动前已同阵营），放弃 2026-05-27 文档"两类触发（同向延续 + 反向并轨）"要求。服务器代码/部署不变。
