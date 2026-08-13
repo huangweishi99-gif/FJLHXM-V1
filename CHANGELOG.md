@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-08-13 (海外服务器 DS07 口径实时复核通过)
+
+- 通过 SSH 实时复核 `overseas-quant`（`VM-0-7-ubuntu`，远程根 `/home/ubuntu/quant_crypto`）：
+  - 远程 `src/quant/ds07.py` 与 `packages/fengji_core/fengji_core/ds07.py` 双副本 SHA256 均为 `9ac7240c…a72be05`，与本地权威源**逐字节一致**；关键标记（`LONG_CONTINUE`/`SHORT_CONTINUE`/`prev_h1_camp`/`hardened_count`/`trigger_type`）齐全；均无 ALIGN_TURN。
+  - **全仓活动路径 ALIGN_TURN 零命中**（无 `fengji_core_temp` 目录，较国内更干净）。
+  - 运行时 `import fengji_core.ds07` 加载权威文件（pip editable 安装 `fengji-core 0.1.0`）；嵌套 `packages/fengji_core/fengji_core/fengji_core/`（2026-06-01 旧副本，NO_ALIGN）零引用不可达。
+  - 进程健康：data_manager / overseas_paper_monitor / fengji_total_radar / fengji_radar_order_loop / fengji_pending_order_monitor 运行中；`data/15m/*.csv` 与 OS 状态文件实时更新（16:38）。
+  - 结论：**海外服务器 DS07 现行口径与权威源（仅延续）一致，ALIGN_TURN 不参与运行**。
+- 报告：`results/overseas_ds07_recheck_20260813.md`。遗留观察：嵌套旧副本（2026-06-01）建议用户授权后清理归档（未删除任何文件）。
+
 ## 2026-08-13 (国内服务器 DS07 口径实时复核通过)
 
 - 通过 SSH 实时复核 `domestic-quant`（远程根 `C:\Users\Administrator\quant_futures`）：
