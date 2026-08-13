@@ -115,7 +115,7 @@
 国外服务器当前相关模块包括：
 
 - `data_manager.py`：虚拟货币数据同步，按 1d、1h、15m 周期同步本地 CSV。
-- `src/峰极总定式01-08策略海外模拟实盘.py`：海外虚拟货币主模拟盘入口。
+- `src/overseas_paper_monitor.py`：海外虚拟货币主模拟盘入口。
 - `src/fengji_radar_order_loop.py`：雷达刷新与挂单生成循环。
 - `src/fengji_pending_order_monitor.py`：虚拟货币模拟挂单触发监控。
 - `src/fengji_total_radar.py`：生成 `runtime/fengji_radar/radar.csv/json`。
@@ -281,7 +281,7 @@
 
 - `fengji_radar_order_loop.py`
 - `fengji_pending_order_monitor.py`
-- `峰极总定式01-08策略海外模拟实盘.py`
+- `overseas_paper_monitor.py`
 - `data_manager.py`，若由当前会话管理。
 
 当前没有独立的国外服务器停止脚本：待补齐。

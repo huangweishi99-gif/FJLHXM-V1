@@ -163,7 +163,7 @@ C:\Users\guangwan\Documents\New project
 - `src/fengji_pending_order_monitor.py`：海外虚拟货币模拟挂单监控。
 - `src/fengji_futures_pending_order_monitor.py`：国内期货/A股模拟挂单监控。
 - `src/fengji_radar_order_loop.py`：雷达和挂单刷新循环。
-- `src/峰极总定式01-08策略海外模拟实盘.py`：海外虚拟货币模拟实盘入口。
+- `src/overseas_paper_monitor.py`：海外虚拟货币模拟实盘入口。
 - `data_manager.py`：海外虚拟货币数据泵。
 - `data_manager_futures.py`：国内期货数据泵。
 - `src/backtest_ds01.py` 到 `src/backtest_ds09.py`：九大定式单独回测入口。
@@ -241,7 +241,7 @@ C:\Users\guangwan\Documents\New project
 
 ### 模拟实盘运行状态
 
-- 海外虚拟货币模拟盘入口：`src/峰极总定式01-08策略海外模拟实盘.py`。
+- 海外虚拟货币模拟盘入口：`src/overseas_paper_monitor.py`。
 - 国内期货/A股模拟盘入口：`remote_domestic_optimize/峰极总定式01-08国内期货A股模拟实盘.py` 或服务器对应主目录中的同名文件。
 - 运行状态：已有历史运行证据；当前是否正常必须实时检查。
 - 安全边界：当前模式只允许模拟触发，不允许真实下单。
@@ -325,7 +325,7 @@ Get-ChildItem -Force
 - `src/batch_unified_crypto_whitelist.py`、`src/batch_unified_whitelist_engine.py`：虚拟货币、国内期货批量总定式回测入口。
 - `src/backtest_a_stock_fengji.py`、`src/batch_backtest_a_stock_fengji.py`、`src/batch_backtest_a_stock_sector.py`：A股单股、批量、板块回测入口。
 - `src/fengji_total_radar.py`、`src/fengji_pending_orders.py`、`src/fengji_pending_order_monitor.py`、`src/fengji_futures_pending_order_monitor.py`、`src/fengji_radar_order_loop.py`：雷达、模拟挂单和监控链路。
-- `src/峰极总定式01-08策略海外模拟实盘.py`：海外虚拟货币模拟实盘入口。
+- `src/overseas_paper_monitor.py`：海外虚拟货币模拟实盘入口。
 - `data_manager.py`：海外虚拟货币数据泵。
 - `data_manager_futures.py`：国内期货数据泵，已改为天勤长连接复用口径。
 
@@ -405,7 +405,7 @@ Get-ChildItem -Force
 │   ├── fengji_pending_orders.py
 │   ├── fengji_pending_order_monitor.py
 │   ├── fengji_futures_pending_order_monitor.py
-│   └── 峰极总定式01-08策略海外模拟实盘.py
+│   └── overseas_paper_monitor.py
 ├── scripts/
 │   ├── plan_a_verify.ps1
 │   ├── plot_live_ds03_sandbox.py
@@ -431,7 +431,7 @@ Get-ChildItem -Force
 - `src/fengji_pending_orders.py`：把雷达行转成模拟挂单。
 - `src/fengji_pending_order_monitor.py`：海外虚拟货币模拟挂单监控。
 - `src/fengji_futures_pending_order_monitor.py`：国内期货/A股模拟挂单监控。
-- `src/峰极总定式01-08策略海外模拟实盘.py`：海外模拟实盘主文件，当前不真实下单。
+- `src/overseas_paper_monitor.py`：海外模拟实盘主文件，当前不真实下单。
 - `data_manager.py`：海外虚拟货币数据同步。
 - `data_manager_futures.py`：国内期货数据同步。
 - `src/batch_backtest_a_stock_sector.py`：A股板块批量回测，继续板块回测时优先看这个。

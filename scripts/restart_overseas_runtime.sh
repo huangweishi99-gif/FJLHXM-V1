@@ -11,7 +11,7 @@ if [ -f runtime/feishu_webhook.env ]; then
   source runtime/feishu_webhook.env
 fi
 
-runtime_pids="$(pgrep -f 'fengji_radar_order_loop.py|fengji_pending_order_monitor.py|overseas_paper_monitor.py|峰极总定式01-08策略海外模拟实盘.py' || true)"
+runtime_pids="$(pgrep -f 'fengji_radar_order_loop.py|fengji_pending_order_monitor.py|overseas_paper_monitor.py' || true)"
 if [ -n "$runtime_pids" ]; then
   kill $runtime_pids || true
   sleep 2

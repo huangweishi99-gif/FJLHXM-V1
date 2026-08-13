@@ -108,7 +108,7 @@ DS02 当前更偏收线确认或占位逻辑，尚未完整接入价格型挂单
 
 当前存在两条模拟实盘链路：
 
-- 主模拟盘：`src/峰极总定式01-08策略海外模拟实盘.py`，主要处理海外虚拟货币 DS01-DS08，当前文本和启动信息仍是 DS01-DS08。
+- 主模拟盘：`src/overseas_paper_monitor.py`，主要处理海外虚拟货币 DS01-DS08，当前文本和启动信息仍是 DS01-DS08。
 - 挂单监控模拟盘：`src/fengji_pending_order_monitor.py` 与 `src/fengji_futures_pending_order_monitor.py`，分别面向海外虚拟货币和国内期货/A股的模拟挂单触发。
 
 注意：主模拟盘中 `PENDING_MANAGED_STRATEGIES` 当前为 DS01、DS03、DS05、DS07、DS08；`DIRECT_OPEN_STRATEGIES` 为剩余总定式。DS09 尚未完整并入这条 DS01-DS08 主模拟盘链路。
@@ -356,7 +356,7 @@ DS09 正确规则已由用户确认：D1 是天，M15 是针。D1 提供战略�
 
 ### 6.2 海外虚拟货币模拟实盘
 
-- `src/峰极总定式01-08策略海外模拟实盘.py`：海外虚拟货币 DS01-DS08 主模拟盘入口，当前仍是 DS01-DS08 文本口径。
+- `src/overseas_paper_monitor.py`：海外虚拟货币 DS01-DS08 主模拟盘入口，当前仍是 DS01-DS08 文本口径。
 - `src/fengji_pending_order_monitor.py`：海外虚拟货币挂单触发监控，使用现价或测试价格文件模拟触发。
 - `data_manager.py`：海外虚拟货币数据同步入口。
 - `config/峰极总定式策略模拟实盘.config.example.json`：模拟盘配置样例，必须保持占位符，不得写真实密钥。

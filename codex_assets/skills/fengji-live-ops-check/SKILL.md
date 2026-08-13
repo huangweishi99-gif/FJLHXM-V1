@@ -32,7 +32,7 @@ Use SSH to gather:
 
 ```bash
 cd ~/quant_crypto
-pgrep -af "data_manager.py|峰极总定式01-08策略海外模拟实盘|fengji_pending_order_monitor|fengji_radar_order_loop" || true
+pgrep -af "data_manager.py|overseas_paper_monitor.py|fengji_pending_order_monitor|fengji_radar_order_loop" || true
 tail -n 120 paper_run.log
 tail -n 120 data_sync.log
 tail -n 80 pending_order_monitor.log 2>/dev/null || true
@@ -44,7 +44,7 @@ date -u
 Healthy evidence usually includes:
 
 - `data_manager.py` process is present.
-- `峰极总定式01-08策略海外模拟实盘.py` process is present, unless pending-order monitor has intentionally taken over entry handling.
+- `overseas_paper_monitor.py` process is present, unless pending-order monitor has intentionally taken over entry handling.
 - Data files update near expected timeframe cadence.
 - Logs show repeated no-signal/check/fill lines without tracebacks.
 

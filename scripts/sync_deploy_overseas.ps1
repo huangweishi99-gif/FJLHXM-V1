@@ -11,7 +11,7 @@ Set-Location $Root
 $Remote = "overseas-quant"
 # 必须用单引号，避免 PowerShell 把 /home 里的 $home 当成用户目录变量
 $RemoteDir = '/home/ubuntu/quant_crypto'
-$PaperLocal = Join-Path $Root "src\峰极总定式01-08策略海外模拟实盘.py"
+$PaperLocal = Join-Path $Root "src\overseas_paper_monitor.py"
 $CoreLocal = Join-Path $Root "packages\fengji_core"
 $DataMgr = Join-Path $Root "data_manager.py"
 $RestartSh = Join-Path $Root "scripts\restart_overseas_runtime.sh"

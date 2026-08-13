@@ -1,10 +1,26 @@
 # CHANGELOG
 
+## 2026-08-13 (国内旧版监控文件复核更正：内容实为权威版，且为活跃依赖)
+
+- **背景**：下方 2026-08-13 完整复核记录中"国内 `src\fengji_pending_order_monitor.py` 为 07-06 10:42 旧版、零引用、无进程、非活跃"判定**不准确**。
+- **确认结论**：国内远程该文件 SHA256 `0fda2ea33232`（51650B, LF）与 git HEAD 权威版内容（`git show HEAD:` 计算 SHA256 同为 `0fda2ea33232`, 51650B）**逐字节一致**；本地磁盘 `0677613581cf`（52981B, CRLF）为同一内容的 Windows 行尾版本。"旧版"判定源于 mtime（10:42）与行尾/字节数差异，内容实为最新。
+- **活跃依赖澄清**：`src\fengji_futures_pending_order_monitor.py`（国内期货挂单监控，进程 PID=2504）从 `fengji_pending_order_monitor` import 共 11 个工具函数（`append_csv`/`append_jsonl`/`cancel_conflicting_orders`/`load_json`/`now_text`/`notify_claims_dir`/`order_setup_key`/`read_orders`/`safe_float`/`save_json`/`send_msg`）。**该文件不是零引用，不可删除**。
+- **处置**：无需同步部署，不删除。结论同步更新 `results/server_full_recheck_20260813.md`。
+- **补充发现**：服务器端存在冗余目录（本地 git 无跟踪、无错误引用、不影响运行）——海外 `packages/fengji_core/fengji_core/fengji_core`（348K）；国内 `packages\fengji_core\fengji_core_temp`（含 DS01-DS07 副本，曾作为包加载）+ 三层嵌套 `fengji_core\fengji_core\fengji_core` + 嵌套 egg-info。清理需授权后执行。
+
+## 2026-08-13 (海外模拟盘差异复核更正：确认部署一致)
+
+- **背景**：上一条 2026-08-13 复核记录中"海外模拟盘 `src/overseas_paper_monitor.py` 与本地不一致待确认"系**对比错文件误报**。
+- **确认结论**：本地 `src\overseas_paper_monitor.py`（35706B, `7061e790…`）与远程 `src/overseas_paper_monitor.py` 及 git HEAD **三方 SHA256 完全一致**（`7061e7907822`）；远程无旧中文名文件，运行进程为 `overseas_paper_monitor.py`（`--data-dir data --initial-cash 1000 --margin-per-trade 200 --leverage 2`）。之前误报对比的 `src\峰极总定式01-08策略海外模拟实盘.py`（07-02, 34974B, `ba0e50e8…`）是历史旧版（未跟踪、无 git 提交记录）。
+- **修复**：`scripts/sync_deploy_overseas.ps1` 部署源 `$PaperLocal` 由旧中文名文件改为 `src\overseas_paper_monitor.py`（原引用会执行时回退远程到旧版，丢失 10 币种扩展/文件锁/通知去重等更新）。
+- **文档同步**：`PROJECT_CONTEXT.md`、`峰极OS_服务器与部署说明.md`、`峰极OS_挂单器与模拟实盘说明.md`、`codex_assets/skills/fengji-live-ops-check/SKILL.md`、`scripts/restart_overseas_runtime.sh` 中海外模拟盘入口名由 `峰极总定式01-08策略海外模拟实盘.py` 更正为 `overseas_paper_monitor.py`。
+- 未改动旧中文名文件本身（保留待用户决定归档/删除）。
+
 ## 2026-08-13 (海内外服务器完整复核：TODO L494-507 完成)
 
 - 只读 SSH 完整复核海内外服务器核心运行文件（哈希 + mtime/size + 进程 + 日志 + 启动工厂），报告 `results/server_full_recheck_20260813.md`。
-- **海外**：`data_manager.py`、`fengji_total_radar.py`、`fengji_radar_order_loop.py`、`fengji_pending_order_monitor.py` 哈希与本地一致；`data_sync.log`/`paper_run.log`/`pending_order_monitor.log` 均活跃（17:11/17:15/17:17）无报错；5 类进程运行中。**差异待确认**：`src/overseas_paper_monitor.py`（远程 06-29, 35706B, `7061e790…`）与本地 `峰极总定式01-08策略海外模拟实盘.py`（07-02, 34974B, `ba0e50e8…`）不一致——本地更新疑似未部署；未做文件拉取 diff，内容待用户授权后在服务器侧确认。
-- **国内**：`data_manager_futures.py`、`峰极总定式01-08国内期货A股模拟实盘.py`、`src\fengji_futures_pending_order_monitor.py`、`src\fengji_radar_order_loop.py`、`src\fengji_total_radar.py` 哈希与本地一致；4 进程运行中，radar/pending 日志活跃（17:07/17:17），`data_manager_futures.log` 15:12（期货收盘后停更，符合时段）。**观察项**：`src\fengji_pending_order_monitor.py` 为 07-06 10:42 旧版（本地 14:32 新版）但零引用、无进程、非活跃；`商业终端_Dash.py` 存在（9480B）但无 Dash 进程运行。启动脚本含完整 webhook 参数（敏感信息，报告未展示）。
+- **海外**：`data_manager.py`、`fengji_total_radar.py`、`fengji_radar_order_loop.py`、`fengji_pending_order_monitor.py` 哈希与本地一致；`data_sync.log`/`paper_run.log`/`pending_order_monitor.log` 均活跃（17:11/17:15/17:17）无报错；5 类进程运行中。~~**差异待确认**~~（后续更正：见下一条 2026-08-13 记录——对比错文件，实际远程 `src/overseas_paper_monitor.py` 与本地 `src\overseas_paper_monitor.py`、git HEAD 三方哈希一致 `7061e790…`，部署一致；旧中文名 `峰极总定式01-08策略海外模拟实盘.py` 为历史旧版，部署脚本已更正）。
+- **国内**：`data_manager_futures.py`、`峰极总定式01-08国内期货A股模拟实盘.py`、`src\fengji_futures_pending_order_monitor.py`、`src\fengji_radar_order_loop.py`、`src\fengji_total_radar.py` 哈希与本地一致；4 进程运行中，radar/pending 日志活跃（17:07/17:17），`data_manager_futures.log` 15:12（期货收盘后停更，符合时段）。**观察项（后续更正，见下一条 2026-08-13 记录）**：~~`src\fengji_pending_order_monitor.py` 为 07-06 10:42 旧版（本地 14:32 新版）但零引用、无进程、非活跃~~——实际远程内容 SHA256 `0fda2ea33232` = git HEAD 权威版（仅 LF/CRLF 行尾差异，内容为最新），且被国内期货挂单监控 import 11 个工具函数（活跃依赖，不可删除）；`商业终端_Dash.py` 存在（9480B）但无 Dash 进程运行。启动脚本含完整 webhook 参数（敏感信息，报告未展示）。
 - TODO L494-507 两项勾选完成。建议（待授权）：海外模拟盘差异确认后决定是否重新部署；国内旧版 `fengji_pending_order_monitor.py` 随下次部署覆盖或删除归档；确认 Dash 是否应常驻。
 
 ## 2026-08-13 (双服务器核心 DS 逻辑部署再审计通过)
