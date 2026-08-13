@@ -508,11 +508,12 @@
 - [x] 继续 A股板块回测，复跑失败股票，归档结果。（2026-08-13：000425 复跑成功并归档，master summary error=0）
 - [x] 补齐 A股 60 分钟历史数据，或明确 A股正式筛选临时只用 DS01-DS06 日线口径（H1&lt;500 降级，见 D6 文档）。
 - [x] 明确国内期货日盘/夜盘数据泵自动运行时间表；A股无夜盘（`docs/MARKET_COVERAGE_BOUNDARIES.md` §2–3）。
-- [ ] 把 `codex_assets\skills` 中的技能安装到全局 Codex 技能目录，若后续需要自动触发。
+- [x] 把 `codex_assets\skills` 中的技能安装到全局 Codex 技能目录，若后续需要自动触发。（2026-08-13：`fengji-live-ops-check`、`fengji-a-stock-sector-backtest`、`fengji-signal-sandbox-audit` 三技能已复制到 `%USERPROFILE%\.codex\skills\`，SKILL.md frontmatter 校验完整；源目录 `codex_assets\skills` 保留不动）
 
 ## 待验证问题
 
 - [ ] `左三线` 的最终定义仍待确认。不要自行编造；需要从用户确认或权威白皮书/代码冻结版中确认。
+- [ ] DS07 口径三方不一致：`codex_assets/skills/fengji-signal-sandbox-audit/SKILL.md` 中 DS07 描述（H1 可蓝转红/红转蓝并轨或同阵营延续）与总纲"两类触发（同向延续+反向并轨）"口径一致，但与权威源代码 `fengji_core/ds07.py`（仅 `LONG/SHORT_CONTINUE` 同向延续，且要求 `prev_h1_camp==1` 启动前已同阵营——恰为总纲 L587-592 废止的窄口径）不一致。以何为准需用户确认；技能已安装但未改动，`audit_ds_consistency_contract.py` 的 DS07 forbidden 口径（禁 ALIGN_TURN）与总纲要求的关系亦需一并澄清。
 - [x] 当前 `src/quant` 与 `packages/fengji_core` 是否完全一致，是否存在双实现不同步。（2026-07-10：`scripts/audit_quant_import_shims.py` 确认本地 `src/quant` 仅为 `fengji_core` re-export shim，无第二套策略实现；国内同步脚本仍以 `packages/fengji_core` 为源码）
 - [x] 国内服务器当前代码是否已经包含 DS01 左30 <=2、DS03 failed peak/low、DS05 K2 可能极、DS07 新逻辑。（2026-07-10：`scripts/audit_server_core_logic_deploy.py --remote domestic` live 审计 `mismatches=0`，核心文件 hash 与本地一致且关键 token 无缺失）
 - [x] 海外服务器当前代码是否已经包含 DS01 左30 <=2、DS03 failed peak/low、DS05 K2 可能极、DS07 新逻辑。（2026-07-10：`scripts/audit_server_core_logic_deploy.py --remote overseas` live 审计 `mismatches=0`，核心文件 hash 与本地一致且关键 token 无缺失）

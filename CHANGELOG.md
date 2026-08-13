@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-08-13 (codex_assets/skills 三技能安装到全局 Codex 技能目录)
+
+- **TODO 完成**: "把 `codex_assets\skills` 中的技能安装到全局 Codex 技能目录，若后续需要自动触发"。
+- **安装**: 三技能复制到 `%USERPROFILE%\.codex\skills\`：`fengji-live-ops-check`（海内外服务器/数据泵/模拟盘健康巡检）、`fengji-a-stock-sector-backtest`（A股板块回测工作流）、`fengji-signal-sandbox-audit`（DS01-DS08 信号沙盒审计）。SKILL.md frontmatter（name/description）校验完整，与 `~/.codex/skills/.system` 系统技能目录共存；项目内源目录 `codex_assets\skills` 保留不动。
+- **发现并记录**: `fengji-signal-sandbox-audit/SKILL.md` 中 DS07 描述（H1 可蓝转红/红转蓝并轨或同阵营延续）与权威源 `fengji_core/ds07.py`（仅同向延续 `LONG/SHORT_CONTINUE` 且要求 `prev_h1_camp==1`）不一致，但与总纲"两类触发"口径一致（总纲 L575-592）。已记入 TODO 待验证问题，技能内容暂不修改，待用户确认以何为准（详见 TODO）。
+- 本次仅安装技能与更新文档，未修改任何策略代码、峰极线、阵营转换、模拟成交规则或审计契约；未写入密钥/Token/密码/webhook。
+
 ## 2026-08-13 (DS07 旧逻辑负向审计：ALIGN_TURN 不回流权威源/雷达)
 
 - **TODO 待验证项完成**: "DS07 新逻辑：确认旧逻辑已删除，不会污染海外/国内模拟盘"。
