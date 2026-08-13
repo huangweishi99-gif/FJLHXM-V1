@@ -500,7 +500,7 @@
 
 ## 待验证问题
 
-- [ ] `左三线` 的最终定义仍待确认。不要自行编造；需要从用户确认或权威白皮书/代码冻结版中确认。
+- [x] `左三线` 的最终定义仍待确认。不要自行编造；需要从用户确认或权威白皮书/代码冻结版中确认。（2026-08-13 用户审阅确认并冻结：启动棍向左最近 3 段峰极线段为考察范围，触发价水平线穿过峰极线段数 <= 2 通过、>= 3 失败；线段定义=相邻硬化峰极点连线，必须来自 OS 硬化节点；适用 DS01 首仓，续棍豁免；独立术语与左30无线并存。已写入最高宪法 §5.3、峰极OS_CANONICAL_RULES §5、PROJECT_CONTEXT、阵营转换判断）
 - [x] DS07 口径三方不一致：`codex_assets/skills/fengji-signal-sandbox-audit/SKILL.md` 中 DS07 描述与总纲"两类触发（同向延续+反向并轨）"口径一致，但与权威源代码 `fengji_core/ds07.py`（仅 `LONG/SHORT_CONTINUE` 同向延续，且要求 `prev_h1_camp==1` 启动前已同阵营）不一致。（2026-08-13 用户裁决：**以权威源代码为准（仅延续）**。已反向修订总纲/最高宪法/CANONICAL_RULES/阵营转换判断/数据回测说明/挂单器说明/PROJECT_CONTEXT/校准/DRAFT/W15/技能（项目内+全局已安装）为 DS03 二四棒同向延续口径；`audit_ds_consistency_contract.py` forbidden ALIGN_TURN 与权威源一致，无需改动；服务器代码/部署不变）
 - [x] 当前 `src/quant` 与 `packages/fengji_core` 是否完全一致，是否存在双实现不同步。（2026-07-10：`scripts/audit_quant_import_shims.py` 确认本地 `src/quant` 仅为 `fengji_core` re-export shim，无第二套策略实现；国内同步脚本仍以 `packages/fengji_core` 为源码）
 - [x] 国内服务器当前代码是否已经包含 DS01 左30 <=2、DS03 failed peak/low、DS05 K2 可能极、DS07 新逻辑。（2026-07-10：`scripts/audit_server_core_logic_deploy.py --remote domestic` live 审计 `mismatches=0`，核心文件 hash 与本地一致且关键 token 无缺失）2026-08-13 16:45 重跑确认 `mismatches=0`（`results/server_core_logic_reaudit_20260813.md`），DS07 裁决后三端口径一致。
