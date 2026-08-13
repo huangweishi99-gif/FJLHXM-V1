@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-08-13 (P4 ops batch commit: 307 files)
+
+- **Batch committed 307 files (36,292 insertions)** in `9cb8c98`:
+  - **scripts/**: 236 + 2 remote ops scripts (deploy_*, run_*, sync_*, verify_*/smoke_*, plot_*/render_*, install_*, patch_*) covering domestic/overseas deployment, m5 zones, os_rebuild, fill supervision, user paper execution, crypto/futures data sync.
+  - **docs/**: 61 + 2 api acceptance/ops docs (W00-W24 acceptance history, W_PAY/WADMIN/WAVE5, api/chart_bundle_schema.md + openapi.yaml, fill supervision/futures repair SOPs).
+  - **packages/fengji_core/**: 5 modules (ds08_pending_fill, feishu_trade_notify, futures_main_contract, state_lock, stop_bar_monitor).
+  - **run_futures_astock_paper.ps1**: root runner.
+- **Cleaned 45 temp diagnostic scripts** (`scripts/_tmp_*` / `_` prefix, 300B-9KB one-off debug snapshots).
+- **Untracked file count: 0** (remaining git dirt: 7 `data/overseas_1d/*.csv` cache files updated by data pump, left as-is per user).
+- **Verification**: 630 passed, 17 skipped.
+
 ## 2026-08-11 (P2 A股归档 + 60m补齐 + P3 untracked files batch commit)
 
 - **P2 A股板块回测归档**: 11 sectors (CPO 87%, 算力 67%, etc.), 274 trades across 233 stocks, 1.46M cumulative PnL; archive zip at `results/a_stock_sector_archive_ds07_fixed.zip`; 4/4 audit tests pass.

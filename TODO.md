@@ -20,6 +20,7 @@
 - [x] **P2 60m 长历史补齐**: A股239/239 60m complete; 加密16/16 1H_1825d complete; 美股224/224 1H complete; 期货36 1d vs 30 1h (6 missing: AO/LH/P/PG/SC/TA - low-data futures from SHFE/DCE/INE/CZCE, ~20KB each, limited history).
 - [x] **P2 DS09 成交沙盒**: LC locks=0 (no signals to sandbox); ETH/BNB/TAO/生猪 already sandboxed; DS09 Live Watch running ACTIVE on overseas crypto radar.
 - [x] **P3 untracked files clean-up**: batch-added 116 files (140 tests, 40+ strategy/deployment docs, 5 src modules, designs, reference rules, operational scripts); .gitignore extended with test-results/.
+- [x] **P4 ops batch commit**: 307 files (236 scripts + 61 docs + 5 fengji_core modules + 5 misc) in `9cb8c98`; deleted 45 `_tmp_*`/`_` temp diagnostic scripts; untracked count now 0 (only 7 data-pump CSV cache files remain modified, left as-is). 630 tests pass.
 
 ## 2026-08-10 - Domestic heartbeat check threshold
 
