@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-13 (国内服务器 DS07 口径实时复核通过)
+
+- 通过 SSH 实时复核 `domestic-quant`（远程根 `C:\Users\Administrator\quant_futures`）：
+  - 远程 `src\quant\ds07.py` SHA256 与本地权威源 `packages/fengji_core/fengji_core/ds07.py` **逐字节一致**（`9AC7240C…A72BE05`）；关键标记（`LONG_CONTINUE`/`SHORT_CONTINUE`/`prev_h1_camp`/`hardened_count`/`trigger_type`）齐全；无 ALIGN_TURN。
+  - 运行时 `import fengji_core.ds07` 实际加载权威文件；模拟盘 3 个 Python 进程运行中。
+  - 全仓活动路径 ALIGN_TURN 扫描：仅命中 `packages\fengji_core\fengji_core_temp\ds07.py`（2026-05-28 历史暂存，**零引用、不在 sys.path，不可达**）；嵌套 `fengji_core\fengji_core\fengji_core\`（2026-06-04 旧副本，NO_ALIGN）同样零引用。
+  - 结论：**国内服务器 DS07 现行口径与权威源（仅延续）一致，ALIGN_TURN 不参与运行**。
+- 报告：`results/domestic_ds07_recheck_20260813.md`。遗留观察：`fengji_core_temp/` 与嵌套副本建议用户授权后清理归档；状态文件 mtime 较复核时间早约 1 小时，需结合交易时段确认是否正常。
+
 ## 2026-08-13 (历史更新包 `domestic_futures_ds07_update/` 标注废弃)
 
 - 复核 `domestic_futures_ds07_update/`（未跟踪、非活跃历史更新包）：其 `src/quant/ds07.py` 含 DS07 **反向并轨（ALIGN_TURN）完整逻辑**，安装脚本 `install_domestic_futures_ds07_update.ps1` 强制校验 `LONG_ALIGN_TURN`/`SHORT_ALIGN_TURN` 标记，与 2026-08-13 DS07 裁决（仅同向延续）冲突。
