@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-08-13 (A股 000425 徐工机械失败股票复跑)
+
+- **000425 徐工机械重跑成功**: master summary 中唯一 error 行（`数据库数据不完整: D1=0, H1=0`）补齐数据后重跑。
+  - 60m 东财接口限流只返回 126 根 → 删除缓存重跑，自动回退新浪源拿到完整 1023 根（2025-05 ~ 2026-08）。
+  - D1=1580 (eastmoney), H1=1023 (sina), 全策略 DS01-DS08，trades=134, return=-16.74%, maxDD=-28.56%, bad_audits=0。
+  - 结果归档: `results/fengji_total_a_stock_sectors_ev_sec_fintech_ds07_fixed/BK0900_BK0900/000425_徐工机械/`；master summary 行 status=ok, error 清零。
+- **操作说明**: 东财 60m 接口对单次请求有根数上限且易限流，`fetch_kline_with_fallback` 会自动回退新浪备用源，无需改代码。
+
 ## 2026-08-13 (DS09 固定样本反向验证)
 
 - **DS09 固定样本验证**: TODO 遗留项"用DS09固定样本验证 D1红阵营+昨日阴线多头、D1蓝阵营+昨日阳线空头，确保不再只按昨日阴阳线触发"完成。

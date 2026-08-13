@@ -451,7 +451,7 @@
 
 - [x] 回归九大定式单定式测试。（2026-07-10：现有 DS 单测/雷达定式重点集 `56 passed, 1 skipped`；DS02/DS04/DS06/DS07 后续仍需补同等强度核心案例单测和沙盒图）
 - [x] 回归总定式统一账本。（2026-07-10：新增 `audit_unified_ledger_regression.py`，合成账本审计 `failures=0`；账本/监控/回测接口重点集补 `PYTHONPATH=services;src;packages/fengji_core` 后 `16 passed, 5 skipped`）
-- [ ] 继续 A股板块回测，复跑失败股票。
+- [x] 继续 A股板块回测，复跑失败股票。（2026-08-13：000425 徐工机械 60m 数据补齐并重跑成功，`a_stock_all_sectors_master_summary.csv` error 行清零；DS01-DS08 全策略，trades=134, return=-16.74%）
 - [ ] 对最近有争议的信号生成沙盒图并归档。
 - [x] 对 A股 DS07/DS08 标注数据覆盖不足边界（`market_coverage` · H1&lt;500 自动跳过）。
 
@@ -505,7 +505,7 @@
   - `商业终端_Dash.py`
   - 国内期货/A股挂单逻辑
   - 启动工厂 bat/cmd
-- [ ] 继续 A股板块回测，复跑失败股票，归档结果。
+- [x] 继续 A股板块回测，复跑失败股票，归档结果。（2026-08-13：000425 复跑成功并归档，master summary error=0）
 - [x] 补齐 A股 60 分钟历史数据，或明确 A股正式筛选临时只用 DS01-DS06 日线口径（H1&lt;500 降级，见 D6 文档）。
 - [x] 明确国内期货日盘/夜盘数据泵自动运行时间表；A股无夜盘（`docs/MARKET_COVERAGE_BOUNDARIES.md` §2–3）。
 - [ ] 把 `codex_assets\skills` 中的技能安装到全局 Codex 技能目录，若后续需要自动触发。
