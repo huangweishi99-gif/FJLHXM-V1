@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-13 (国内服务器商业终端 Dash 常驻)
+
+- **操作**：国内服务器 `商业终端_Dash.py`（9480B，读取 `data\1d\*USDT.csv` 做涨跌幅排名展示，`app.run(host='0.0.0.0', port=8050)`）由"无进程"改为**常驻运行**。
+- **实现方式**：SSH 远程启动时两条路径不可用——① `schtasks /create` 与 `Register-ScheduledTask` 在 SSH 会话下报 `HRESULT 0x80071a2d`（Task Scheduler 的 COM 事务上下文不活动）；② `Start-Process` 启动的进程随 SSH 会话断开被 OpenSSH job 终止。最终采用 **`Win32_Process.Create`（WMI）** 创建进程，由 WMI 服务托管、不继承 SSH job，跨会话存活。
+- **关键坑**：WMI `CommandLine` 传中文路径（`商业终端_Dash.py`）会损坏导致进程启动即退出；故复制英文名副本 `fj_terminal_svc.py` 作为常驻入口（内容与原文件逐字节一致）。
+- **验证**：进程（PID 3600）跨 SSH 会话存活；`0.0.0.0:8050` LISTENING；`http://127.0.0.1:8050` HTTP 200（6549B）。
+- **与启动工厂协调**：`scripts/start_factory_ascii.bat` L9 杀进程匹配 `Dash.py` 不会误杀 `fj_terminal_svc.py`；L19 启动 `商业终端_Dash.py` 会因 8050 被占用启动失败（无害，Dash 由 `fj_terminal_svc.py` 持续服务）。
+- **注意事项**：WMI 进程不持久，**服务器重启后需重新拉起**（WMI Create：`python.exe -u C:\Users\Administrator\quant_futures\fj_terminal_svc.py`）；Dash 依赖已确认安装（dash 4.1.0 / dash-bootstrap-components 2.0.4 / plotly 6.7.0 / pandas 2.3.3）。
+
 ## 2026-08-13 (国内旧版监控文件复核更正：内容实为权威版，且为活跃依赖)
 
 - **背景**：下方 2026-08-13 完整复核记录中"国内 `src\fengji_pending_order_monitor.py` 为 07-06 10:42 旧版、零引用、无进程、非活跃"判定**不准确**。
