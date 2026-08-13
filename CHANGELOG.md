@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-08-13 (海内外服务器完整复核：TODO L494-507 完成)
+
+- 只读 SSH 完整复核海内外服务器核心运行文件（哈希 + mtime/size + 进程 + 日志 + 启动工厂），报告 `results/server_full_recheck_20260813.md`。
+- **海外**：`data_manager.py`、`fengji_total_radar.py`、`fengji_radar_order_loop.py`、`fengji_pending_order_monitor.py` 哈希与本地一致；`data_sync.log`/`paper_run.log`/`pending_order_monitor.log` 均活跃（17:11/17:15/17:17）无报错；5 类进程运行中。**差异待确认**：`src/overseas_paper_monitor.py`（远程 06-29, 35706B, `7061e790…`）与本地 `峰极总定式01-08策略海外模拟实盘.py`（07-02, 34974B, `ba0e50e8…`）不一致——本地更新疑似未部署；未做文件拉取 diff，内容待用户授权后在服务器侧确认。
+- **国内**：`data_manager_futures.py`、`峰极总定式01-08国内期货A股模拟实盘.py`、`src\fengji_futures_pending_order_monitor.py`、`src\fengji_radar_order_loop.py`、`src\fengji_total_radar.py` 哈希与本地一致；4 进程运行中，radar/pending 日志活跃（17:07/17:17），`data_manager_futures.log` 15:12（期货收盘后停更，符合时段）。**观察项**：`src\fengji_pending_order_monitor.py` 为 07-06 10:42 旧版（本地 14:32 新版）但零引用、无进程、非活跃；`商业终端_Dash.py` 存在（9480B）但无 Dash 进程运行。启动脚本含完整 webhook 参数（敏感信息，报告未展示）。
+- TODO L494-507 两项勾选完成。建议（待授权）：海外模拟盘差异确认后决定是否重新部署；国内旧版 `fengji_pending_order_monitor.py` 随下次部署覆盖或删除归档；确认 Dash 是否应常驻。
+
 ## 2026-08-13 (双服务器核心 DS 逻辑部署再审计通过)
 
 - 重跑 `scripts/audit_server_core_logic_deploy.py --remote domestic` 与 `--remote overseas`（只读审计，哈希对比 + 关键功能 token）：

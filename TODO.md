@@ -491,20 +491,8 @@
 - [x] 安装或修复本地测试环境，解决 `pytest` / Python 权限问题。
 - [x] 运行 `scripts\plan_a_verify.ps1` 做 A0 安装验收（2026-05-28 全绿）。
 - [x] 运行核心测试集（2026-05-28：`59 passed`）。
-- [ ] 复核海外服务器：
-  - `data_manager.py`
-  - `src/峰极总定式01-08策略海外模拟实盘.py`
-  - `fengji_pending_order_monitor.py`
-  - `fengji_radar_order_loop.py`
-  - `paper_run.log`
-  - `data_sync.log`
-  - `pending_order_monitor.log`
-- [ ] 复核国内服务器：
-  - `data_manager_futures.py`
-  - `峰极总定式01-08国内期货A股模拟实盘.py`
-  - `商业终端_Dash.py`
-  - 国内期货/A股挂单逻辑
-  - 启动工厂 bat/cmd
+- [x] 复核海外服务器。（2026-08-13：`results/server_full_recheck_20260813.md`——`data_manager.py`/`fengji_total_radar.py`/`fengji_radar_order_loop.py`/`fengji_pending_order_monitor.py` 哈希与本地一致；`src/overseas_paper_monitor.py` 与本地模拟盘**不一致待确认**（远程 06-29 35706B vs 本地 07-02 34974B，本地更新或未部署，未拉取文件 diff）；`data_sync.log` 17:11、`paper_run.log` 17:15、`pending_order_monitor.log` 17:17 均活跃无报错；5 类进程运行中）
+- [x] 复核国内服务器。（2026-08-13：`results/server_full_recheck_20260813.md`——`data_manager_futures.py`/`峰极总定式01-08国内期货A股模拟实盘.py`/`src\fengji_futures_pending_order_monitor.py`/`src\fengji_radar_order_loop.py`/`src\fengji_total_radar.py` 哈希与本地一致；`src\fengji_pending_order_monitor.py` 为 07-06 10:42 旧版（本地 14:32 新版）但**零引用、无进程、非活跃**；`商业终端_Dash.py` 存在（9480B）但**无 Dash 进程**；启动工厂 `run_*.cmd`×4 + `scripts\start_factory_ascii.bat` 存在；4 进程运行中，日志活跃；启动脚本含 webhook 参数（敏感，未展示））
 - [x] 继续 A股板块回测，复跑失败股票，归档结果。（2026-08-13：000425 复跑成功并归档，master summary error=0）
 - [x] 补齐 A股 60 分钟历史数据，或明确 A股正式筛选临时只用 DS01-DS06 日线口径（H1&lt;500 降级，见 D6 文档）。
 - [x] 明确国内期货日盘/夜盘数据泵自动运行时间表；A股无夜盘（`docs/MARKET_COVERAGE_BOUNDARIES.md` §2–3）。
