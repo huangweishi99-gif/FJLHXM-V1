@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-13 (DS07 旧逻辑负向审计：ALIGN_TURN 不回流权威源/雷达)
+
+- **TODO 待验证项完成**: "DS07 新逻辑：确认旧逻辑已删除，不会污染海外/国内模拟盘"。
+- **背景核实**: 权威源 `packages/fengji_core/fengji_core/ds07.py` 已按 2026-07-05 `e596aca` 冻结为**新逻辑**（D1 camp_confirmed 战略授权 + H1 DS03 二四棒同向触发 `LONG_CONTINUE`/`SHORT_CONTINUE`）；旧逻辑（`LONG_ALIGN_TURN`/`SHORT_ALIGN_TURN` 峰极线突破反向并轨）已从权威源、雷达、挂单、模拟盘入口删除，全库仅残留在**历史更新包** `domestic_futures_ds07_update/src/quant/ds07.py`（README 已标注历史包，不作为活跃代码路径）。
+- **新增负向契约**: `scripts/audit_ds_consistency_contract.py` 的 `ds07_core_new_resonance_contract` 增加 `forbidden_tokens`（`LONG_ALIGN_TURN`/`SHORT_ALIGN_TURN`/`high > float(blue_ext)`/`low < float(red_ext)`），`radar_uses_canonical_ds_contracts` 增加 `LONG_ALIGN_TURN`/`SHORT_ALIGN_TURN` 禁止标记，防止旧逻辑经权威源或雷达入口回流。
+- **新增测试**: `tests/test_audit_ds_consistency_contract.py` 新增 `test_ds07_contract_rejects_legacy_align_turn` 与 `test_radar_contract_rejects_legacy_align_turn`（旧标记混入权威源/雷达时即使新 token 全在也必须报失败）。
+- **验证**: `python scripts\audit_ds_consistency_contract.py` -> `failures=0`；审计+DS07/DS09 相关测试 10 passed；核心回归 52 passed, 1 skipped。
+- 本次只增加只读审计契约与测试，未修改 DS07 信号逻辑、峰极线、阵营转换或模拟成交规则；未写入密钥/Token/密码/webhook。
+
 ## 2026-08-13 (A股 000425 徐工机械失败股票复跑)
 
 - **000425 徐工机械重跑成功**: master summary 中唯一 error 行（`数据库数据不完整: D1=0, H1=0`）补齐数据后重跑。

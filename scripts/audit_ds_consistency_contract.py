@@ -88,6 +88,14 @@ CONTRACTS: tuple[Contract, ...] = (
             "DS07 D1 Red + H1 Red DS03",
             "DS07 D1 Blue + H1 Blue DS03",
         ),
+        # 旧逻辑（e596aca 之前）为 H1 峰极线突破 + ALIGN_TURN 反向并轨；
+        # 新逻辑只允许 DS03 二四棒同向触发，以下旧标记不得回流权威源。
+        forbidden_tokens=(
+            "LONG_ALIGN_TURN",
+            "SHORT_ALIGN_TURN",
+            "high > float(blue_ext)",
+            "low < float(red_ext)",
+        ),
     ),
     Contract(
         name="radar_uses_canonical_ds_contracts",
@@ -101,6 +109,11 @@ CONTRACTS: tuple[Contract, ...] = (
             "resolve_ds03_attack(d1, i)",
             "K2 possible extreme",
             "make_ds07_signal(cur, i, set(), symbol=symbol, prev_row=prev, df=mapped)",
+        ),
+        # DS07 旧 ALIGN_TURN 并轨标记不得通过雷达入口回流。
+        forbidden_tokens=(
+            "LONG_ALIGN_TURN",
+            "SHORT_ALIGN_TURN",
         ),
     ),
     Contract(

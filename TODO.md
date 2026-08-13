@@ -525,7 +525,7 @@
 - [x] DS01 左30线数修正：确认代码、测试、雷达、模拟盘一致（2026-08-13 三币审计通过）。
 - [x] DS03 假峰/假极触发：确认 IOUSDT 2026-05-26/27 案例及 ETHUSDT DS03 空头案例（2026-08-13 复核无信号，结构正确）。
 - [x] DS05 K2 可能形成极：确认红枣、玻璃、纯碱等国内期货案例（2026-08-13 复核完成）。
-- [ ] DS07 新逻辑：确认旧逻辑已删除，不会污染海外/国内模拟盘。
+- [x] DS07 新逻辑：确认旧逻辑已删除，不会污染海外/国内模拟盘。（2026-08-13：权威源 `fengji_core/ds07.py` 已冻结为 DS03 二四棒同向触发新逻辑；旧 `ALIGN_TURN` 峰极线突破并轨仅残留在历史更新包 `domestic_futures_ds07_update/`（非活跃路径）。`audit_ds_consistency_contract.py` 新增 DS07 旧逻辑 `forbidden_tokens`（权威源+雷达双入口），防止旧逻辑回流；审计 failures=0，52 passed）
 - [x] 国内 `data_manager_futures.py` 天勤长连接复用：确认开盘前/收盘后自动运行逻辑；2026-07-10 审计覆盖 active window 内复用连接、非更新窗口关闭连接并写 `idle` 心跳，国内远端健康检查 data_manager 单进程、idle 心跳正常。
 - [x] 海外服务器模拟盘：确认 16 个虚拟货币数据和挂单监控日志持续更新。（2026-07-10：海外 data_manager/radar/pending/paper 均运行；`data/15m` 样本更新至 11:27，radar/pending 更新至 11:24，effective pending summary 正常输出）
 
