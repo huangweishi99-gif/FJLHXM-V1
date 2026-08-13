@@ -69,7 +69,7 @@ def main() -> None:
                     "k2": signal.k2,
                     "k3": signal.k3,
                     "camp": signal.signal_camp,
-                    "active_extreme": signal.active_extreme,
+                    "k2_possible_extreme": signal.k2_possible_extreme,
                 }
             )
     if signal_rows:

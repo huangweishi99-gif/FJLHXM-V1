@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-08-13 (DS04/DS05 audit + check_ds05 fix)
+
+- **DS04 夹棍式复核**: FG(玻璃)/SA(纯碱) 2026-05-26 K1/K2/K3 structure check passed — no signal (K3 close did not reclaim K1 extreme); no_gap/k2_weakest/dir_combo all correct. Data sourced from SQLite `bars` (Chinese symbol 玻璃/纯碱), exported 189 rows each to temporary CSV for the legacy check script.
+- **DS05 指形式复核**: K2-as-possible-extreme confirmed (4-bar local min/max, not OS active extreme); 红枣(CJ) case scanned with fixed `check_ds05_conditions.py`; no recent signal (blue camp, K2 not a 4-bar extreme) — correct behavior.
+- **Fix `scripts/check_ds05_conditions.py`**: L72 referenced non-existent `signal.active_extreme` (old 口径) → replaced with `k2_possible_extreme` (current 口径). Script now runs without AttributeError.
+- **Tests**: 630 passed, 17 skipped.
+
 ## 2026-08-13 (DS01 fix + DS01/DS03 audit)
 
 - **Fix `src/plot_fengji_structure.py` dead imports**: restored `identity_display`, `draw_identity_labels`, `draw_turn_marks` (3 functions, 79 lines) to repair 6 legacy audit/sandbox scripts that failed with `ImportError`.
