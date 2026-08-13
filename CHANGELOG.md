@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-08-13 (服务器冗余目录清理：国内 + 海外，用户授权执行)
+
+- **授权**：用户明确指示"清理服务器冗余目录"。
+- **国内**（`quant_futures\packages\fengji_core` 内，均零引用/不在 sys.path/不可达）：
+  - 删除 `fengji_core\fengji_core\`（375451B，2026-06-04 三层嵌套旧副本，NO_ALIGN）
+  - 删除 `fengji_core\fengji_core.egg-info\`（1242B 嵌套构建产物）
+  - 删除 `fengji_core_temp\`（253623B，2026-05-28 历史暂存，含旧 ALIGN_TURN ds07.py）
+- **海外**（Linux）：
+  - 删除 `~/quant_crypto/packages/fengji_core/fengji_core/fengji_core\`（348K，2026-06-01 旧副本）
+  - 删除 `fengji_core/fengji_core/fengji_core.egg-info\`（嵌套构建产物）
+  - 删除 `~/` 下 6 个路径粘连空目录 `homeubuntuquant_cryptopackagesfengji_core*`（5/28 mkdir 事故产物，4-12K 空壳，无文件内容）
+- **保留**：顶层活跃 `fengji_core\`（源码）、顶层 `fengji_core.egg-info\`、`runtime\temp\`、`runtime\deploy_backup_*\`（部署备份）。
+- **验证**：国内 4+1 核心进程存活（radar_loop/挂单监控/模拟盘/data_manager/Dash PID 3600），`import fengji_core.ds07/os_engine/ds01/ds03/ds05/ds09` IMPORT_RC=0；海外 4 核心进程存活（.venv：挂单监控/模拟盘/data_manager/雷达循环），IMPORT_OK（ds07 从活跃包 `packages/fengji_core/fengji_core/ds07.py` 加载，非嵌套副本）。
+
 ## 2026-08-13 (国内服务器商业终端 Dash 常驻)
 
 - **操作**：国内服务器 `商业终端_Dash.py`（9480B，读取 `data\1d\*USDT.csv` 做涨跌幅排名展示，`app.run(host='0.0.0.0', port=8050)`）由"无进程"改为**常驻运行**。
