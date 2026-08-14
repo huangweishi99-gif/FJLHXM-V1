@@ -428,7 +428,7 @@
 - [x] 梳理国内期货天勤 LC 15m 加长与脏数据边界：`FUTURES_15M_LENGTH`、最长 sane 档、`docs/LC_DS09_ACCEPTANCE.md`（2026-05-28）。【待复查】是否需天勤历史区间 API 突破 10000 根上限。
 - [x] 梳理国内期货天勤数据源、日盘/夜盘开收盘时间、开盘前自动更新、收盘后停止规则（全品种表）：`docs/MARKET_COVERAGE_BOUNDARIES.md` + `scripts/audit_domestic_futures_data_schedule.py`；2026-07-10 本地/国内远端审计 `failures=0`。
 - [x] 梳理 A股数据源；A股无夜盘（见 `docs/MARKET_COVERAGE_BOUNDARIES.md`）。
-- [x] 补齐或替换 A股 60 分钟历史数据源。【部分】已固化 H1&lt;500 降级 DS01–DS06；长历史源仍待接。（2026-08-14：确认**新浪 `scale=60, datalen=1023` 可拿 1023 根 60m** 为补齐通道，东财 `klt=60` 仅返回 125 根；已用新浪源补齐 4 只缺口股票 60m 缓存并重跑完整 DS01-DS08）
+- [x] 补齐或替换 A股 60 分钟历史数据源。【已完成】已固化 H1&lt;500 降级 DS01–DS06；2026-08-14 确认**新浪 `scale=60, datalen=1023`** 为补齐通道并**批量补齐 100 只** 60m 缓存至 1023 根（`scripts/backfill_a_stock_60m.py` + `scripts/verify_a_stock_60m_coverage.py`），写回 `market_data.sqlite`；240 只中 **236 只 ≥500 根**，仅 4 只次新/停牌股（301696/603459/688808/688820）受上市时间限制仍 306-354 根（数据源上限，待换更长历史源）。【后续可选】重跑板块批回测刷新 `a_stock_all_sectors_master_summary.csv` 的 `h1_rows`/`strategies_run`（118 只旧快照值，95 只数据已达标）。
 - [x] 建立独立 `峰极OS_数据与回测说明.md`，交接数据类型、文件位置、字段、5m/60m状态、回测规则和九大定式回测状态。
 
 ### 国内服务器与国外服务器待验证任务

@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-14 (A股 60m 长历史批量补齐：236/240 达标，H1<500 缺口关闭)
+
+- **补齐数据**：东财 `klt=60` 仅返回 125-128 根 60m K 线，导致 100 只板块股票 H1<500、回测自动跳过 DS07/DS08。本次用新浪 `scale=60, datalen=1023` 通道批量刷新 **100 只 60m 缓存至 1023 根**，并写回 `data/market_data.sqlite`（A_STOCK/1H，timeframe='1H'），CSV 与 DB 一致。
+- **覆盖率结果**：240 只 60m 缓存中 **236 只 ≥500 根**；仅 4 只次新/长期停牌股受上市时间限制仍不达标（301696=346、603459=354、688808=306、688820=318），新浪 1023 根为数据源上限，需换更长历史源（待后续）。
+- **新增工具**：`scripts/backfill_a_stock_60m.py`（批量补齐，复用 `fetch_sina_kline`/`import_frame`，支持 `--limit`/`--only` 分批；96 只全量 +000021 补写全部成功，0 失败）；`scripts/verify_a_stock_60m_coverage.py`（CSV/sqlite/master_summary 三方覆盖率核对）。
+- **数据质量**：抽查 000049/688981/301696 日期单调递增、无重复、无 NaN；日内间隔 1h/2.5h（午休 11:30→14:00）、每日 4 根（10:30/11:30/14:00/15:00）、跨日间隔正常。
+- **回归验证**：`test_market_data_resolve.py + test_ds07.py + test_ds08.py` 51 passed；未修改任何策略/规则/回测逻辑，仅数据缓存与 sqlite。
+- **说明**：`results/a_stock_all_sectors_master_summary.csv` 中 118 只 `h1_rows` 仍为补齐前的旧快照值（其中 95 只数据现已达标），需重跑板块批回测刷新；本轮未重跑，避免长时间批处理。`data/market_data.sqlite` 已被 .gitignore 忽略，不入库。
+
 ## 2026-08-14 (DS06/DS07/DS08 独立核心单测补齐 + prepare_datetime_ohlcv 位置列 bug 修复)
 
 - **补齐缺口**：TODO 2026-07-10 记录"没有独立 `test_ds02.py`/`test_ds04.py`/`test_ds06.py`/`test_ds07.py` 核心单测"；DS02/DS04 已于 2026-08-11 补齐，本次新增 `tests/test_ds06.py`（21 例）、`tests/test_ds07.py`（24 例）、`tests/test_ds08.py`（22 例），**DS01-DS09 九大定式独立核心单测全部就位**（PROJECT_CONTEXT"DS02/DS04/DS06/DS08 同等强度复核"剩余缺口关闭）。
