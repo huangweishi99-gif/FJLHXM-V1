@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-08-14 (全量测试回归 700 passed + 海外监控测试隔离修复)
+
+- **背景**：2026-08-11 之后多轮变更（板块批回测重跑、审计脚本动态化等），用 `--basetemp` 定向临时目录跑 `pytest tests` 全量回归（规避沙箱删除保护误拦截）。
+- **结果**：首次 **1 failed / 699 passed / 17 skipped**；修复后 **700 passed / 17 skipped / 0 failed**。
+- **修复**：`tests/test_monitor_overseas.py::test_extract_crypto_open_position` 未隔离外部运行时状态——`PENDING_ORDER_PATHS` 默认指向真实 `runtime/overseas_pending_orders/pending_orders.csv`，该文件 2026-08-14 新增 BNBUSDT long ACTIVE 记录，与测试持仓（BNBUSDT short）方向矛盾，被 `_filter_positions_against_pending` 正确过滤返回空导致断言失败。修复为显式 `monkeypatch.setattr(monitor_overseas, "PENDING_ORDER_PATHS", (None,))` 隔离。实现本身无改动（方向矛盾过滤是既有业务逻辑，见 `test_extract_filters_position_contradicted_by_current_pending`）。
+- **说明**：测试过程中 `test_load_latest_opens_from_tmp_state` 偶发 `sitecustomize.py OSError`（CodeBuddy shim 清理临时目录），单独运行通过，属沙箱环境偶发非测试失败。
+
 ## 2026-08-14 (A股板块归档审计脚本动态化：修复过期硬编码 274 阈值，failures 2→0)
 
 - **背景**：板块批回测重跑后磁盘真实状态为 11 板块 118 行（12 个 `sector_summary.csv` 全部存在，per-stock 明细 `full_detail_archive_complete=True`），但 `scripts/audit_a_stock_sector_archive.py` 仍硬编码 `>= 274`（旧全量快照含已移除的归档板块目录），导致 `check_overview`/`check_master` 误报 2 个 failure，`tests/test_audit_a_stock_sector_archive.py` 也断言 `master_rows >= 274`、`full_detail_archive_complete is False` 而过期。

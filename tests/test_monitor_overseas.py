@@ -37,7 +37,10 @@ def write_pending(path: Path, rows: list[dict[str, str]]) -> None:
             writer.writerow(row)
 
 
-def test_extract_crypto_open_position() -> None:
+def test_extract_crypto_open_position(monkeypatch) -> None:
+    # Isolate from live pending_orders.csv: a real BNBUSDT long ACTIVE order on
+    # disk would make the short position below look contradicted and be filtered.
+    monkeypatch.setattr(monitor_overseas, "PENDING_ORDER_PATHS", (None,))
     state = {
         "symbols": {
             "BNBUSDT": {

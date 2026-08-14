@@ -13,7 +13,7 @@
 - [x] **P1**: DS05 K2 extreme sandbox verified (9 tests pass; CJ/FG/SA sandbox images archived in runtime/ds05_sandbox/).
 - [x] **P1**: DS08 5-point denial-confirmation verified (12 tests pass including test_ds08_pending_fill.py).
 - [x] **P1**: camp-conversion sandbox 4/4 crypto (RENDER/IO/DOGE/LTC) confirmed VALID in sandbox archive.
-- [x] **Full test regression**: 630 passed, 17 skipped.
+- [x] **Full test regression**: 630 passed, 17 skipped.（2026-08-14 重跑：**700 passed, 17 skipped**，`--basetemp` 定向临时目录规避沙箱删除保护误拦截；修复 `test_extract_crypto_open_position` 未隔离真实 pending_orders.csv（BNBUSDT long ACTIVE 触发方向矛盾过滤），显式 monkeypatch `PENDING_ORDER_PATHS=(None,)` 后全量 0 failed）
 - [x] **.gitignore**: added `archives/` and `.vscode/`.
 - [x] **Archival docs**: committed 8 root-level cleanup/handoff/baseline .md reports (`ARCHIVE_*`, `CLEANUP_*`, `CURRENT_BASELINE_*`, `HANDOFF_*`, `PG_BASELINE_*`, `WEB_MONITOR_*`).
 - [x] **P2 A股板块回测归档**: 11 sectors (CPO/算力/BK0900/电动乘用车/半导体/飞行汽车/锂电池/互联网金融/证券Ⅱ/航空装备Ⅱ/虚拟机器人), 274 trades, 233 stocks, 1.46M cumulative PnL; 4/4 audit tests pass.
