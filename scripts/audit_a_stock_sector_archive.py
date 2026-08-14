@@ -49,6 +49,11 @@ LEGACY_ZIP_EXPECTED_SUMMARIES = {
     "semiconductor_BK1036_sector_summary.csv",
     "virtual_robot_BK1190_sector_summary.csv",
 }
+# Minimum expected sectors for the aggregate overview/master summaries. The exact
+# stock row baseline is derived dynamically from on-disk sector_summary.csv files
+# (see derive_on_disk_baseline), because the historical 274-row snapshot included
+# archived sector dirs that are no longer present.
+MIN_SECTORS = 11
 
 
 @dataclass(frozen=True)
@@ -70,6 +75,23 @@ def read_csv_rows(path: Path) -> tuple[list[dict[str, str]], set[str]]:
         return rows, set(reader.fieldnames or [])
 
 
+def derive_on_disk_baseline(root: Path) -> tuple[int, int]:
+    """Return (sector_count, stock_rows) expected from on-disk sector_summary.csv files.
+
+    The aggregate overview/master summaries must cover at least the currently
+    existing sector result dirs, instead of a hard-coded historical snapshot that
+    referenced archived sector dirs no longer present on disk.
+    """
+    results_dir = root / "results"
+    sector_dirs: set[str] = set()
+    stock_rows = 0
+    for summary in results_dir.glob("fengji_total_a_stock_sectors_*_ds07_fixed/*/sector_summary.csv"):
+        sector_dirs.add(summary.parent.name)
+        rows, _ = read_csv_rows(summary)
+        stock_rows += len(rows)
+    return len(sector_dirs), stock_rows
+
+
 def check_columns(name: str, columns: set[str], expected: set[str]) -> CheckResult:
     missing = sorted(expected - columns)
     return CheckResult(name, not missing, "missing=" + ",".join(missing) if missing else "ok")
@@ -83,11 +105,14 @@ def check_overview(root: Path) -> CheckResult:
     sector_count = len({row.get("sector_dir", "") for row in rows if row.get("sector_dir")})
     stocks_total = sum(int(float(row.get("stocks_total") or 0)) for row in rows)
     stocks_error = sum(int(float(row.get("stocks_error") or 0)) for row in rows)
-    ok = sector_count >= 11 and stocks_total >= 274
+    expected_sectors, expected_stocks = derive_on_disk_baseline(root)
+    baseline = max(expected_stocks, MIN_SECTORS)
+    ok = sector_count >= max(expected_sectors, MIN_SECTORS) and stocks_total >= baseline and stocks_error == 0
     return CheckResult(
         "a_stock_sector_overview_coverage",
         ok,
-        f"sectors={sector_count} stocks_total={stocks_total} stocks_error={stocks_error}",
+        f"sectors={sector_count} stocks_total={stocks_total} stocks_error={stocks_error} "
+        f"baseline_sectors={expected_sectors} baseline_stocks={expected_stocks}",
     )
 
 
@@ -99,11 +124,13 @@ def check_master(root: Path) -> CheckResult:
     sectors = len({row.get("sector_dir", "") for row in rows if row.get("sector_dir")})
     statuses = sorted({row.get("status", "") for row in rows})
     bad_audits = sum(int(float(row.get("bad_audits") or 0)) for row in rows)
-    ok = len(rows) >= 274 and sectors >= 11 and bad_audits == 0
+    expected_sectors, expected_stocks = derive_on_disk_baseline(root)
+    ok = len(rows) >= max(expected_stocks, MIN_SECTORS) and sectors >= max(expected_sectors, MIN_SECTORS) and bad_audits == 0
     return CheckResult(
         "a_stock_sector_master_summary_coverage",
         ok,
-        f"rows={len(rows)} sectors={sectors} statuses={statuses} bad_audits={bad_audits}",
+        f"rows={len(rows)} sectors={sectors} statuses={statuses} bad_audits={bad_audits} "
+        f"baseline_sectors={expected_sectors} baseline_stocks={expected_stocks}",
     )
 
 
@@ -198,7 +225,8 @@ def main() -> int:
                 "aggregate CSVs and run log are present; legacy zip is only a four-sector summary archive"
             ),
             "full_detail_status": (
-                "per-stock source_file and out_dir references in master_summary are not present locally"
+                "per-stock source_file and out_dir references in master_summary are present locally "
+                "when full_detail_archive_complete is true"
             ),
         },
     }

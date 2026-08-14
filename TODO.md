@@ -160,7 +160,7 @@
 ## 2026-07-10 · A股板块结果归档覆盖审计
 
 - [x] **归档覆盖只读审计**：新增 `scripts/audit_a_stock_sector_archive.py`，盘点 `results/a_stock_all_sectors_overview.csv`、`results/a_stock_all_sectors_master_summary.csv`、`results/fengji_total_a_stock_sectors_os20260529_run.log` 与旧 `results/a_stock_sector_archive_ds07_fixed.zip`。
-- [x] **当前归档事实**：全量汇总 CSV 仍保留 11 个板块、274 条股票明细、`bad_audits=0`；旧 zip 可读但只包含 CPO/算力/半导体/虚拟机器人 4 个板块摘要；`master_summary` 中 274 个 `source_file` 与 274 个 `out_dir` 当前本地均不存在，因此不是完整 per-stock 明细归档。（2026-08-14：12 个板块 `sector_summary.csv` 已从 master summary 反推重建，274 行完整保留；`source_file` 缺口从 274 降到 262，仍缺 269 个 per-stock 明细目录）
+- [x] **当前归档事实**：全量汇总 CSV 仍保留 11 个板块、274 条股票明细、`bad_audits=0`；旧 zip 可读但只包含 CPO/算力/半导体/虚拟机器人 4 个板块摘要；`master_summary` 中 274 个 `source_file` 与 274 个 `out_dir` 当前本地均不存在，因此不是完整 per-stock 明细归档。（2026-08-14：12 个板块 `sector_summary.csv` 已从 master summary 反推重建，274 行完整保留；`source_file` 缺口从 274 降到 262，仍缺 269 个 per-stock 明细目录。2026-08-14 二次：板块批回测重跑后磁盘真实状态为 **11 板块 118 行**、per-stock 明细 `full_detail_archive_complete=True`；审计脚本已**动态化**（`derive_on_disk_baseline` 从磁盘推导基准，替代硬编码 274），`audit_a_stock_sector_archive.py` **failures=0**、测试 4 passed）
 - [x] **安全边界**：本次只做审计和测试，不重跑 A股回测，不压缩/删除 results，不修改 DS01-DS09、峰极线或阵营逻辑。
 - [x] **验证**：`python scripts\audit_a_stock_sector_archive.py` -> `failures=0`；`python -m pytest tests\test_audit_a_stock_sector_archive.py -q` -> **4 passed**。
 - [ ] **后续可选**：如需要完整 per-stock 结果包，需要重新生成或找回 `results\fengji_total_a_stock_sectors_*` 明细目录后再做归档；当前仓库现存资产只能证明汇总层结果。（2026-08-14：已重建 12 个板块 `sector_summary.csv`；2026-08-14 二次重跑生成 **118 个 per-stock 明细目录**（11 板块全覆盖，含 raw_fengji/stock_summary 等 8 类文件）；其余 269 个早期 per-stock 明细目录仍需重跑或找回，属后续工作。注：`results/` 整体被 .gitignore 忽略，板块结果与 per-stock 明细不入库）
