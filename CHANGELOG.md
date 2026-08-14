@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-14 (DS06/DS07/DS08 独立核心单测补齐 + prepare_datetime_ohlcv 位置列 bug 修复)
+
+- **补齐缺口**：TODO 2026-07-10 记录"没有独立 `test_ds02.py`/`test_ds04.py`/`test_ds06.py`/`test_ds07.py` 核心单测"；DS02/DS04 已于 2026-08-11 补齐，本次新增 `tests/test_ds06.py`（21 例）、`tests/test_ds07.py`（24 例）、`tests/test_ds08.py`（22 例），**DS01-DS09 九大定式独立核心单测全部就位**（PROJECT_CONTEXT"DS02/DS04/DS06/DS08 同等强度复核"剩余缺口关闭）。
+- **DS06 外扩峰式覆盖**：BLUE_TO_RED/RED_TO_BLUE 转势 → D 攻击节点 → E 防御节点 → 外扩突破触发（LONG/SHORT）；无转势/无 D/E 不触发；WAIT_E 阶段破 D 重置 WAIT_D；D 必须在转势后；E 类型约束；成交/止损/移动止损；`audit_ds06_structure` 审计（d_price>e_price、顺序、turn_type、阵营）。
+- **DS07 共振式覆盖**：D1 camp 战略授权 + H1 DS03 二四棒同向触发（真峰/假峰）；双周期不同向、缺 N 结构（hardened_count<4）、缺极值线（red/blue_ext）、prev_h1_camp 不匹配、止损≥入场均拒绝；attack_key 去重语义（纯函数不消费，调用方负责）；`prepare_datetime_ohlcv` 中文/位置列转换；`map_d1_to_h1_future` 夜盘 21 点归属；`audit_ds07_structure` 审计。
+- **DS08 否认确定式覆盖**：五点结构 V-P-V-P-V（LONG）/ P-V-P-V-P（SHORT）+ 外扩价序（谷底/峰递增递减）+ 破 p2/v2 攻击点触发；等待期（v3.point..confirm）与确认后触发前破攻击点均拒绝并消费 key；initial_stop 约束；成交/移动止损（跟最后 LOW/HIGH 节点）/审计（价序、角色、defense>=entry、重复 key）。
+- **修复 bug**：`prepare_datetime_ohlcv` 对无表头位置列（int 列名）直接 `strip()` 崩溃，改为 `str(column).strip()`，位置列输入不再 AttributeError（行为不变）。
+- **回归验证**：完整核心 OS+九大定式+雷达+挂单器全量 **201 passed, 1 skipped**（test_os_engine + test_ds01-ds09 + radar_ds04-ds09 + pending_orders/futures_pending_orders）；新增 DS06/DS07/DS08 共 67 例全过。未修改峰极线、阵营转换、DS01-DS05/DS08/DS09 核心逻辑、雷达、挂单、止损或模拟成交规则；仅 DS07 数据处理函数一行健壮性修复。
+
 ## 2026-08-14 (A股板块缺口股票 60m 补齐 + 完整 DS01-DS08 重跑 + 板块汇总重建)
 
 - **缺口定位**：`a_stock_all_sectors_master_summary.csv` 中 4 只股票 60m(H1) 数据缺失（`h1_rows=0`），仅跑日线 DS01-DS06：688256 寒武纪（半导体+算力概念两板块）、688347 华虹公司（半导体）、688521 芯原股份（半导体）、603629 利通电子（算力概念）。

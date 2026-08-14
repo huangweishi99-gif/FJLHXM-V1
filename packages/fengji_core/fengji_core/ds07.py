@@ -33,7 +33,8 @@ class DS07Signal:
 
 def prepare_datetime_ohlcv(frame: pd.DataFrame) -> pd.DataFrame:
     out = frame.copy()
-    out.columns = [column.strip().lower() for column in out.columns]
+    # 无表头位置列（int 列名）也须支持，先统一转 str 再规范化
+    out.columns = [str(column).strip().lower() for column in out.columns]
     column_map = {
         "时间": "datetime",
         "日期": "date",

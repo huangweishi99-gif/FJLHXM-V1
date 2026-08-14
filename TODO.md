@@ -153,7 +153,7 @@
 ## 2026-07-10 · 九大定式单定式回归测试
 
 - [x] **单定式回归**：运行现有 DS 单测与雷达定式测试集，覆盖 DS01、DS03、DS05、DS09 核心测试，DS03/DS08 pending fill，DS04-DS09 radar 入口。
-- [x] **覆盖边界**：当前仓库没有独立 `test_ds02.py`、`test_ds04.py`、`test_ds06.py`、`test_ds07.py` 核心单测文件；这些定式本轮通过 radar/pending 入口覆盖，后续如要逐一定式"同等强度"复核，需要补专门案例测试和沙盒图。
+- [x] **覆盖边界**：2026-07-10 曾记录"没有独立 `test_ds02.py`/`test_ds04.py`/`test_ds06.py`/`test_ds07.py` 核心单测"；2026-08-11 已补 DS02（15 例）/DS04（16 例），2026-08-14 已补 **DS06（21 例）/DS07（24 例）/DS08（22 例）**，九大定式独立核心单测全部就位（完整核心+雷达+挂单回归 201 passed, 1 skipped）。
 - [x] **验证**：`python -m pytest tests\test_ds01.py tests\test_ds03.py tests\test_ds05.py tests\test_ds09.py tests\test_ds09_futures_session.py tests\test_ds03_pending_fill.py tests\test_ds08_pending_fill.py tests\test_radar_ds04.py tests\test_radar_ds05.py tests\test_radar_ds06.py tests\test_radar_ds07.py tests\test_radar_ds08.py tests\test_radar_ds09.py -q` -> **56 passed, 1 skipped**。
 - [x] **安全边界**：本次只运行测试并记录结果，未修改峰极线、阵营转换、DS01-DS09 核心逻辑、雷达、挂单、止损或模拟成交规则。
 
