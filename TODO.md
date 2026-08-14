@@ -160,10 +160,10 @@
 ## 2026-07-10 · A股板块结果归档覆盖审计
 
 - [x] **归档覆盖只读审计**：新增 `scripts/audit_a_stock_sector_archive.py`，盘点 `results/a_stock_all_sectors_overview.csv`、`results/a_stock_all_sectors_master_summary.csv`、`results/fengji_total_a_stock_sectors_os20260529_run.log` 与旧 `results/a_stock_sector_archive_ds07_fixed.zip`。
-- [x] **当前归档事实**：全量汇总 CSV 仍保留 11 个板块、274 条股票明细、`bad_audits=0`；旧 zip 可读但只包含 CPO/算力/半导体/虚拟机器人 4 个板块摘要；`master_summary` 中 274 个 `source_file` 与 274 个 `out_dir` 当前本地均不存在，因此不是完整 per-stock 明细归档。
+- [x] **当前归档事实**：全量汇总 CSV 仍保留 11 个板块、274 条股票明细、`bad_audits=0`；旧 zip 可读但只包含 CPO/算力/半导体/虚拟机器人 4 个板块摘要；`master_summary` 中 274 个 `source_file` 与 274 个 `out_dir` 当前本地均不存在，因此不是完整 per-stock 明细归档。（2026-08-14：12 个板块 `sector_summary.csv` 已从 master summary 反推重建，274 行完整保留；`source_file` 缺口从 274 降到 262，仍缺 269 个 per-stock 明细目录）
 - [x] **安全边界**：本次只做审计和测试，不重跑 A股回测，不压缩/删除 results，不修改 DS01-DS09、峰极线或阵营逻辑。
 - [x] **验证**：`python scripts\audit_a_stock_sector_archive.py` -> `failures=0`；`python -m pytest tests\test_audit_a_stock_sector_archive.py -q` -> **4 passed**。
-- [ ] **后续可选**：如需要完整 per-stock 结果包，需要重新生成或找回 `results\fengji_total_a_stock_sectors_*` 明细目录后再做归档；当前仓库现存资产只能证明汇总层结果。
+- [ ] **后续可选**：如需要完整 per-stock 结果包，需要重新生成或找回 `results\fengji_total_a_stock_sectors_*` 明细目录后再做归档；当前仓库现存资产只能证明汇总层结果。（2026-08-14：已重建 12 个板块 `sector_summary.csv` + 重跑生成的 5 个 per-stock 明细目录 [688256/688347/688521/603629]；其余 269 个 per-stock 明细目录仍需重跑或找回，属后续工作）
 
 ## 2026-07-10 · 模拟挂单刷新与冲突撤销策略审计
 
@@ -389,7 +389,7 @@
 4. ~~**Phase 2 D0–D7**~~ → **已完成**（见 `docs/PLAN_B_PHASE2_COMPLETE.md`）。
 5. 固化峰极OS总工程交接文档（Cursor/Codex 以 Markdown 为准）。
 6. 实时检查国内/海外数据泵、模拟盘、雷达、挂单（节后巡检）。
-7. 继续 A股板块回测、失败股票重试和结果归档。
+7. 继续 A股板块回测、失败股票重试和结果归档。（2026-08-14：4 只 60m 缺口股票已补齐并重跑完整 DS01-DS08；12 个板块汇总重建；master summary `h1_rows=0` 清零）
 
 ### 九大定式逐个待完成任务
 
@@ -428,7 +428,7 @@
 - [x] 梳理国内期货天勤 LC 15m 加长与脏数据边界：`FUTURES_15M_LENGTH`、最长 sane 档、`docs/LC_DS09_ACCEPTANCE.md`（2026-05-28）。【待复查】是否需天勤历史区间 API 突破 10000 根上限。
 - [x] 梳理国内期货天勤数据源、日盘/夜盘开收盘时间、开盘前自动更新、收盘后停止规则（全品种表）：`docs/MARKET_COVERAGE_BOUNDARIES.md` + `scripts/audit_domestic_futures_data_schedule.py`；2026-07-10 本地/国内远端审计 `failures=0`。
 - [x] 梳理 A股数据源；A股无夜盘（见 `docs/MARKET_COVERAGE_BOUNDARIES.md`）。
-- [x] 补齐或替换 A股 60 分钟历史数据源。【部分】已固化 H1&lt;500 降级 DS01–DS06；长历史源仍待接。
+- [x] 补齐或替换 A股 60 分钟历史数据源。【部分】已固化 H1&lt;500 降级 DS01–DS06；长历史源仍待接。（2026-08-14：确认**新浪 `scale=60, datalen=1023` 可拿 1023 根 60m** 为补齐通道，东财 `klt=60` 仅返回 125 根；已用新浪源补齐 4 只缺口股票 60m 缓存并重跑完整 DS01-DS08）
 - [x] 建立独立 `峰极OS_数据与回测说明.md`，交接数据类型、文件位置、字段、5m/60m状态、回测规则和九大定式回测状态。
 
 ### 国内服务器与国外服务器待验证任务

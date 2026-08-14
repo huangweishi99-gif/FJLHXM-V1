@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-08-14 (A股板块缺口股票 60m 补齐 + 完整 DS01-DS08 重跑 + 板块汇总重建)
+
+- **缺口定位**：`a_stock_all_sectors_master_summary.csv` 中 4 只股票 60m(H1) 数据缺失（`h1_rows=0`），仅跑日线 DS01-DS06：688256 寒武纪（半导体+算力概念两板块）、688347 华虹公司（半导体）、688521 芯原股份（半导体）、603629 利通电子（算力概念）。
+- **根因**：东财 `klt=60` 分钟线接口实际只返回最近 125 根（`lmt` 无效）；`fetch_kline_with_fallback` 优先东财拿到 125 根，低于 DS07/DS08 的 `A_STOCK_H1_MIN_ROWS_DS07_DS08=500` 阈值仍会降级。**新浪 `scale=60, datalen=1023` 可拿 1023 根**，为可用补齐通道。
+- **数据补齐**：用 `backtest_a_stock_fengji.fetch_sina_kline(code, 60, ...)` 刷新 4 只股票 `data/a_stock/*_60m_qfq.csv` 至 1023 根，写回 `data/market_data.sqlite`。
+- **重跑结果**（`--data-source download` 读缓存，PYTHONIOENCODING=utf-8 规避 GBK 崩溃）：
+  - 688347 华虹：return=126.67%（旧 0.56%，日线版）
+  - 688256 寒武纪：return=417.27%，半导体板块最佳
+  - 688521 芯原：return=56.93%
+  - 603629 利通：return=222.41%
+  - 全部 `h1_rows=1023`、`strategies_run=DS01..DS08` 全套、`bad_audits=0`、`status=ok`。
+- **板块汇总重建**：发现 12 个板块 `sector_summary.csv` 源文件全部丢失（2026-07-10 归档审计已记录"274 个 source_file 本地均不存在"），本次从 master summary 按 `source_file` 反推重建 12 个板块汇总（274 行完整保留），并合并重跑结果进半导体/算力概念两板块。
+- **master summary 重新生成**：`scripts/summarize_a_stock_sectors.py` -> roots=12、detail_rows=274 不变、sectors=11、**全板块 stocks_error=0**、`h1_rows=0` 清零。
+- **安全边界**：未修改 DS01-DS09/OS/挂单/风控任何策略逻辑；只重跑回测、刷新数据缓存与重建结果归档；未写入密钥/Token/Webhook。临时脚本保留在 `results/_tmp_*.py|json`（用户未批准删除，供复核）。
+
 ## 2026-08-14 (运行手册汇总成册：服务器/数据管线/挂单器/A股板块回测)
 
 - **新增 4 份手册**（`docs/RUNBOOK_*.md`）：

@@ -93,7 +93,7 @@
 - 本地工程已具备峰极OS核心、DS01-DS09、回测、雷达、挂单器、模拟盘、数据泵、部署脚本和交接文档。
 - DS01、DS03、DS05、DS07 在 2026-05-26 至 2026-05-27 有过关键规则修正，需要持续确认本地、国内服务器、海外服务器三处一致。
 - 海外虚拟货币模拟盘和国内期货/A股模拟盘已建立运行链路，但“当前是否正常运行”属于时间敏感事实，每次必须 SSH 实时检查。
-- A股板块回测已经推进多个板块，但 A股 60 分钟历史数据覆盖仍是 DS07/DS08 历史级验证的主要限制。
+- A股板块回测已经推进多个板块，但 A股 60 分钟历史数据覆盖仍是 DS07/DS08 历史级验证的主要限制。（2026-08-14：新浪 `scale=60, datalen=1023` 可拿 1023 根 60m，东财 `klt=60` 仅 125 根；已用新浪源补齐 4 只缺口股票并重跑完整 DS01-DS08）
 - 当前虚拟货币和国内期货/A股均只允许模拟和观察，不允许自动真实下单。
 
 ### 已完成内容
@@ -115,7 +115,7 @@
 - 需要确认 `src/quant` 与 `packages/fengji_core` 是否完全一致，避免双实现分叉。
 - 需要确认国内服务器、海外服务器当前运行代码已经包含 DS01、DS03、DS05、DS07 最新修正。
 - [x] 已建立独立运行手册（2026-08-14）：`docs/RUNBOOK_SERVER.md`（服务器运行）、`docs/RUNBOOK_DATA_PIPELINE.md`（数据管线）、`docs/RUNBOOK_PENDING_ORDER.md`（挂单器）、`docs/RUNBOOK_A_STOCK_BACKTEST.md`（A股板块回测）。
-- 需要补齐或替换 A股 60 分钟历史数据源，否则 DS07/DS08 的 A股历史结论不能视为完整。
+- 需要补齐或替换 A股 60 分钟历史数据源，否则 DS07/DS08 的 A股历史结论不能视为完整。（2026-08-14：新浪 `scale=60` 可拿 1023 根 60m，已作为补齐通道修复 4 只缺口股票；其余板块股票的 60m 覆盖率是否达标仍需逐个核对）
 - DS09 国内 LC 已做 session/回测/雷达冒烟；待在有 `locks>0` 的历史窗口补单笔沙盒图，并对照 ETH `plan_a_verify` 区分引擎与行情。
 - 需要对 DS02、DS04、DS06、DS08 做同等强度的案例复核、测试和沙盒图验证（DS09 规则已校准，LC 为数据与案例覆盖问题）。
 - 需要明确国内期货日盘/夜盘数据泵自动运行表；A股无夜盘。
@@ -267,7 +267,7 @@ C:\Users\guangwan\Documents\New project
 2. 逐项复核 DS01-DS09 是否全部在峰极OS最高宪法下执行。
 3. 实时检查国内/海外服务器模拟盘、数据泵、挂单器是否正常运行。
 4. [x] 补齐服务器运行手册、数据管线手册、挂单器手册、A股板块回测手册。（2026-08-14 已完成，见 `docs/RUNBOOK_SERVER.md`、`docs/RUNBOOK_DATA_PIPELINE.md`、`docs/RUNBOOK_PENDING_ORDER.md`、`docs/RUNBOOK_A_STOCK_BACKTEST.md`）
-5. 继续 A股板块回测和失败股票重试归档。
+5. [x] 继续 A股板块回测和失败股票重试归档。（2026-08-14：4 只 60m 缺口股票 [688256/688347/688521/603629] 已补齐并重跑完整 DS01-DS08，12 个板块汇总重建，master summary `h1_rows=0` 清零；仍缺 269 个 per-stock 明细目录，见 TODO）
 6. 用沙盒图复核近期争议案例：RENDERUSDT、IOUSDT、ETHUSDT、DOGEUSDT、LTCUSDT、红枣、玻璃、纯碱。
 
 ### 给 Cursor / Codex 新会话的接手说明
@@ -467,7 +467,7 @@ Get-ChildItem -Force
 1. 复查当前未提交代码改动，确认 DS01、DS03、DS05、DS07 和 OS 的最终逻辑都已同步到国内/海外服务器。
 2. 运行核心测试：`tests/test_ds01.py`、`tests/test_ds03.py`、`tests/test_ds05.py`、`tests/test_os_engine.py`、`tests/test_pending_orders.py`、`tests/test_futures_pending_orders.py`、`tests/test_radar_*.py`。
 3. 检查海外模拟盘、国内期货/A股模拟盘、数据泵、雷达挂单循环是否仍在运行。
-4. 继续 A股板块回测，复跑失败股票并归档板块结果。
+4. [x] 继续 A股板块回测，复跑失败股票并归档板块结果。（2026-08-14：4 只 60m 缺口股票重跑完整 DS01-DS08 并归档到板块汇总；详见 CHANGELOG 2026-08-14）
 5. 补齐 A股 60 分钟历史数据，或将 A股正式筛选口径临时降为 DS01-DS06 日线版。
 6. 把 `codex_assets/skills/` 里的 Skill 按需要安装到全局 Codex 技能目录。
 7. 若要交给 Cursor，先让 Cursor 读取本文件、`AGENTS.md`、`TODO.md`、`峰极OS_最高宪法.md`、`峰极OS_阵营转换判断.md`、`峰极OS_九大定式规则总纲.md`、`峰极OS_CANONICAL_RULES.md`。
