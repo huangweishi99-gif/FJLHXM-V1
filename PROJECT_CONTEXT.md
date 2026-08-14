@@ -114,7 +114,7 @@
 
 - 需要确认 `src/quant` 与 `packages/fengji_core` 是否完全一致，避免双实现分叉。
 - 需要确认国内服务器、海外服务器当前运行代码已经包含 DS01、DS03、DS05、DS07 最新修正。
-- 需要建立独立的服务器运行手册、数据管线手册、挂单器手册、A股板块回测手册。
+- [x] 已建立独立运行手册（2026-08-14）：`docs/RUNBOOK_SERVER.md`（服务器运行）、`docs/RUNBOOK_DATA_PIPELINE.md`（数据管线）、`docs/RUNBOOK_PENDING_ORDER.md`（挂单器）、`docs/RUNBOOK_A_STOCK_BACKTEST.md`（A股板块回测）。
 - 需要补齐或替换 A股 60 分钟历史数据源，否则 DS07/DS08 的 A股历史结论不能视为完整。
 - DS09 国内 LC 已做 session/回测/雷达冒烟；待在有 `locks>0` 的历史窗口补单笔沙盒图，并对照 ETH `plan_a_verify` 区分引擎与行情。
 - 需要对 DS02、DS04、DS06、DS08 做同等强度的案例复核、测试和沙盒图验证（DS09 规则已校准，LC 为数据与案例覆盖问题）。
@@ -266,7 +266,7 @@ C:\Users\guangwan\Documents\New project
 1. 明确权威代码源：`packages/fengji_core` 与 `src/quant` 的职责和同步方式。
 2. 逐项复核 DS01-DS09 是否全部在峰极OS最高宪法下执行。
 3. 实时检查国内/海外服务器模拟盘、数据泵、挂单器是否正常运行。
-4. 补齐服务器运行手册、数据管线手册、挂单器手册、A股板块回测手册。
+4. [x] 补齐服务器运行手册、数据管线手册、挂单器手册、A股板块回测手册。（2026-08-14 已完成，见 `docs/RUNBOOK_SERVER.md`、`docs/RUNBOOK_DATA_PIPELINE.md`、`docs/RUNBOOK_PENDING_ORDER.md`、`docs/RUNBOOK_A_STOCK_BACKTEST.md`）
 5. 继续 A股板块回测和失败股票重试归档。
 6. 用沙盒图复核近期争议案例：RENDERUSDT、IOUSDT、ETHUSDT、DOGEUSDT、LTCUSDT、红枣、玻璃、纯碱。
 

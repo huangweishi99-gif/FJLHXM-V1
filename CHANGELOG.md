@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-08-14 (运行手册汇总成册：服务器/数据管线/挂单器/A股板块回测)
+
+- **新增 4 份手册**（`docs/RUNBOOK_*.md`）：
+  - `docs/RUNBOOK_SERVER.md`：双服务器分工、一键检查 `check_dual_server_runtime_status.ps1`、国内/海外模块与进程、重启/同步、日志、本机计划任务、故障排查顺序、安全红线。
+  - `docs/RUNBOOK_DATA_PIPELINE.md`：三套数据泵（天勤期货 / Binance crypto / 东方财富+新浪 A股）、`market_data.sqlite`、同步任务表（1d 12:05/21:05、15m 07:30/19:30、paper 2min）、覆盖边界、新鲜度检查。
+  - `docs/RUNBOOK_PENDING_ORDER.md`：雷达→挂单→监控→成交→冲突撤销（同品种多定式规则表）→成交监督五层防错链（`audit_paper_fills.py`）→paper state 同步。
+  - `docs/RUNBOOK_A_STOCK_BACKTEST.md`：A股数据缓存、HOT20/板块批回测入口与参数、费用口径（不可改）、输出归档、数据缺口（60m≈128 根、无 15m）。
+- **素材来源**：根目录 `峰极OS_服务器与部署说明.md`（权威基线）+ 散篇 `PENDING_ORDER_CANCEL_RULES.md`、`FILL_SUPERVISION_SOP_2026-06-09.md`、`RADAR_REFRESH_SCHEDULE.md`、`PAPER_STATE_SYNC.md`、`MARKET_COVERAGE_BOUNDARIES.md` + `scripts/` 脚本盘点。
+- **落账**：PROJECT_CONTEXT 未完成内容与下一步任务 #4 均标记完成。
+- **安全**：手册中服务器连接、SSH、webhook、账号密码一律使用占位符/环境变量名，未写入任何真实敏感信息。
+- **验证**：四份手册均为文档产物，未改任何策略/数据泵/挂单器代码；无密钥/Token/Webhook 写入。
+
 ## 2026-08-13 (ETHUSDT DS03 蓝阵营空头 PNG 补充，争议样本归档 12/12 全部视觉化完成)
 
 - **补充 PNG**：`scripts/plot_live_ds03_sandbox.py`（PYTHONPATH=src）生成 `results/sandbox/ETHUSDT_DS03_20260527_short.png`，camp=blue, trigger=2077.23, fill=2073.2, stop=2140.49。
