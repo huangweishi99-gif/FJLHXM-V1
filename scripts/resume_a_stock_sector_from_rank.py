@@ -27,8 +27,9 @@ def clean_filename(value: str) -> str:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Resume one A-share sector backtest from a stock-pool rank.")
     parser.add_argument("--sector-dir", required=True)
-    parser.add_argument("--start-rank", type=int, required=True)
+    parser.add_argument("--start-rank", type=int, default=0)
     parser.add_argument("--end-rank", type=int, default=0)
+    parser.add_argument("--symbols", default="", help="Comma-separated symbols to re-run (overrides rank range).")
     parser.add_argument("--start", default="20200101")
     parser.add_argument("--end", default="20500101")
     parser.add_argument("--db", default="data/market_data.sqlite")
@@ -59,12 +60,30 @@ def main() -> None:
     summary_path = sector_dir / "sector_summary_partial.csv"
     final_summary_path = sector_dir / "sector_summary.csv"
 
-    pool = pd.read_csv(pool_path, dtype={"symbol": str})
+    if pool_path.exists():
+        pool = pd.read_csv(pool_path, dtype={"symbol": str})
+    else:
+        # Fallback: build the pool from existing summary rows when stock_pool.csv is absent.
+        summary_src = summary_path if summary_path.exists() else final_summary_path
+        if not summary_src.exists():
+            raise SystemExit(f"No stock_pool.csv and no summary to build pool from: {sector_dir}")
+        pool = pd.read_csv(summary_src, dtype={"symbol": str})
+        if "board_rank" in pool.columns:
+            pool = pool.rename(columns={"board_rank": "rank"})
+        if "rank" not in pool.columns:
+            pool["rank"] = range(1, len(pool) + 1)
     pool["rank"] = pool["rank"].astype(int)
-    end_rank = int(args.end_rank or pool["rank"].max())
-    target_pool = pool[(pool["rank"] >= args.start_rank) & (pool["rank"] <= end_rank)].copy()
-    if target_pool.empty:
-        raise SystemExit(f"No stocks found in rank range {args.start_rank}-{end_rank}: {pool_path}")
+    pool["symbol"] = pool["symbol"].astype(str).str.zfill(6)
+    if args.symbols:
+        wanted = {s.strip().zfill(6) for s in args.symbols.split(",") if s.strip()}
+        target_pool = pool[pool["symbol"].isin(wanted)].copy()
+        if target_pool.empty:
+            raise SystemExit(f"No stocks in {pool_path} match symbols: {args.symbols}")
+    else:
+        end_rank = int(args.end_rank or pool["rank"].max())
+        target_pool = pool[(pool["rank"] >= args.start_rank) & (pool["rank"] <= end_rank)].copy()
+        if target_pool.empty:
+            raise SystemExit(f"No stocks found in rank range {args.start_rank}-{end_rank}: {pool_path}")
 
     summary_by_symbol: dict[str, dict] = {}
     if summary_path.exists():
@@ -78,7 +97,10 @@ def main() -> None:
     board_code = sector_dir.name.split("_")[-1]
     board_name = sector_dir.name[: -(len(board_code) + 1)] if board_code else sector_dir.name
 
-    print(f"Resuming {board_name} {board_code} ranks {args.start_rank}-{end_rank}", flush=True)
+    if args.symbols:
+        print(f"Resuming {board_name} {board_code} symbols={args.symbols}", flush=True)
+    else:
+        print(f"Resuming {board_name} {board_code} ranks {args.start_rank}-{end_rank}", flush=True)
     for index, row in target_pool.iterrows():
         symbol = str(row["symbol"]).zfill(6)
         name = str(row["name"])

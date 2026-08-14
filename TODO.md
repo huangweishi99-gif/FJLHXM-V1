@@ -163,7 +163,7 @@
 - [x] **当前归档事实**：全量汇总 CSV 仍保留 11 个板块、274 条股票明细、`bad_audits=0`；旧 zip 可读但只包含 CPO/算力/半导体/虚拟机器人 4 个板块摘要；`master_summary` 中 274 个 `source_file` 与 274 个 `out_dir` 当前本地均不存在，因此不是完整 per-stock 明细归档。（2026-08-14：12 个板块 `sector_summary.csv` 已从 master summary 反推重建，274 行完整保留；`source_file` 缺口从 274 降到 262，仍缺 269 个 per-stock 明细目录）
 - [x] **安全边界**：本次只做审计和测试，不重跑 A股回测，不压缩/删除 results，不修改 DS01-DS09、峰极线或阵营逻辑。
 - [x] **验证**：`python scripts\audit_a_stock_sector_archive.py` -> `failures=0`；`python -m pytest tests\test_audit_a_stock_sector_archive.py -q` -> **4 passed**。
-- [ ] **后续可选**：如需要完整 per-stock 结果包，需要重新生成或找回 `results\fengji_total_a_stock_sectors_*` 明细目录后再做归档；当前仓库现存资产只能证明汇总层结果。（2026-08-14：已重建 12 个板块 `sector_summary.csv` + 重跑生成的 5 个 per-stock 明细目录 [688256/688347/688521/603629]；其余 269 个 per-stock 明细目录仍需重跑或找回，属后续工作）
+- [ ] **后续可选**：如需要完整 per-stock 结果包，需要重新生成或找回 `results\fengji_total_a_stock_sectors_*` 明细目录后再做归档；当前仓库现存资产只能证明汇总层结果。（2026-08-14：已重建 12 个板块 `sector_summary.csv`；2026-08-14 二次重跑生成 **118 个 per-stock 明细目录**（11 板块全覆盖，含 raw_fengji/stock_summary 等 8 类文件）；其余 269 个早期 per-stock 明细目录仍需重跑或找回，属后续工作。注：`results/` 整体被 .gitignore 忽略，板块结果与 per-stock 明细不入库）
 
 ## 2026-07-10 · 模拟挂单刷新与冲突撤销策略审计
 
@@ -428,7 +428,7 @@
 - [x] 梳理国内期货天勤 LC 15m 加长与脏数据边界：`FUTURES_15M_LENGTH`、最长 sane 档、`docs/LC_DS09_ACCEPTANCE.md`（2026-05-28）。【待复查】是否需天勤历史区间 API 突破 10000 根上限。
 - [x] 梳理国内期货天勤数据源、日盘/夜盘开收盘时间、开盘前自动更新、收盘后停止规则（全品种表）：`docs/MARKET_COVERAGE_BOUNDARIES.md` + `scripts/audit_domestic_futures_data_schedule.py`；2026-07-10 本地/国内远端审计 `failures=0`。
 - [x] 梳理 A股数据源；A股无夜盘（见 `docs/MARKET_COVERAGE_BOUNDARIES.md`）。
-- [x] 补齐或替换 A股 60 分钟历史数据源。【已完成】已固化 H1&lt;500 降级 DS01–DS06；2026-08-14 确认**新浪 `scale=60, datalen=1023`** 为补齐通道并**批量补齐 100 只** 60m 缓存至 1023 根（`scripts/backfill_a_stock_60m.py` + `scripts/verify_a_stock_60m_coverage.py`），写回 `market_data.sqlite`；240 只中 **236 只 ≥500 根**，仅 4 只次新/停牌股（301696/603459/688808/688820）受上市时间限制仍 306-354 根（数据源上限，待换更长历史源）。【后续可选】重跑板块批回测刷新 `a_stock_all_sectors_master_summary.csv` 的 `h1_rows`/`strategies_run`（118 只旧快照值，95 只数据已达标）。
+- [x] 补齐或替换 A股 60 分钟历史数据源。【已完成】已固化 H1&lt;500 降级 DS01–DS06；2026-08-14 确认**新浪 `scale=60, datalen=1023`** 为补齐通道并**批量补齐 100 只** 60m 缓存至 1023 根（`scripts/backfill_a_stock_60m.py` + `scripts/verify_a_stock_60m_coverage.py`），写回 `market_data.sqlite`；240 只中 **236 只 ≥500 根**，仅 4 只次新/停牌股（301696/603459/688808/688820）受上市时间限制仍 306-354 根（数据源上限，待换更长历史源）。**2026-08-14 追加：板块批回测已重跑刷新**——`rebacktest_a_stock_h1_short.py` 重跑 118 行（11 板块）0 失败，master_summary 中 `h1<500` 从 118 降至 5 行（4 只次新股跨板块），其余 113 行 `h1_rows=1023/670` 且 DS07/DS08 已真实运行；`resume_a_stock_sector_from_rank.py` 新增 `--symbols` 精确重跑与缺失 `stock_pool.csv` 时从 summary 构建 pool 的 fallback。
 - [x] 建立独立 `峰极OS_数据与回测说明.md`，交接数据类型、文件位置、字段、5m/60m状态、回测规则和九大定式回测状态。
 
 ### 国内服务器与国外服务器待验证任务

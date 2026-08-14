@@ -267,7 +267,7 @@ C:\Users\guangwan\Documents\New project
 2. 逐项复核 DS01-DS09 是否全部在峰极OS最高宪法下执行。
 3. 实时检查国内/海外服务器模拟盘、数据泵、挂单器是否正常运行。
 4. [x] 补齐服务器运行手册、数据管线手册、挂单器手册、A股板块回测手册。（2026-08-14 已完成，见 `docs/RUNBOOK_SERVER.md`、`docs/RUNBOOK_DATA_PIPELINE.md`、`docs/RUNBOOK_PENDING_ORDER.md`、`docs/RUNBOOK_A_STOCK_BACKTEST.md`）
-5. [x] 继续 A股板块回测和失败股票重试归档。（2026-08-14：4 只 60m 缺口股票 [688256/688347/688521/603629] 已补齐并重跑完整 DS01-DS08，12 个板块汇总重建，master summary `h1_rows=0` 清零；仍缺 269 个 per-stock 明细目录，见 TODO）
+5. [x] 继续 A股板块回测和失败股票重试归档。（2026-08-14：4 只 60m 缺口股票 [688256/688347/688521/603629] 已补齐并重跑完整 DS01-DS08，12 个板块汇总重建，master summary `h1_rows=0` 清零；仍缺 269 个 per-stock 明细目录，见 TODO。2026-08-14 二次：60m 批量补齐后对 118 只 h1<500 旧快照股票全量重跑（11 板块 0 失败），master_summary `h1<500` 降至 5 行（4 只次新股跨板块），113 行 DS07/DS08 已真实运行；新增 `scripts/rebacktest_a_stock_h1_short.py`，`resume_a_stock_sector_from_rank.py` 支持 `--symbols`）
 6. 用沙盒图复核近期争议案例：RENDERUSDT、IOUSDT、ETHUSDT、DOGEUSDT、LTCUSDT、红枣、玻璃、纯碱。
 
 ### 给 Cursor / Codex 新会话的接手说明

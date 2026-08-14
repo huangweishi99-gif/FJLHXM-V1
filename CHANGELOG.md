@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-14 (A股板块批回测重跑：118 只 h1<500 旧快照刷新，DS07/DS08 覆盖 113 行)
+
+- **背景**：60m 补齐后 `a_stock_all_sectors_master_summary.csv` 中 118 行仍为补齐前旧快照（`h1_rows`=125-128、`data_warning` 为空），DS07/DS08 在这些股票上从未真正运行。
+- **批量重跑**：新增 `scripts/rebacktest_a_stock_h1_short.py`（按 source_file 分组，逐板块调 `resume_a_stock_sector_from_rank.py --symbols` 精确重跑）；`resume_a_stock_sector_from_rank.py` 增强支持 `--symbols` 按代码过滤，且 `stock_pool.csv` 缺失时自动从现有 sector_summary 构建 pool（board_rank→rank）。共重跑 **118 行（11 板块，DB 数据源 auto，无下载、sleep=0）全部成功，0 失败**。
+- **覆盖率结果**：master_summary 重新汇总后 `h1<500` 从 118 降至 **5 行（4 只次新股跨板块：301696×2/603459/688808/688820，306-354 根，均带 `data_warning` 提示跳过 DS07/DS08）**；其余 **113 行 h1≥500（112 行 1023 根 + 688795 摩尔线程 670 根），DS07/DS08 已真实运行**。118 行全部 status=ok，stocks_error=0。
+- **数据侧说明**：回测副作用刷新 29 只 1D 缓存（日线新鲜度，真实更新，已提交）；93 只 60m 缓存被回测写回为 volume 浮点格式（`1506506.0`，OHLC/volume 数值等价），已 `git restore` 回滚避免 git 噪音（未入库）。60m 覆盖率复核：CSV/DB 均 236/240 ≥500 不变。
+- **汇总说明**：`summarize_a_stock_sectors.py` 重新汇总后 master_summary 为 **118 行（当前磁盘 11 板块真实状态）**；旧 274 行中含约 156 行引用 `results/a_stock_sector_archive_ds07_fixed` 归档板块，该目录现已在磁盘移除，故新汇总如实反映现存板块；`results/` 整体被 .gitignore 忽略，板块结果与 per-stock 明细不入库（项目惯例）。
+- **回归验证**：未修改任何策略/规则/回测逻辑，仅工具脚本增强与数据缓存；60m 覆盖率复核通过。
+
 ## 2026-08-14 (A股 60m 长历史批量补齐：236/240 达标，H1<500 缺口关闭)
 
 - **补齐数据**：东财 `klt=60` 仅返回 125-128 根 60m K 线，导致 100 只板块股票 H1<500、回测自动跳过 DS07/DS08。本次用新浪 `scale=60, datalen=1023` 通道批量刷新 **100 只 60m 缓存至 1023 根**，并写回 `data/market_data.sqlite`（A_STOCK/1H，timeframe='1H'），CSV 与 DB 一致。
