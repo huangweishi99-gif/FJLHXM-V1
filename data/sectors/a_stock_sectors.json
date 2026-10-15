@@ -1,0 +1,126 @@
+{
+  "version": "1",
+  "as_of": "2026-10-12",
+  "note": "A 股板块元数据种子。Design inspired by free-stockdb MIT © 2026 hello245m。symbols 字段在 scripts/build_sector_index.py 首次运行时由东财接口填充。",
+  "source": "eastmoney_concept_industry + sw_placeholder",
+  "categories": {
+    "concept": "概念板块（东财）",
+    "sw1": "申万一级行业（占位）",
+    "sw2": "申万二级行业（占位）",
+    "sw3": "申万三级行业（占位）"
+  },
+  "sectors": [
+    {
+      "code": "BK1140",
+      "name": "CPO概念",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK1129",
+      "name": "算力概念",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK1029",
+      "name": "半导体",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK1136",
+      "name": "机器人概念",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK1142",
+      "name": "低空经济",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK0480",
+      "name": "军工",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK0900",
+      "name": "新能源车",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK0473",
+      "name": "证券Ⅱ",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK0637",
+      "name": "互联网金融",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK0898",
+      "name": "锂电池",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "BK1075",
+      "name": "光伏概念",
+      "category": "concept",
+      "source": "eastmoney",
+      "group": "东方财富概念",
+      "symbols": []
+    },
+    {
+      "code": "sw_1_801760",
+      "name": "传媒",
+      "category": "sw1",
+      "source": "sw_placeholder",
+      "group": "申万行业指数列表",
+      "symbols": []
+    },
+    {
+      "code": "sw_1_801780",
+      "name": "银行",
+      "category": "sw1",
+      "source": "sw_placeholder",
+      "group": "申万行业指数列表",
+      "symbols": []
+    },
+    {
+      "code": "sw_1_801080",
+      "name": "电子",
+      "category": "sw1",
+      "source": "sw_placeholder",
+      "group": "申万行业指数列表",
+      "symbols": []
+    }
+  ]
+}

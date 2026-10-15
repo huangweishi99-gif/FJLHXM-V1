@@ -1,5 +1,23 @@
 # TODO
 
+## 2026-10-12 - free-stockdb 精华吸收（P0 摸底完成 · P1-P6 启动）
+
+- [x] **P0 摸底**：只读 clone `hello245m/free-stockdb`（MIT License）→ `$env:TEMP\free-stockdb-audit`；逐文件读源码（`stock_sdk.py`/`zhibiao.py`/`native_mcp.py`/`stock_mcp_server.py`/`updater.cpp`/`DATA_SOURCE.md`/`调用方式/*`/`stockdb.conf`/`sync_url.txt`）；输出一页摘要 `docs/FREE_STOCKDB_AUDIT.md`（仓库元信息、目录树、技术栈、10 条核心设计模式、安全要点、12 项借鉴映射、P1-P6 对应表、验证计划、安全边界）。
+- [x] **License 验证**：`Copyright (c) 2026 hello245m` MIT License；允许借鉴 / 复制 / 修改 / 合并 / 发布 / 再授权 / 销售；条件：保留版权声明。派生代码文件头注明「Design inspired by free-stockdb MIT © 2026 hello245m」。
+- [x] **决策**：数据底座接入策略选 (b) **借鉴 Python 设计模式**而非引入二进制（`stockdb.pyd` + LevelDB + Rust 扩展均不依赖），与本项目 sqlite 共存。
+- [x] **安全边界声明**：不复制 `stockdb.conf` 里注释的默认密码示例 `this-is-a-very-strong-password-32ch`；不引入其二进制 / LevelDB / Rust；不动峰极线 / 阵营 / DS01-DS09 / 峰极OS 任何字段。
+- [x] **10 条核心设计模式吸收**：MCP 装饰器自研框架（17KB stdlib）/ `get_data()` 签名 / 复权因子预加载 + 二分 / BoardIndex 四向索引 / 39 指标 + 5 指数 / manifest + SHA-256 + size 校验 / 多源挂载（本地/HTTP/file://）/ 周月分钟 K 内存动态合成（含 A 股交易时段）/ K-V 协议风格 / HTTP 极简 API。
+- [x] **P1 板块映射**（吸收 4.4 BoardIndex）：**2026-10-12 完成**。新增 `src/sector_mapping.py`（4 向索引 + 类别白名单 + 字段白名单 + 离线优先）；`data/sectors/a_stock_sectors.json` v1 种子（11 概念 + 3 SW 占位）；`scripts/build_sector_index.py`（东财拉取 + 合并 SW 占位 + 旧 symbols 保留 + version 递增）；`src/batch_backtest_a_stock_sector.py` 加 `--use-sector-index` / `--sector-json`（默认关，不破原路径）；`tests/test_sector_mapping.py` 28 例 + `tests/test_build_sector_index.py` 8 例；**40 passed in 0.51s**；lint 0 错误；**默认行为完全不变**（9 DEFAULT_SECTORS + 11 板块 master 归档 + DS01-DS09 零影响）。下一步 P2 复权+批量查询。
+- [x] **P2 复权+批量查询 阶段 A**（吸收 4.5 AdjFactorIndex + get_data）：**2026-10-12 完成**。新增 `src/adj_factor.py`（AdjFactorIndex + to_qfq/hfq/none + AdjFactorMissingError，25 例测试）；`scripts/fetch_a_stock_adj_factors.py`（东财拉 f60 复权因子，main(argv=None) 可注入，17 例测试）；`src/market_data_resolve_a_stock.py`（仿 resolve_futures_csv 的 A 股 resolve，9 例测试）；`src/bulk_query.py`（BulkQuery.get_data + get_data_async asyncio.to_thread 包装，19 例测试）；**P2 阶段 A 共 70 passed**；lint 0 错误；**0 个既有 src/ 文件被改**（回测入口 / DS01-DS09 / OS / 阵营 / 模拟实盘 / 事件写入量 全部 0 影响）；sqlite schema 不变 / `data/a_stock/*.csv` 不变。**阶段 B 标记待你确认**——在 `backtest_a_stock_fengji.py` / `batch_backtest_a_stock_sector.py` 加 `--fq` / `--use-bulk-query` 开关（默认关）需另行批准。**已知风险**：东财 f60 是否真为 adj_factor 需你跑一次 `python scripts/fetch_a_stock_adj_factors.py --codes 000021` 验真实值；复权约定按东财不复权口径推断（与 free-stockdb 可能有细微差异）。
+- [ ] **P2 复权 + 批量查询**（吸收 4.1/4.2/4.3）：新增 `src/adj_factor.py`（qfq/hfq/none/adj_factor）+ `src/bulk_query.py`（仿 `rd.get_data()` 签名但用本地 sqlite）；tests≥10 例；DS09 / 板块回测结果与不复权可对比。
+- [ ] **P3 AI MCP 入口**（吸收 4.8 + 4.10）：新增 `src/services/mcp_fengji.py`（stdio MCP server，**直接抄** `NativeMCP` 17KB stdlib）+ 配套 `src/services/http_fengji.py`；工具集：get_kline / list_sectors / sector_stocks / get_indicator / get_index；暴露给 Codex/Cursor/Claude 默认 stdio；tests≥8 例；安全扫描 0。
+- [ ] **P4 数据源多通道**（吸收 4.6/4.7/4.9）：`dataN/` 多源挂载（新浪 + 东财 + AKShare + 通达信）；`sync_url.txt` 入口；`manifest.txt` + SHA-256 + size 校验；增量同步（已存在+一致跳过）；Zstd 落盘（旧 CSV 保留）；tests≥10 例；数据覆盖率 ≥99%；磁盘占用 ≤旧 CSV 1/3。
+- [ ] **P5 指标层**（吸收 4.3/4.5）：`src/indicators.py`（39 技术指标 + 5 指数加权）；周/月/分钟 K 内存动态合成（含 A 股交易时段 9:30-11:30 + 13:00-15:00）；纯 pandas + numpy（**不引入 Rust**）；与 OS 解耦；tests≥15 例。
+- [ ] **P6 性能加速（可选）**：仅在 P4/回测仍慢时考虑 Rust / C 扩展；当前不做。
+- [ ] **MIT 署名义务**：所有借鉴模块文件头添加「Design inspired by free-stockdb MIT © 2026 hello245m」（P1 阶段开始落地）。
+
+---
+
 ## 2026-08-11 - Codex handoff + WIP commit + paper signal strength analysis
 
 - [x] **Fresh handoff**: read CODEX_APP_HANDOFF.md, PROJECT_CONTEXT.md, AGENTS.md, TODO.md, CHANGELOG.md, all constitution/canonical/rule docs; git status, git log, verify_phase2_closeout PASS.
@@ -527,6 +545,8 @@
 - 旧 Word 文档和旧代码可能包含旧 OS、旧 DS07、旧 DS05 理解，不能直接恢复。
 - 文档和日志中不能写入完整 webhook、Token、密码、私钥。
 - 虚拟货币当前只模拟，不真实下单。
+- 只追加不轮转的事件流水（`runtime/fengji_pending_orders/events.jsonl`）会拖垮挂单监控：国内 2026-08-17 起因该文件涨到 11GB、追加打开报 `Errno 22`，整轮回滚、监控静默失效近两个月。两端 watchdog 已纳入轮转（512MB/64MB），需定期确认轮转生效。
+- 常驻 monitor 改代码后**必须重启进程**才生效：watchdog 只在进程掉线时拉起，不会主动重启存活进程。
 
 ## 下一次启动 Cursor / Codex 时的建议提示词
 

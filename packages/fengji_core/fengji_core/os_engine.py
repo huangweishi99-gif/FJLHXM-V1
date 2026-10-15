@@ -703,7 +703,12 @@ class FengJiOSIdentityEngine:
         return self
 
     def to_frame(self, df: pd.DataFrame) -> pd.DataFrame:
-        os_log = self.export_os_log().set_index("idx")
+        os_log = self.export_os_log()
+        # 日志为空时 DataFrame 没有任何列，直接 set_index 会抛 KeyError: 'idx'。
+        # 短历史数据（例如 A 股 15m 只有数百根）可能一根 OS 都未形成，此时 OS 列
+        # 应降级为 NaN（见下方 `column in os_log` 保护）而不是让整轮回测崩溃。
+        if "idx" in os_log.columns:
+            os_log = os_log.set_index("idx")
         out = df.copy()
         for column in [
             "camp",

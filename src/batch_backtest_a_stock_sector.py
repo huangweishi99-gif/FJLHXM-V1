@@ -300,13 +300,52 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-update-db", action="store_true")
     parser.add_argument("--download-pause-seconds", type=float, default=2.0, help="Pause between Eastmoney daily and 60m requests for each stock.")
     parser.add_argument("--sleep-seconds", type=float, default=3.0, help="Pause between stocks to reduce Eastmoney disconnects.")
+    parser.add_argument(
+        "--use-sector-index",
+        action="store_true",
+        help="（P1 free-stockdb 接入）从 data/sectors/a_stock_sectors.json 读取板块股票清单。默认关闭（保持原路径）。",
+    )
+    parser.add_argument(
+        "--sector-json",
+        default="data/sectors/a_stock_sectors.json",
+        help="（P1 free-stockdb 接入）板块索引 JSON 路径。",
+    )
     return parser.parse_args()
+
+
+def load_sector_index_or_warn(path: str) -> "SectorIndex | None":
+    """加载板块索引；失败/缺文件时打 WARNING 返回 None（保持默认路径可用）。
+
+    仿 free-stockdb zhibiao.py:BoardIndex 离线优先设计。
+    Design inspired by free-stockdb MIT © 2026 hello245m.
+    """
+    try:
+        from sector_mapping import SectorIndex
+    except ImportError:
+        print(f"[sector_index] WARN: 未找到 sector_mapping 模块，回落到原路径")
+        return None
+    p = Path(path)
+    if not p.exists():
+        print(f"[sector_index] WARN: JSON 不存在 ({p})，回落到原路径")
+        return None
+    try:
+        idx = SectorIndex.from_file(p)
+    except Exception as exc:
+        print(f"[sector_index] WARN: JSON 解析失败 ({p}): {exc}，回落到原路径")
+        return None
+    print(f"[sector_index] 加载 {len(idx)} 个板块 from {p}")
+    return idx
 
 
 def main() -> None:
     args = parse_args()
     out_root = Path(args.out_dir)
     out_root.mkdir(parents=True, exist_ok=True)
+
+    # P1 free-stockdb 接入：板块索引（默认关闭）
+    sector_index = (
+        load_sector_index_or_warn(args.sector_json) if args.use_sector_index else None
+    )
 
     board_terms = [item.strip() for item in args.boards.split(",") if item.strip()]
     boards = fetch_board_list(args.board_source)
@@ -323,11 +362,28 @@ def main() -> None:
         if pool.empty:
             print(f"{board['board_name']}({board['board_code']}): 没有可回测股票")
             continue
+        # P1 free-stockdb 接入：仅记录 sector_index 命中数到 board_rows
+        # 不实际过滤 constituents（保持原排序/筛选路径不变；后续 P2 阶段再按 symbols 缩)
+        indexed_count = 0
+        if sector_index is not None:
+            try:
+                indexed_symbols = sector_index.stocks_for(str(board["board_name"]))
+                indexed_count = len(indexed_symbols)
+            except Exception as exc:
+                indexed_count = -1  # 标记异常
+                print(f"[sector_index] WARN: 查 {board['board_name']} 失败: {exc}")
         sector_dir = out_root / f"{clean_filename(str(board['board_name']))}_{board['board_code']}"
         sector_dir.mkdir(parents=True, exist_ok=True)
         constituents.to_csv(sector_dir / "stock_pool_all.csv", index=False, encoding="utf-8-sig")
         pool.to_csv(sector_dir / "stock_pool.csv", index=False, encoding="utf-8-sig")
-        board_rows.append({**board, "selected": len(pool), "stock_pool": str(sector_dir / "stock_pool.csv")})
+        board_rows.append(
+            {
+                **board,
+                "selected": len(pool),
+                "stock_pool": str(sector_dir / "stock_pool.csv"),
+                "sector_indexed_count": indexed_count,
+            }
+        )
         print(pool[["rank", "symbol", "name", args.sort_by if args.sort_by != "market_cap" else "total_market_cap"]].to_string(index=False))
         if args.dry_run:
             continue

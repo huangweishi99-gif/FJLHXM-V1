@@ -205,4 +205,26 @@ if okx_15m_due; then
   run_okx_15m_sync
 fi
 
+# 日志增长防护：超过阈值(默认 100MB)的日志保留末尾 8MB，防止长期运行无限增长
+rotate_logs() {
+  "$PY" "$ROOT/scripts/rotate_log_tail.py" \
+    --max-bytes "${LOG_ROTATE_MAX_BYTES:-104857600}" \
+    --keep-bytes "${LOG_ROTATE_KEEP_BYTES:-8388608}" "$@" >/dev/null 2>&1 || true
+}
+rotate_logs \
+  "$ROOT/data_sync.log" \
+  "$ROOT/radar_order_loop.log" \
+  "$ROOT/pending_order_monitor.log" \
+  "$ROOT/paper_run.log" \
+  "$ROOT/runtime/logs/watchdog.log" \
+  "$ROOT/runtime/logs/okx_15m_sync.log"
+
+# 事件流水 events.jsonl 只追加不轮转会无限膨胀（国内端曾涨到 11GB 导致追加打开
+# OSError [Errno 22]、挂单监控整轮回滚）。用更大阈值/保留量，原地截断保持 inode，
+# Linux 下活跃 writer 句柄继续有效、无感知。
+"$PY" "$ROOT/scripts/rotate_log_tail.py" \
+  --max-bytes "${EVENT_ROTATE_MAX_BYTES:-536870912}" \
+  --keep-bytes "${EVENT_ROTATE_KEEP_BYTES:-67108864}" \
+  "$ROOT/runtime/fengji_pending_orders/events.jsonl" >/dev/null 2>&1 || true
+
 echo "[$(ts)] watchdog ok"

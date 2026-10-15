@@ -13,6 +13,37 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from fengji_core.context_score import (  # noqa: F401  # 向后兼容：历史调用方仍从本模块导入
+    ACTIONABLE_MIN_SAMPLES,
+    BUCKET_PROFILES,
+    BUCKET_SPECS,
+    DEFAULT_Z,
+    DEFAULT_BUCKET_PROFILE,
+    DEFAULT_PRIOR,
+    DEFAULT_PRIOR_STRENGTH,
+    DEFAULT_SCORE_WEIGHTS,
+    FUTURES_V2_BUCKET_PROFILE,
+    MIN_BUCKET_SAMPLES,
+    STRATEGY_EXTRA_BUCKETS,
+    TIER_MEDIUM,
+    TIER_STRONG,
+    BucketProfile,
+    benjamini_hochberg,
+    bucket_atr_dist,
+    bucket_p_value,
+    bucket_profile_for_market,
+    bucket_range_pos,
+    bucketize_for_profile,
+    bucketize_value,
+    build_bucket_key,
+    classify_tier,
+    is_actionable,
+    load_market_calibrations,
+    market_calibration,
+    score_bucket_row,
+    smoothed_rate,
+    wilson_lower_bound,
+)
 from fengji_core.context_snapshot import ENGINE_VERSION, build_snapshots
 from fengji_core.ds07 import attach_os_detail
 from fengji_core.os_engine import FengJiOSIdentityEngine
@@ -20,182 +51,39 @@ from fengji_core.os_state_store import find_data_file
 from fengji_core.runtime_stop_updater import _normalize_ohlcv
 from fengji_core.symbol_names import FUTURES_CN_NAMES
 
-MIN_BUCKET_SAMPLES = 30
-DEFAULT_PRIOR = 0.5
-DEFAULT_PRIOR_STRENGTH = 10
-
-# V1 分桶维度：枚举直接作键；连续字段按固定阈值切桶
-BUCKET_SPECS: list[tuple[str, str]] = [
-    ("camp", "enum"),
-    ("camp_confirmed", "enum"),
-    ("dist_active_high_atr", "atr_dist"),
-    ("bar_direction", "enum"),
-    ("position_in_range_20", "range_pos"),
-    ("market_regime_vol", "enum"),
+__all__ = [
+    "MIN_BUCKET_SAMPLES",
+    "DEFAULT_PRIOR",
+    "DEFAULT_PRIOR_STRENGTH",
+    "BUCKET_SPECS",
+    "STRATEGY_EXTRA_BUCKETS",
+    "TIER_STRONG",
+    "TIER_MEDIUM",
+    "DEFAULT_SCORE_WEIGHTS",
+    "BucketProfile",
+    "DEFAULT_BUCKET_PROFILE",
+    "FUTURES_V2_BUCKET_PROFILE",
+    "BUCKET_PROFILES",
+    "load_market_calibrations",
+    "market_calibration",
+    "bucket_profile_for_market",
+    "bucketize_for_profile",
+    "bucket_atr_dist",
+    "bucket_range_pos",
+    "bucketize_value",
+    "ACTIONABLE_MIN_SAMPLES",
+    "DEFAULT_Z",
+    "build_bucket_key",
+    "smoothed_rate",
+    "wilson_lower_bound",
+    "benjamini_hochberg",
+    "bucket_p_value",
+    "is_actionable",
+    "score_bucket_row",
+    "aggregate_bucket_stats",
+    "classify_tier",
+    "score_snapshot",
 ]
-
-STRATEGY_EXTRA_BUCKETS: dict[str, list[str]] = {
-    "DS03": ["peak_key"],
-    "DS07": ["h1_merge_type"],
-    "DS09": ["boundary_side"],
-}
-
-TIER_STRONG = 0.65
-TIER_MEDIUM = 0.45
-DEFAULT_SCORE_WEIGHTS = {"w_wr": 0.45, "w_r": 0.35, "w_conf": 0.20}
-
-
-@dataclass(frozen=True)
-class BucketProfile:
-    name: str
-    fields: tuple[tuple[str, str], ...]
-    strategy_extras: dict[str, list[str]]
-    atr_mode: str = "default"
-
-
-DEFAULT_BUCKET_PROFILE = BucketProfile("v1", tuple(BUCKET_SPECS), STRATEGY_EXTRA_BUCKETS)
-
-FUTURES_V2_BUCKET_PROFILE = BucketProfile(
-    "futures_v2",
-    (
-        ("camp_confirmed", "enum"),
-        ("dist_active_high_atr", "atr_dist"),
-        ("bar_direction", "enum"),
-    ),
-    {"DS03": ["peak_key"]},
-    atr_mode="coarse2",
-)
-
-BUCKET_PROFILES: dict[str, BucketProfile] = {
-    "v1": DEFAULT_BUCKET_PROFILE,
-    "futures_v2": FUTURES_V2_BUCKET_PROFILE,
-}
-
-
-def _default_market_calibration() -> dict[str, float | int | bool]:
-    return {
-        "activate": True,
-        "tier_strong": TIER_STRONG,
-        "tier_medium": TIER_MEDIUM,
-        "min_bucket_samples": MIN_BUCKET_SAMPLES,
-        **DEFAULT_SCORE_WEIGHTS,
-    }
-
-
-def _candidate_calibration_paths() -> list[Path]:
-    paths: list[Path] = []
-    env_path = os.getenv("FENGJI_CONTEXT_CALIBRATION")
-    if env_path:
-        paths.append(Path(env_path))
-    cwd_path = Path.cwd() / "data" / "context_market_calibration.json"
-    paths.append(cwd_path)
-    for parent in Path(__file__).resolve().parents:
-        paths.append(parent / "data" / "context_market_calibration.json")
-    return paths
-
-
-@lru_cache(maxsize=1)
-def load_market_calibrations() -> dict[str, Any]:
-    for path in _candidate_calibration_paths():
-        if path.exists():
-            try:
-                return json.loads(path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError as exc:
-                raise ValueError(f"invalid context market calibration json: {path}") from exc
-    return {"default": _default_market_calibration(), "markets": {}}
-
-
-def market_calibration(market: str | None) -> dict[str, float | int | bool | str]:
-    raw = load_market_calibrations()
-    default = _default_market_calibration()
-    default.update(raw.get("default") or {})
-    market_key = (market or "").upper()
-    market_cfg = (raw.get("markets") or {}).get(market_key) or {}
-    if market_cfg.get("activate") is False:
-        return default
-    cfg = {**default, **market_cfg}
-    for key in ("w_wr", "w_r", "w_conf", "tier_strong", "tier_medium"):
-        cfg[key] = float(cfg[key])
-    cfg["min_bucket_samples"] = int(cfg["min_bucket_samples"])
-    cfg["activate"] = bool(cfg.get("activate", True))
-    if "bucket_profile" in market_cfg:
-        cfg["bucket_profile"] = str(market_cfg["bucket_profile"])
-    return cfg
-
-
-def bucket_profile_for_market(market: str | None) -> BucketProfile:
-    cfg = market_calibration(market)
-    name = str(cfg.get("bucket_profile") or "v1")
-    return BUCKET_PROFILES.get(name, DEFAULT_BUCKET_PROFILE)
-
-
-def bucketize_for_profile(field: str, kind: str, value: Any, profile: BucketProfile) -> str:
-    if field == "dist_active_high_atr" and profile.atr_mode == "coarse2":
-        base = bucket_atr_dist(value)
-        if base in ("NEAR", "MID"):
-            return "NEAR_MID"
-        if base == "FAR":
-            return "FAR"
-        return "UNKNOWN"
-    return bucketize_value(field, kind, value)
-
-
-def bucket_atr_dist(value: Any) -> str:
-    val = float(value) if value is not None and not (isinstance(value, float) and np.isnan(value)) else float("nan")
-    if np.isnan(val):
-        return "UNKNOWN"
-    if val <= 0.5:
-        return "NEAR"
-    if val <= 1.5:
-        return "MID"
-    return "FAR"
-
-
-def bucket_range_pos(value: Any) -> str:
-    val = float(value) if value is not None and not (isinstance(value, float) and np.isnan(value)) else float("nan")
-    if np.isnan(val):
-        return "UNKNOWN"
-    if val <= 0.33:
-        return "LOW"
-    if val <= 0.66:
-        return "MID"
-    return "HIGH"
-
-
-def bucketize_value(field: str, kind: str, value: Any) -> str:
-    if kind == "enum":
-        if value is None or (isinstance(value, float) and np.isnan(value)):
-            return "UNKNOWN"
-        return str(value)
-    if kind == "atr_dist":
-        return bucket_atr_dist(value)
-    if kind == "range_pos":
-        return bucket_range_pos(value)
-    return str(value) if value is not None else "UNKNOWN"
-
-
-def build_bucket_key(
-    row: dict[str, Any] | pd.Series,
-    strategy_id: str,
-    market: str | None = None,
-) -> str:
-    market_key = str(market or row.get("market") or "").upper()
-    profile = bucket_profile_for_market(market_key or None)
-    parts = [str(strategy_id)]
-    for field, kind in profile.fields:
-        parts.append(f"{field}={bucketize_for_profile(field, kind, row.get(field), profile)}")
-    for extra in profile.strategy_extras.get(strategy_id, []):
-        val = row.get(extra)
-        if val is not None and not (isinstance(val, float) and np.isnan(val)) and str(val).strip():
-            parts.append(f"{extra}={val}")
-    return "|".join(parts)
-
-
-def smoothed_rate(successes: float, total: float, prior: float = DEFAULT_PRIOR, strength: float = DEFAULT_PRIOR_STRENGTH) -> float:
-    if total <= 0:
-        return prior
-    return (successes + prior * strength) / (total + strength)
-
 
 def aggregate_bucket_stats(snapshots: pd.DataFrame) -> pd.DataFrame:
     """按 strategy × market × bucket_key 聚合 win_rate / avg_r / count。"""
@@ -221,42 +109,27 @@ def aggregate_bucket_stats(snapshots: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
     grouped["win_rate"] = grouped["wins"] / grouped["count"]
-    grouped["win_rate_smoothed"] = grouped.apply(
-        lambda r: smoothed_rate(float(r["wins"]), float(r["count"])),
-        axis=1,
-    )
-    grouped["avg_r_smoothed"] = grouped["avg_r"].fillna(0.0)
-    grouped["sample_confidence"] = grouped.apply(
-        lambda r: min(1.0, float(r["count"]) / float(market_calibration(str(r["market"]))["min_bucket_samples"])),
-        axis=1,
-    )
+    # 评分/分级走 context_score.score_bucket_row：离线与实时统计共用同一口径
+    scored = [
+        score_bucket_row(
+            count=int(row["count"]),
+            wins=float(row["wins"]),
+            avg_r=0.0 if pd.isna(row["avg_r"]) else float(row["avg_r"]),
+            market=str(row["market"]),
+        )
+        for _, row in grouped.iterrows()
+    ]
+    grouped["win_rate_smoothed"] = [item["win_rate_smoothed"] for item in scored]
+    grouped["win_rate_ci_low"] = [item["win_rate_ci_low"] for item in scored]
+    grouped["avg_r_smoothed"] = [item["avg_r_smoothed"] for item in scored]
+    grouped["sample_confidence"] = [item["sample_confidence"] for item in scored]
     grouped["max_dd_penalty"] = 0.0  # V1 占位：后续按桶内权益曲线补
-    grouped["signal_score"] = grouped.apply(
-        lambda r: (
-            market_calibration(str(r["market"]))["w_wr"] * float(r["win_rate_smoothed"])
-            + market_calibration(str(r["market"]))["w_r"]
-            * float(np.clip(r["avg_r_smoothed"], -1.0, 2.0))
-            / 2.0
-            + market_calibration(str(r["market"]))["w_conf"] * float(r["sample_confidence"])
-        ),
-        axis=1,
-    ).clip(0.0, 1.0)
-    grouped["signal_tier"] = grouped.apply(
-        lambda r: classify_tier(float(r["signal_score"]), int(r["count"]), market=str(r["market"])),
-        axis=1,
-    )
+    grouped["signal_score"] = [item["signal_score"] for item in scored]
+    grouped["signal_score_conservative"] = [item["signal_score_conservative"] for item in scored]
+    grouped["signal_tier"] = [item["signal_tier"] for item in scored]
+    # 是否足以支撑下单决策（样本 + 胜率下界双门槛），供离线挑桶与未来实时排序使用
+    grouped["actionable"] = [is_actionable(item) for item in scored]
     return grouped
-
-
-def classify_tier(score: float, count: int, *, market: str | None = None) -> str:
-    cfg = market_calibration(market)
-    if count < int(cfg["min_bucket_samples"]):
-        return "INSUFFICIENT_DATA"
-    if score >= float(cfg["tier_strong"]):
-        return "STRONG"
-    if score >= float(cfg["tier_medium"]):
-        return "MEDIUM"
-    return "WEAK"
 
 
 def score_snapshot(snapshot: dict[str, Any] | pd.Series, stats_df: pd.DataFrame) -> dict[str, Any]:

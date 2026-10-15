@@ -13,6 +13,7 @@ from fengji_core.runtime_stop_updater import (
     TIMEFRAME_BY_STRATEGY,
     stop_bar_requires_completed_close,
 )
+from fengji_core.tail_csv import read_csv_tail
 
 
 def safe_float(value: Any) -> float | None:
@@ -55,6 +56,21 @@ def filter_valid_price_rows(frame: pd.DataFrame) -> pd.DataFrame:
     return out.sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True)
 
 
+def read_price_frame(path: Path) -> pd.DataFrame | None:
+    """读取行情 CSV：优先尾部窗口读取，不可用则回退全量读取。
+
+    监控每 5 秒调用一次，而期货 15m 历史可达上万行；尾读把成本压到常数级。
+    尾读被禁用或判定不可信时自动回退，保证结果与旧行为一致。
+    """
+    tail, _complete = read_csv_tail(path)
+    if tail is not None:
+        return tail
+    try:
+        return pd.read_csv(path)
+    except Exception:
+        return None
+
+
 def read_latest_bar(
     data_dir: Path,
     symbol: str,
@@ -66,11 +82,8 @@ def read_latest_bar(
         path = find_data_file(data_dir, symbol, timeframe)
         if not path.exists():
             continue
-        try:
-            frame = pd.read_csv(path)
-        except Exception:
-            continue
-        if frame.empty:
+        frame = read_price_frame(path)
+        if frame is None or frame.empty:
             continue
         frame.columns = [str(col).strip().lower() for col in frame.columns]
         if "date" not in frame.columns:

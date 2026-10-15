@@ -394,3 +394,46 @@ def test_pending_monitor_closes_paper_state_on_stop(tmp_path: Path, monkeypatch)
     assert summary["closed"] == 1
     assert saved["symbols"]["RENDERUSDT"]["open_position"] is None
     assert saved["closed_trades"][0]["exit_reason"] == "stop"
+
+
+def test_process_once_reads_paper_state_once_outside_lock(tmp_path: Path, monkeypatch) -> None:
+    import fengji_pending_order_monitor as pom
+
+    out_dir = tmp_path / "pending"
+    orders_json, _ = write_orders([], out_dir)
+    price_file = tmp_path / "prices.json"
+    price_file.write_text(json.dumps({}), encoding="utf-8")
+    paper_state = tmp_path / "paper_state.json"
+    paper_state.write_text(json.dumps({"symbols": {}}), encoding="utf-8")
+    args = argparse.Namespace(
+        orders_file=str(orders_json),
+        out_dir=str(out_dir),
+        state_file=str(out_dir / "state.json"),
+        paper_state_file=str(paper_state),
+        feishu_webhook="",
+        price_file=str(price_file),
+        max_ds01_entries=3,
+        initial_cash=1000.0,
+        margin_per_trade=200.0,
+        leverage=2.0,
+        fee_rate=0.0005,
+        slippage_rate=0.0003,
+        no_paper_state_update=False,
+    )
+    state = {"version": 1, "filled_order_ids": [], "cancelled_order_ids": [], "fills": []}
+
+    real_load_json = pom.load_json
+    paper_reads: list = []
+
+    def counting_load_json(path, default=None):
+        if str(Path(path).resolve()) == str(paper_state.resolve()):
+            paper_reads.append(str(Path(path).resolve()))
+        return real_load_json(path, default)
+
+    monkeypatch.setattr(pom, "load_json", counting_load_json)
+
+    summary = pom.process_once(args, state)
+
+    assert summary["checked_orders"] == 0
+    # 锁外 discovery 1 次 + 锁内重载 1 次；回归（planning 再整读同一文件）前为 3 次
+    assert len(paper_reads) == 2

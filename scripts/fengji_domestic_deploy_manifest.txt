@@ -32,3 +32,9 @@ scripts/start_factory_ascii.bat
 scripts/run_futures_radar_loop.cmd
 scripts/run_futures_pending_monitor.cmd
 scripts/run_futures_astock_paper_ascii.cmd
+scripts/backfill_ops_stats.py
+scripts/audit_strategy_decay.py
+scripts/shadow_risk_sizing.py
+scripts/rotate_domestic_events.py
+scripts/check_domestic_pending_monitor.ps1
+scripts/check_domestic_events_file.ps1

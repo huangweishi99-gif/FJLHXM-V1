@@ -84,7 +84,12 @@ def add_atr(frame: pd.DataFrame, window: int = 14) -> pd.DataFrame:
 
 
 def attach_os_detail(df: pd.DataFrame, engine) -> pd.DataFrame:
-    os_log = engine.export_os_log().set_index("idx")
+    os_log = engine.export_os_log()
+    # 与 FengJiOSIdentityEngine.to_frame 一致：OS 日志为空时没有任何列，
+    # 直接 set_index 会抛 KeyError: 'idx'。缺失时下方 `column in os_log`
+    # 会把明细列降级为 NaN，而不是让回测整轮崩溃。
+    if "idx" in os_log.columns:
+        os_log = os_log.set_index("idx")
     out = engine.to_frame(df).copy()
     detail_columns = [
         "red_peak_idx",

@@ -6,6 +6,7 @@ import json
 import math
 import os
 import time
+import traceback
 from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,9 +15,12 @@ from typing import Any
 import pandas as pd
 
 from fengji_core.futures_main_contract import detect_order_contract_switch, load_manifest, lookup_data_contract
+from fengji_core.live_ops_stats import record_round
 from fengji_core.os_state_store import find_data_file, market_symbol, normalize_symbol as os_normalize_symbol
+from fengji_core.sector_exposure import would_breach_sector_limit
 from fengji_core.symbol_names import domestic_display
 from fengji_core.state_lock import file_lock
+from fengji_core.stop_bar_monitor import read_price_frame
 from fengji_feishu_notify import close_notify_key, fill_notify_key, send_feishu_once
 from fengji_pending_order_monitor import (
     append_csv,
@@ -187,15 +191,13 @@ def ensure_symbol_state(paper_state: dict[str, Any], symbol: str) -> dict[str, A
 
 
 def read_latest_bar(data_dir: Path, symbol: str, timeframes: list[str]) -> dict[str, Any] | None:
+    """复用共享的行情读取（尾读优先 + 全量回退），避免每轮全量解析长历史 CSV。"""
     for timeframe in timeframes:
         path = find_data_file(data_dir, symbol, timeframe)
         if not path.exists():
             continue
-        try:
-            frame = pd.read_csv(path)
-        except Exception:
-            continue
-        if frame.empty:
+        frame = read_price_frame(path)
+        if frame is None or frame.empty:
             continue
         frame.columns = [str(col).strip().lower() for col in frame.columns]
         if "date" not in frame.columns:
@@ -368,6 +370,38 @@ def format_stop_exit(symbol: str, position: dict[str, Any], exit_price: float, p
     )
 
 
+def resolve_lots(
+    args: argparse.Namespace,
+    symbol_state: dict[str, Any],
+    *,
+    entry: float,
+    stop: float,
+    multiplier: float,
+) -> int:
+    """下单手数：``fixed``（默认，沿用 --lots）或 ``risk``（按风险预算反推）。
+
+    固定手数的问题：同样 1 手，高波动品种（NI/SC）的止损金额可能是低波动品种的
+    数倍，组合风险完全不可控。risk 模式让每笔「打到止损」的亏损金额一致：
+
+        lots = 账户权益 × risk_per_trade / (|入场 − 止损| × 合约乘数)
+
+    信息不足（无止损价/乘数/预算为 0）时一律退回固定手数，绝不猜。
+    """
+    fallback = max(1, int(getattr(args, "lots", 1) or 1))
+    if str(getattr(args, "sizing", "fixed") or "fixed").strip().lower() != "risk":
+        return fallback
+    if entry <= 0 or stop <= 0 or multiplier <= 0:
+        return fallback
+    equity = float(symbol_state.get("equity") or DEFAULT_SYMBOL_EQUITY)
+    budget = equity * float(getattr(args, "risk_per_trade", 0.01) or 0.0)
+    per_lot_risk = abs(entry - stop) * multiplier
+    if budget <= 0 or per_lot_risk <= 0:
+        return fallback
+    lots = int(budget // per_lot_risk)  # 向下取整：绝不超出风险预算
+    cap = max(1, int(getattr(args, "max_lots", 10) or 10))
+    return max(1, min(lots, cap))
+
+
 def update_paper_state_on_fill(
     args: argparse.Namespace,
     paper_state: dict[str, Any],
@@ -384,9 +418,9 @@ def update_paper_state_on_fill(
     side = side_int(str(order.get("side", "")))
     trigger = float(order.get("trigger_price", 0.0) or 0.0)
     multiplier = FUTURES_MULTIPLIERS.get(disp, 10)
-    lots = int(args.lots)
     key = f"pending|{order_id}"
     stop = safe_float(order.get("stop_price")) or 0.0
+    lots = resolve_lots(args, symbol_state, entry=trigger, stop=stop, multiplier=multiplier)
 
     position = {
         "key": key,
@@ -558,6 +592,28 @@ def apply_stop_exit_plans(
     return closed, notify_queue
 
 
+def resolve_fill_price(args: argparse.Namespace, order: dict[str, Any], bar: dict[str, Any]) -> float:
+    """成交价模式：``trigger``（默认，沿用现状）或 ``gap_open``（跳空穿越按开盘价成交）。
+
+    现状假设「触发价即成交价」，但跳空开盘时真实成交价是开盘价（可能远差于触发价），
+    会系统性低估滑点、高估策略收益。gap_open 模式在开盘价已越过触发价时按开盘价成交。
+    """
+    trigger = float(order.get("trigger_price", 0.0) or 0.0)
+    close = float(bar.get("close", 0.0) or 0.0)
+    price = trigger or close
+    if str(getattr(args, "fill_price_mode", "trigger") or "trigger").strip().lower() != "gap_open":
+        return price
+    bar_open = safe_float(bar.get("open"))
+    if bar_open is None or bar_open <= 0 or trigger <= 0:
+        return price
+    side = side_int(str(order.get("side", "")))
+    if side > 0 and bar_open > trigger:  # 多头：高开跳空，成交更贵
+        return bar_open
+    if side < 0 and bar_open < trigger:  # 空头：低开跳空，成交更差
+        return bar_open
+    return price
+
+
 def plan_fill_actions(
     args: argparse.Namespace,
     active_orders: list[dict[str, Any]],
@@ -606,9 +662,21 @@ def plan_fill_actions(
         if not allowed:
             skips.append(PlannedSkip(order=order, bar=bar, skip_reason=risk_rule))
             continue
+        # 板块敞口上限（默认 0=关闭）：防止 33 个品种名义分散、实则押注同一 beta
+        sector_limit = int(getattr(args, "max_sector_positions", 0) or 0)
+        if sector_limit > 0:
+            breached = would_breach_sector_limit(
+                paper_snapshot,
+                symbol,
+                max_positions=sector_limit,
+                planned=[str(item.order.get("symbol", "")) for item in fills],
+            )
+            if breached:
+                skips.append(PlannedSkip(order=order, bar=bar, skip_reason=f"sector_limit:{breached}"))
+                continue
         if not bar_crossed(order, bar):
             continue
-        fill_price = float(order.get("trigger_price", bar.get("close", 0.0)) or bar.get("close", 0.0))
+        fill_price = resolve_fill_price(args, order, bar)
         fills.append(PlannedFill(order=order, bar=bar, fill_price=fill_price, risk_rule=risk_rule))
     return fills, skips, cancellations
 
@@ -785,7 +853,9 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
     contract_manifest = load_manifest(project_root)
     stop_exit_plans: list[PlannedStopExit] = []
     if paper_updates:
-        planning_snapshot = load_json(Path(args.paper_state_file), {})
+        # 复用 process_once 开头已读取的 discovery_snapshot（同一文件同一内容），
+        # 避免每轮对同一 paper_state 文件二次整读；锁内 apply 阶段仍重载最新已提交状态。
+        planning_snapshot = discovery_snapshot
         stop_exit_plans = precompute_stop_exit_plans(planning_snapshot, bars, contract_manifest)
     planned_fills, planned_skips, planned_contract_cancels = plan_fill_actions(
         args,
@@ -846,6 +916,14 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
     state["last_check"] = now_text()
     state["last_bars"] = bars
     save_json(Path(args.state_file), state)
+    # 每轮操作统计（旁路：统计失败只告警，绝不改变下单/仓位/跳过逻辑）
+    record_round(
+        Path(args.out_dir).parent,
+        "FUTURES",
+        fills=filled_records,
+        closes=[(record, position) for record, position, _bar in close_notify_queue],
+        blocked=skipped_records,
+    )
     return {
         "checked_orders": len(active_orders),
         "bar_count": len(bars),
@@ -870,7 +948,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--loop-seconds", type=int, default=5)
     parser.add_argument("--max-ds01-entries", type=int, default=3)
     parser.add_argument("--max-open-positions-per-symbol", type=int, default=3)
+    parser.add_argument("--max-sector-positions", type=int, default=0, help="同一板块未平仓上限；0=关闭（默认）")
+    parser.add_argument(
+        "--fill-price-mode",
+        choices=["trigger", "gap_open"],
+        default="trigger",
+        help="成交价：trigger=按触发价（默认，保持原行为）；gap_open=跳空穿越时按开盘价成交",
+    )
     parser.add_argument("--lots", type=int, default=1)
+    parser.add_argument(
+        "--sizing",
+        choices=["fixed", "risk"],
+        default="fixed",
+        help="仓位模式：fixed=固定手数（默认，保持原行为）；risk=按风险预算反推手数（权益 × --risk-per-trade / (|入场-止损| × 合约乘数)）",
+    )
+    # 注意：argparse 会对 help 做 % 格式化，百分号必须写成 %%
+    parser.add_argument("--risk-per-trade", type=float, default=0.01, help="risk 模式下每笔最大亏损占权益比例（默认 1%%，即 0.01）")
+    parser.add_argument("--max-lots", type=int, default=10, help="risk 模式下单笔手数上限（默认 10）")
     parser.add_argument("--fee-rate", type=float, default=0.0001)
     parser.add_argument("--slippage-rate", type=float, default=0.0002)
     parser.add_argument("--enforce-valid-until", action="store_true")
@@ -917,6 +1011,7 @@ def main() -> None:
             break
         except Exception as exc:
             print(f"[{now_text()}] futures pending monitor error: {exc}", flush=True)
+            traceback.print_exc()
             if args.once:
                 raise
             time.sleep(10)

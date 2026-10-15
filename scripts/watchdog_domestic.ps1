@@ -201,6 +201,25 @@ function Invoke-CsvSanityCheck {
     }
 }
 
+function Invoke-LogRotation {
+    # 日志增长防护：runtime/logs 下 *.log 超过阈值(100MB) 时保留末尾 8MB，防止长期运行无限增长
+    $rotatePy = Join-Path $root "scripts\rotate_log_tail.py"
+    if (-not (Test-Path $rotatePy)) { return }
+    $logsDir = Join-Path $root "runtime\logs"
+    $paths = @(Get-ChildItem -Path $logsDir -Filter *.log -File -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+    if ($paths.Count -eq 0) { return }
+    $maxBytes = 100 * 1024 * 1024
+    $keepBytes = 8 * 1024 * 1024
+    & $py $rotatePy --max-bytes $maxBytes --keep-bytes $keepBytes @paths
+    # 事件流水 events.jsonl 只追加不轮转会无限膨胀：曾涨到 11GB，导致 Windows 追加
+    # 打开报 OSError [Errno 22]，挂单监控整轮回滚（成交/平仓/跳过全部写不进去）。
+    # 单独用更大阈值/保留量（512MB/64MB），原地截断保持 inode，writer 无感知。
+    $eventsFile = Join-Path $root "runtime\fengji_pending_orders\events.jsonl"
+    if (Test-Path -LiteralPath $eventsFile) {
+        & $py $rotatePy --max-bytes (512 * 1024 * 1024) --keep-bytes (64 * 1024 * 1024) $eventsFile
+    }
+}
+
 $hookSet = if ($hook) { "set FENGJI_FEISHU_WEBHOOK=$hook&& " } else { "" }
 $prefix = "cmd.exe /d /c cd /d `"$root`" && set `"PYTHONPATH=src;packages/fengji_core`"&& set FENGJI_MARKET=futures&& set PYTHONIOENCODING=utf-8&& set PYTHONUTF8=1&& $hookSet"
 $symbols = "SA,FG,RB,PG,FU,CJ,OI,SP,LH,JD,SI,PP,SH,EB,NI,SR,EG,AO,JM,EC,RU,BR,SF,M,MA,P,V,TA,UR,CF,LC,AU,AG,SC"
@@ -380,5 +399,7 @@ if (In-TradingWindow) {
 Invoke-CsvSanityCheck
 
 if (Test-FillSupervisionDue) { Invoke-FillSupervision }
+
+Invoke-LogRotation
 
 Log-Wd "watchdog ok"

@@ -7,11 +7,12 @@ import math
 import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import pandas as pd
 
 from fengji_core.futures_main_contract import lookup_data_contract
+from fengji_core.radar_ranking import expectancy_for, load_bucket_stats, strategy_level_stats
 
 
 ACTIONABLE_STATUSES = {"PENDING"}
@@ -134,8 +135,17 @@ def convert_radar_rows(
     max_distance_pct: float,
     created_at: str | None = None,
     consumed_ds03_setup_keys: set[str] | None = None,
+    stats: Mapping[str, dict[str, Any]] | None = None,
+    expectancy_weight: float = 0.0,
 ) -> list[PendingOrder]:
+    """radar 行 → 挂单。
+
+    ``expectancy_weight`` 默认 0（关闭）：优先级仍是「策略基础优先级 + 距离」。
+    传入统计源且权重 > 0 时，历史期望 R 越高优先级越高（越小越优先）。权重为 0
+    时行为与改动前完全一致，便于先影子验证再决定是否启用。
+    """
     created = created_at or now_text()
+    by_strategy = strategy_level_stats(stats) if stats else {}
     statuses = set(ACTIONABLE_STATUSES)
     if include_triggered:
         statuses.add("TRIGGERED")
@@ -171,6 +181,11 @@ def convert_radar_rows(
         base_priority = DEFAULT_STRATEGY_PRIORITY.get(strategy_id, 999)
         distance_priority = 0.0 if radar_status == "TRIGGERED" else max(dist, 0.0) * 100
         priority = base_priority + distance_priority
+        if stats and expectancy_weight:
+            # 期望值加权（默认关闭）：历史期望 R 越高，priority 越小 → 越优先
+            exp = expectancy_for(stats.get(str(row.get("bucket_key") or "")) or by_strategy.get(strategy_id))
+            if exp is not None:
+                priority -= float(expectancy_weight) * exp
         symbol = normalize_symbol(str(row.get("symbol", "")))
         data_contract = ""
         if os.getenv("FENGJI_MARKET", "").strip().lower() == "futures":
@@ -223,6 +238,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--strategies", default=",".join(sorted(DEFAULT_INCLUDE_STRATEGIES)))
     parser.add_argument("--include-triggered", action="store_true", help="Also export current-bar triggered radar rows.")
     parser.add_argument("--max-distance-pct", type=float, default=0.08, help="Ignore pending rows farther than this ratio; use -1 to disable.")
+    parser.add_argument("--stats-file", default="", help="桶统计来源（JSON/CSV）；用于期望值加权排序")
+    parser.add_argument(
+        "--expectancy-weight",
+        type=float,
+        default=0.0,
+        help="期望值权重：0=关闭（默认，保持原优先级）；>0 时历史期望 R 越高越优先",
+    )
     parser.add_argument(
         "--monitor-state",
         default="",
@@ -261,6 +283,8 @@ def main() -> None:
         include_triggered=bool(args.include_triggered),
         max_distance_pct=float(args.max_distance_pct),
         consumed_ds03_setup_keys=consumed,
+        stats=load_bucket_stats(args.stats_file) if args.stats_file else None,
+        expectancy_weight=float(args.expectancy_weight),
     )
     json_path, csv_path = write_orders(orders, Path(args.out_dir))
     if orders:

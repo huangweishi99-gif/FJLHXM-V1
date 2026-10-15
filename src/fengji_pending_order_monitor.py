@@ -13,6 +13,7 @@ from typing import Any, Callable
 
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
 
 from fengji_core.ds03_pending_fill import resolve_ds03_pending_fill
 from fengji_core.ds08_pending_fill import (
@@ -20,6 +21,7 @@ from fengji_core.ds08_pending_fill import (
     check_ds08_setup_key_stale,
     resolve_ds08_pending_fill,
 )
+from fengji_core.live_ops_stats import record_round
 from fengji_core.runtime_stop_updater import refresh_position_stop
 from fengji_core.state_lock import file_lock
 from fengji_core.symbol_names import crypto_display
@@ -46,6 +48,39 @@ DEFAULT_BINANCE_PRICE_URLS = [
     "https://api.binance.com/api/v3/ticker/price",
     "https://fapi.binance.com/fapi/v1/ticker/price",
 ]
+
+
+_HTTP_SESSION: requests.Session | None = None
+
+
+def http_session() -> requests.Session:
+    """复用 HTTP 连接池。
+
+    监控每 5 秒一轮、常年运行，裸 ``requests.get/post`` 每次都要重新完成
+    TCP + TLS 握手并留下 TIME_WAIT。这里复用 Session 的连接池，
+    不改变请求语义：不加重试、不改超时、不改 URL。
+    """
+    global _HTTP_SESSION
+    if _HTTP_SESSION is None:
+        session = requests.Session()
+        # max_retries=0：保持原有失败语义，不引入额外的自动重试延迟。
+        adapter = HTTPAdapter(pool_connections=8, pool_maxsize=16, max_retries=0)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        _HTTP_SESSION = session
+    return _HTTP_SESSION
+
+
+def reset_http_session() -> None:
+    """丢弃当前连接池（连接报错后调用，避免复用坏连接）。"""
+    global _HTTP_SESSION
+    session = _HTTP_SESSION
+    _HTTP_SESSION = None
+    if session is not None:
+        try:
+            session.close()
+        except Exception:
+            pass
 
 
 def now_text() -> str:
@@ -100,8 +135,14 @@ def send_msg(webhook: str, text: str) -> None:
         return
     payload = {"msg_type": "text", "content": {"text": text}}
     try:
-        requests.post(webhook, headers={"Content-Type": "application/json"}, data=json.dumps(payload), timeout=8)
+        http_session().post(
+            webhook,
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(payload),
+            timeout=8,
+        )
     except Exception as exc:
+        reset_http_session()
         print(f"Feishu send failed: {exc}")
 
 
@@ -133,10 +174,11 @@ def fetch_binance_prices(symbols: set[str], timeout: float, urls: list[str] | No
     wanted = {normalize_symbol(symbol) for symbol in symbols}
     for url in urls or DEFAULT_BINANCE_PRICE_URLS:
         try:
-            resp = requests.get(url, timeout=timeout)
+            resp = http_session().get(url, timeout=timeout)
             resp.raise_for_status()
             payload = resp.json()
         except Exception as exc:
+            reset_http_session()
             print(f"Price source failed: {url} {exc}")
             continue
 
@@ -169,7 +211,7 @@ def fetch_okx_prices(symbols: set[str], timeout: float) -> dict[str, float]:
         if clean not in OKX_PRICE_ONLY:
             continue
         try:
-            resp = requests.get(
+            resp = http_session().get(
                 "https://www.okx.com/api/v5/market/ticker",
                 params={"instId": okx_inst_id(clean)},
                 timeout=timeout,
@@ -183,6 +225,7 @@ def fetch_okx_prices(symbols: set[str], timeout: float) -> dict[str, float]:
             if price is not None:
                 prices[clean] = float(price)
         except Exception as exc:
+            reset_http_session()
             print(f"OKX price failed: {clean} {exc}")
     return prices
 
@@ -682,6 +725,38 @@ def apply_stop_exit_plans(
     return closed, notify_queue
 
 
+def _hours_held(position: dict[str, Any]) -> float:
+    """持仓小时数（用于 funding 计费）；时间解析失败返回 0（不计 funding）。"""
+    from datetime import datetime
+
+    text = str(position.get("entry_time") or "").strip()
+    if not text:
+        return 0.0
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            start = datetime.strptime(text, fmt)
+            break
+        except ValueError:
+            continue
+    else:
+        return 0.0
+    return max(0.0, (datetime.now() - start).total_seconds() / 3600.0)
+
+
+def funding_cost(position: dict[str, Any], notional: float, args: argparse.Namespace) -> float:
+    """永续合约资金费：按每 8 小时一期计费。默认 0（关闭），需显式传 --funding-rate-per-8h。
+
+    长期持仓时 funding 是实打实的损耗，不计入会系统性高估策略收益。
+    """
+    rate = float(getattr(args, "funding_rate_per_8h", 0.0) or 0.0)
+    if rate <= 0.0 or notional <= 0.0:
+        return 0.0
+    hours = _hours_held(position)
+    if hours <= 0.0:
+        return 0.0
+    return notional * rate * (hours / 8.0)
+
+
 def calc_position_pnl(position: dict[str, Any], exit_price: float, args: argparse.Namespace) -> dict[str, Any]:
     entry = float(position.get("entry_price", 0.0) or 0.0)
     side = int(position.get("side", 0) or 0)
@@ -695,10 +770,12 @@ def calc_position_pnl(position: dict[str, Any], exit_price: float, args: argpars
     else:
         gross = notional * side * (exit_price - entry) / entry
     costs = notional * (fee_rate + slippage_rate) * 2
+    funding = funding_cost(position, notional, args)
     return {
         "gross_pnl": gross,
         "costs": costs,
-        "net_pnl": gross - costs,
+        "funding": funding,
+        "net_pnl": gross - costs - funding,
         "notional": notional,
         "margin": margin,
     }
@@ -1116,7 +1193,9 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
     precomputed_stops: dict[str, dict[str, Any]] = {}
     stop_exit_plans: list[PlannedStopExit] = []
     if paper_updates:
-        planning_snapshot = load_json(Path(args.paper_state_file), {})
+        # 复用 process_once 开头已读取的 discovery_snapshot（同一文件同一内容），
+        # 避免每轮对同一 paper_state 文件二次整读；锁内 apply 阶段仍重载最新已提交状态。
+        planning_snapshot = discovery_snapshot
         precomputed_stops = precompute_open_position_stops(args, planning_snapshot)
         stop_exit_plans = precompute_stop_exit_plans(args, planning_snapshot, prices, precomputed_stops)
 
@@ -1189,6 +1268,14 @@ def process_once(args: argparse.Namespace, state: dict[str, Any]) -> dict[str, A
     state["last_check"] = now_text()
     state["last_prices"] = prices
     save_json(Path(args.state_file), state)
+    # 每轮操作统计（旁路：统计失败只告警，绝不改变下单/仓位/跳过逻辑）
+    record_round(
+        Path(args.out_dir).parent,
+        "CRYPTO",
+        fills=filled_records,
+        closes=[(record, position) for record, position, _exit_price, _exit_reason in close_notify_queue],
+        blocked=skipped_records,
+    )
     return {
         "checked_orders": len(active_orders),
         "price_count": len(prices),
@@ -1284,6 +1371,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--leverage", type=float, default=2.0)
     parser.add_argument("--fee-rate", type=float, default=0.0005)
     parser.add_argument("--slippage-rate", type=float, default=0.0003)
+    parser.add_argument(
+        "--funding-rate-per-8h",
+        type=float,
+        default=0.0,
+        help="永续资金费率（每 8 小时一期）；0=不计（默认，保持原行为）",
+    )
     parser.add_argument("--no-paper-state-update", action="store_true")
     parser.add_argument("--notify-claims-dir", default="runtime/feishu_notify_claims")
     parser.add_argument("--data-dir", default="data", help="OHLCV CSV 根目录（用于动态止损刷新）")

@@ -1,5 +1,158 @@
 # CHANGELOG
 
+## 2026-10-12 (free-stockdb 精华吸收 · P2 复权 + 批量查询 · 阶段 A)
+
+- **新增** `src/adj_factor.py`（仿 free-stockdb `AdjFactorIndex`）：内存索引（dict[code → list[(date, factor)]]，按日期升序去重）；`from_csv` / `from_records` 加载；`to_qfq` / `to_hfq` / `to_none` / `apply(fq)` 折算；`factor_on` / `range` / `missing` / `is_full` 区间查询；`AdjFactorMissingError` 携带 code/区间/缺失日期前 5 个。约定（东财 push2 不复权口径，固化在 `_apply`）：`adj_factor[t]` 累计复权因子（最新日 = 1.0）；`qfq[t] = none × (1/adj_factor[t])`；`hfq[t] = none = qfq × adj_factor[t]`。不主动拉取（拉取放脚本）。
+- **新增** `scripts/fetch_a_stock_adj_factors.py`（~220 行）：从东财 `push2his.eastmoney.com/api/qt/stock/kline/get` 拉日线（含 `f60` 复权因子），按 `secid = 0.{code} / 1.{code}` 自动判断沪/深/北交所；`--codes` 指定代码 / 不传则从 `data/a_stock/*_1D_qfq.csv` 自动提取；`--sleep-ms` 防 429；`merge_into_csv` 按 code+date 去重保留旧记录；`main(argv=None)` 可注入参数便于测试。**脚本不主动跑**，需用户显式调用（默认不拉取）。
+- **新增** `src/market_data_resolve_a_stock.py`（~80 行，仿 `resolve_futures_csv`）：`resolve_a_stock_csv(code, timeframe, cache_path, *, data_source, db_path, min_rows, start, end)` → `(csv_path, source_tag)`；DB 优先（`data/market_data.sqlite` 的 `bars` 表 `market="A_STOCK"`）→ cache 回落 → missing；`db_bar_count` 计数；`data_source="db"` 严格模式时 DB 不足 raise。复用 `src/market_data_store` 的 `connect / init_db / export_csv / normalize_timeframe`。
+- **新增** `src/bulk_query.py`（~210 行，仿 free-stockdb `get_data` 签名）：`BulkQuery` 类；`get_data(code, start, end, frequency, fields, limit, desc, as_df, fq)` 同步 + `get_data_async` 异步（`asyncio.to_thread` 包装，便于多只代码并发）；`frequency` 接受 1d/DAY/日线/60m/60分钟/15m/5m 等 18 种别名；`fields` 接受 date/open/close/vol/amount/pct_chg 等 20+ 字段别名（normalize_field）；`fq ∈ {qfq, hfq, none}`（hfq/none 自动用 AdjFactorIndex 折算，缺因子 raise）；`as_df=False` 返回 `list[dict]`。底层调用 `resolve_a_stock_csv` + `AdjFactorIndex`。
+- **新增** `tests/test_adj_factor.py`（25 例）：empty / from_csv 加载 + 排序 + zfill + 去重 / from_records / 错误列 / factor_on 命中越界 / range / earliest-latest / missing 跳过周末 / missing 检测 gap / is_full / to_qfq to_hfq to_none / apply 统一入口 / fq 异常 / 缺 code / 缺日期 / 空 df / 不修改原 df / base_factor 校验 / 缺 date 列 / dunder。
+- **新增** `tests/test_fetch_a_stock_adj_factors.py`（17 例）：detect_secid 沪/深/北/无效/zfill / parse_kline_payload 解析 + 短行跳过 + 无效因子跳过 + 自定义索引 / merge_into_csv 写入 + 去重 + 跳过无效 / main mock 跑（codes / no_a_stock_dir / 部分失败 / 默认从 a_stock 目录提取）。
+- **新增** `tests/test_market_data_resolve_a_stock.py`（9 例）：db_bar_count 零行/匹配/别名 / resolve DB 命中 / DB 严格模式 raise / cache 命中 / missing / DB 优先于 cache / frequency 别名 / cache 太小的处理。
+- **新增** `tests/test_bulk_query.py`（19 例）：normalize_frequency/field / project_fields / filter_by_date / get_data 同步 qfq / 日期过滤 / desc limit / 字段投影 / as_dict / 错误 fq / 缺 code / hfq 应用因子 / none 应用因子 / 缺 adj_factor raise / 显式 AdjFactorIndex 跳过自动加载 / get_data_async 单只 / asyncio.gather 多只并发。
+- **验证结果**：P2 阶段 A **70 passed**（25+17+9+19）；lint 0 错误；既有 P1 测试 0 回归（847 → 期望 917，新增 70）。
+- **影响范围**：✅ 0 个回测入口被改；✅ 0 个 DS01-DS09 / OS / 阵营 / 峰极线 / 模拟实盘 / 事件写入量被触；✅ 0 个既有 src/ 文件被改；✅ sqlite schema 不变（无新表）；✅ `data/a_stock/*.csv` 不变；✅ 不引入二进制 / LevelDB / Rust；✅ MIT 署名 5 处落实（adj_factor.py / market_data_resolve_a_stock.py / bulk_query.py / fetch_a_stock_adj_factors.py / CHANGELOG.md）。
+- **未提交**：按 AGENTS.md 不主动 git commit / push。
+- **阶段 B 触发条件**（待你批准后再做）：在 `src/backtest_a_stock_fengji.py` / `src/batch_backtest_a_stock_sector.py` 加 `--fq {qfq,hfq,none}`（默认 qfq）+ `--use-bulk-query`（默认关）开关；实际回测验证 fq 折算结果。
+- **已知风险/未验证项**：东财 f60 是否真为 adj_factor（脚本默认 `adj_index=10` 取第 10 段 split(',')，需用户跑一次 `python scripts/fetch_a_stock_adj_factors.py --codes 000021` 验真实值）；复权约定按东财不复权口径推断（与 free-stockdb 实现可能有细微差异，未来 P3 阶段按真实校准调整）。
+
+## 2026-10-12 (free-stockdb 精华吸收 · P1 板块映射)
+
+- **新增** `src/sector_mapping.py`（仿 free-stockdb `zhibiao.py:BoardIndex`）：4 向索引一次构建（`by_code / by_stock / by_name / by_category`）、类别白名单（`concept / sw1 / sw2 / sw3`）、字段白名单（`BOARD_FIELDS`）、离线优先 JSON 加载、文件头注明「Design inspired by free-stockdb MIT © 2026 hello245m」。
+- **新增** `data/sectors/a_stock_sectors.json`（v1 种子）：11 个现有概念板块（CPO/算力/半导体/机器人/低空经济/军工/新能源车/证券Ⅱ/互联网金融/锂电池/光伏）+ 3 个 SW 1-3 占位（电子/银行/传媒）；`symbols` 字段待 `scripts/build_sector_index.py --include-symbols` 首次运行时由东财接口填充。
+- **新增** `scripts/build_sector_index.py`（~270 行）：从东财 `push2.eastmoney.com` 拉概念 + 行业板块元数据；可选用 `--include-symbols` 拉个股清单；保留 SW 占位 + 旧 symbols 合并；`--source {concept, industry, all}` 控制范围；`--sleep-ms` 防 429；`version` 递增（v1→v2→v3+）；`main(argv=None)` 可注入参数便于测试。
+- **修改** `src/batch_backtest_a_stock_sector.py`（仅扩展，不破坏默认）：新增 `--use-sector-index`（默认 False）+ `--sector-json data/sectors/a_stock_sectors.json` 开关；新增 `load_sector_index_or_warn(path)` 辅助函数（失败打 WARNING 回落原路径）；主循环新增 `sector_indexed_count` 字段写入 `selected_boards.csv` 便于审计；**不实际过滤 constituents**（保持原 fetch 路径 / 排序 / 筛选逻辑不变）。
+- **新增** `tests/test_sector_mapping.py`（28 例）：build 四向索引 / 按代码 / 按名称 / 按股票代码 / 类别过滤 / 字段投影 / 批量 / 校验（未知类别 / 未知字段 / int 类别 TypeError）/ `stocks_for` / dunder / 真实种子文件加载 / tmp_path 端到端。
+- **新增** `tests/test_build_sector_index.py`（8 例）：`merge_existing` 保留 SW 占位 + 旧 symbols + 去重 / `parse_diff` 双形态 / `to_float` 容错 / main() mock 跑 / `--include-symbols` 填充个股 / SW 占位保留 / 损坏 JSON 仍能写。
+- **验证结果**：`pytest tests/test_sector_mapping.py tests/test_build_sector_index.py tests/test_audit_a_stock_sector_archive.py` → **40 passed in 0.51s**；lint 0 错误。
+- **影响范围**：✅ 9 个 DEFAULT_SECTORS 默认行为完全不变；✅ 11 板块 master 归档不受影响；✅ DS01-DS09 / OS / 阵营 / 峰极线 任何字段完全不动；✅ 不引入二进制 / LevelDB / Rust；✅ P1 默认 `use_sector_index=False`，脚本调用方零迁移。
+- **未提交**：按 AGENTS.md 不主动 git commit / push；所有改动在工作区，需用户批准后提交。
+- **未影响**：未跑 P1 模块的批量回测（默认开关仍关），仅功能/单元/集成测试覆盖；后续验证由用户在跑批量回测时按 `--use-sector-index` 开关选择性启用。
+
+## 2026-10-12 (free-stockdb 精华吸收 · P0 摸底)
+
+- **来源仓库**：`https://github.com/hello245m/free-stockdb`（**MIT License**, Copyright (c) 2026 hello245m）；tarball 提交时间 2026-10-05；README 标注 v0.3.5。
+- **审计方式**：只读 clone 到 `$env:TEMP\free-stockdb-audit`，逐文件读源码（`stock_sdk.py`/`zhibiao.py`/`native_mcp.py`/`stock_mcp_server.py`/`updater.cpp`/`DATA_SOURCE.md`/`调用方式/*`/`stockdb.conf`/`sync_url.txt`）。**未运行二进制，未导入其 `stockdb.pyd` 依赖。**
+- **目录概览**（35 文件 / 5 目录）：`cpp/` C++ LevelDB 引擎（含 manifest + SHA-256 增量同步）+ `pybao/` Python 接口 + `调用方式/` 5 种调用（Python SDK / 原生 rd / Excel/WPS / HTTP / MCP）；自研 `native_mcp.py` 17KB stdlib 零第三方依赖实现 JSON-RPC 2024-11-05。
+- **核心抽象提取（10 条设计模式）**：
+  1. `StockDBClient.get_data()` 签名（同步/异步对齐、单路 pipeline 批量、频率自适应表名、8位日期补全 14 位、字段投影、desc/limit/fq）；
+  2. 复权因子在 `__init__` 一次性预加载到内存 + `bisect.bisect_right` 二分（qfq/hfq 在运行时折算，不存复权后价格）；
+  3. 周/月/分钟 K 动态合成（不存周 K 只存日 K，1m 聚合 5m/15m/30m/60m，显式处理 A 股交易时段 9:30-11:30 + 13:00-15:00 + 午休空槽）；
+  4. 板块索引 BoardIndex 四向索引（by_code / by_stock / by_name / by_category）一次构建，支持概念 + 申万 1/2/3 级；
+  5. 39 指标 + 5 指数加权（method=1 等权/2 流通市值/3 成交额/4 成交量/5 总市值）；底层 Rust `BATCH/BATCH_CROSS/ZHISHU`；
+  6. 增量同步 manifest.txt 协议 `<sha256> <size> <relative-path>` + `.part` 临时 + 校验后 rename + 禁止 `..` 路径穿越 + 已存在+一致跳过；
+  7. 同步源三模式（本地 / `file://` / `http(s)://`）+ `sync_url.txt` 第一行有效配置；
+  8. 自研 MCP 框架（装饰器 + `inspect.signature()` 自动生成 JSON Schema + URI 模板 regex + stdout 锁 + 强制 flush + async lifespan）；
+  9. K-V 协议风格（`table:keyn:keyn_1`、通配 / 闭区间 / 倒序 / pipeline）；
+  10. HTTP API 极简（thin wrapper + JSON args）。
+- **安全要点**：默认 `127.0.0.1:7899`、manifest `..` 禁止、临时文件 `.part` 校验后 rename、SHA-256+size 双校验、日志轮转；默认密码 `this-is-a-very-strong-password-32ch` 仅在 `stockdb.conf` 注释里出现，**不复制**。
+- **P1-P6 阶段启动**（详见 `docs/FREE_STOCKDB_AUDIT.md` §8）：P1 板块映射 / P2 复权+批量查询 / P3 AI MCP 入口 / P4 数据源多通道 / P5 指标层 / P6 性能加速（可选）。P0 仅产出文档，**未修改任何已应用代码**。
+- **MIT 署名义务**：所有借鉴模块（P1 起）文件头注明「Design inspired by free-stockdb MIT © 2026 hello245m」。
+- **安全边界**：本次仅产生审计文档 `docs/FREE_STOCKDB_AUDIT.md`，不动峰极线 / 阵营 / DS01-DS09 / 峰极OS 任何字段；不引入二进制 / LevelDB / Rust；未推送服务器。
+
+## 2026-10-07 (统计层拿到真实样本：历史回填 + 衰退告警 + 负期望降权 + 风险平价影子)
+
+- **为什么这一轮**：监控重启后统计里只有 skip（`closes=0`、上下文桶全 `UNKNOWN`），胜率/avg_r 长期为空 → 期望值排序拿不到证据直接退化为按距离排序，衰退监控永远「证据不足」。而两端 `closed_trades.csv` 躺着几百笔真实平仓，缺的只是把它灌进统计桶。
+- **新增 `scripts/backfill_ops_stats.py`（幂等、批次内去重）**：走 `LiveOpsStats.record` 同一条路径（同分桶键、同平滑、同评分），只补 close 事件（不补 skip，避免成交率分母被陈年数据灌水）。海外 806 行 → **759 笔**（剔重 47）；国内 505 行 → **342 笔**（剔重 163）。**踩坑**：去重键不能含 `exit_time/closed_at` —— 同一笔平仓被重复 append 时只有记录时间不同，含时间就会误判成两笔（海外最初因此 0 剔重）。
+- **回填后的家底（首次可见）**：
+  - 海外 CRYPTO（759 笔）：DS01 n=272 胜率 24.6% avg_r=-0.21 avg_net=-6.16；DS07 160/36.9%/+0.35；DS08 114/30.7%/-0.01；DS05 104/28.8%/-0.16；DS09 81/39.5%/+0.25/+1.27；DS03 28/50%/+0.56/+14.36。
+  - 国内 FUTURES（342 笔，台账**无 initial_stop** → `avg_r` 诚实留空，胜率/avg_net 可用）：DS01 193/17.6%/-595.76；DS03 37/43.2%/-1045.73；DS05 57/14%/-1417.09；DS08 19/15.8%/-2255.31；DS09 15/40%/+1242.39。
+  - 结论：两端模拟盘历史都以**负期望为主**，DS01 是最大亏损源（海外 ≈ -1676、国内 ≈ -11.5 万）。
+- **衰退监控首次实跑出告警**：海外 `WARN DS07: avg_r 跌至基线 -42%（0.48 → -0.20）`、`WARN DS08: -342%（0.12 → -0.40）`；国内 `WARN DS01: 胜率下滑 21%（21% → 0%）`。
+- **补齐排序设计缺口（重要）**：原逻辑只有「有正期望 → 优先」，而决策闸门要求胜率 Wilson 下界 > 0.5 —— 两端**所有策略胜率都低于 50%**，于是影子对比显示「有统计证据的信号=0、换入换出均为 0」，**负期望的 DS01 仍与「无证据的新策略」同级按距离优先推荐**。新增 `negative_evidence`（样本 ≥ 80 且 avg_r<0，R 缺失时用 avg_net<0），排序改为三档：正期望 → 无证据（按距离，**保持原行为**）→ **证据充分的负期望垫后**。重跑影子（海外 top-40）：**换入 12 / 换出 12，负期望降权 12 条（DS01 n=272、DS08 n=114）**，换入的是 DS03/DS02。国内零变动（top-40 内暂无样本达标的策略），符合预期。
+- **风险平价影子测算 `scripts/shadow_risk_sizing.py`（只读反事实，海外 806 笔）**：固定仓位总盈亏 **-4211.22 → 风险平价 -723.17**；单笔波动 23.15 → 16.66；最差单笔 -56.95 → -45.97；最好单笔 167.62 → 248.54；胜率不变 29.4%。改善主要来自 DS01 亏损压缩（-4243 → -1104）。**注意**：绝对盈亏改善有一部分来自整体仓位缩小，启用前需按「每单位风险的收益」再核一遍。
+- **仍未启用（保持默认关闭）**：`--rank-by expectancy`、`--sizing risk` 本轮只做影子，不改任何下单行为。
+- **测试**：新增 `tests/test_backfill_ops_stats.py` 4 例（与实时同口径、幂等、缺 initial_stop 时 R 留空不用假值、重复台账只计一次）、`tests/test_radar_ranking.py` 新增 3 例（负期望门槛、负期望排在「无证据」之后、影子报告降权计数）。相关 37 passed。
+- **部署**：新脚本纳入 `sync_deploy_domestic.ps1` 与 `fengji_domestic_deploy_manifest.txt`；清理未启用的 `scripts/rotate_domestic_events.ps1`（Python 版已替代）。
+
+## 2026-10-07 (重启两端常驻监控：加载实时统计层 + 修复国内 events.jsonl 膨胀导致的长期失效)
+
+- **重启两端 monitor**（新代码只在进程启动时加载，watchdog 不会主动重启存活进程）：国内 `fengji_futures_pending_order_monitor`（PID=1264）、海外 `fengji_pending_order_monitor`（PID=171215）。重启后两端 `runtime/fengji_ops_stats/{FUTURES,CRYPTO}_ops_stats.json` 开始实时更新，实时操作统计层正式生效。
+- **修复国内长期故障（重要）**：国内 `runtime/fengji_pending_orders/events.jsonl` 只追加不轮转，涨到 **10.36GB / 11,126,783,985 字节**，Windows 上 Python 追加打开即报 `OSError [Errno 22] Invalid argument`，`process_once` 每轮异常 → 成交/平仓/跳过事件与 `state` 全部写不进去，**自 2026-08-17 起国内期货挂单监控实际处于失效状态**（日志持续刷 `futures pending monitor error`、无一行正常 summary）。处置：归档为 `runtime/archives/events_20261007_152955.jsonl`（同盘改名，可逆、未删除），新 `events.jsonl` 由下一轮 append 自动重建。
+- **防复发**：两端 watchdog 每分钟轮转 `events.jsonl`（阈值 512MB / 保留尾部 64MB，原地截断保持 inode，活跃 writer 无感知）；海外 2.7GB 已即时轮转至 67MB，monitor 轮转后仍存活。新增 `scripts/rotate_domestic_events.py`（人工归档入口）与 `scripts/check_domestic_pending_monitor.ps1`、`scripts/check_domestic_events_file.ps1`（远程诊断入口，scp 后 `powershell -File` 执行）。
+- **可诊断性**：`fengji_futures_pending_order_monitor` 主循环异常补 `traceback.print_exc()`（走 stderr → `*_err.log`）。此前只有一行 `[Errno 22] Invalid argument`，无法定位到 `append_jsonl`。
+- **同步**：国内端补同步 `src/` 与 `fengji_core` 全量（远端 monitor 一度缺 `--os-state-dir` 参数，属旧版代码未同步）。
+- **验证**：国内每 5 秒稳定输出 `checked=42 bars=34 filled=0 closed=0 skipped=41 cancelled=0`；`events.jsonl` 重建并正常增长（1.4MB@15:33）；`FUTURES_ops_stats.json` 持续更新；海外 `checked=8 prices=13 skipped=3` 正常、`CRYPTO_ops_stats.json` 持续更新。
+- **遗留**：国内每轮写 41 条 skip 事件（约 70 万条/天）是 events.jsonl 膨胀主因，本轮不改事件口径，仅靠轮转兜底；若需降写入量另行评估。
+
+## 2026-10-07 (量化优化六项：统计可信度 / 衰退监控 / 期望值排序 / 风险平价 / 板块敞口 / 执行现实性)
+
+按「顶尖量化交易员视角」的诊断落地六项改进。**全部默认关闭，行为与改动前完全一致**，需验证后逐个启用：
+
+1. **统计可信度（地基）** `context_score`：分级改用胜率的 **Wilson 置信下界**（`signal_score_conservative`），小样本高胜率不再被误判 STRONG；新增决策闸门 `is_actionable`（样本 ≥ `ACTIONABLE_MIN_SAMPLES=80` **且**胜率下界 > 0.5）；新增 `benjamini_hochberg`（BH/FDR）与 `bucket_p_value` 应对上千桶的多重检验过拟合。**未改** `data/context_market_calibration.json`（`min_bucket_samples=30` 是 2026-06-16 校准产物，重调需走研究流程）。离线 `aggregate_bucket_stats` 新增 `win_rate_ci_low` / `signal_score_conservative` / `actionable` 三列。
+2. **策略衰退监控** `strategy_decay` + `scripts/audit_strategy_decay.py`：`live_ops_stats` 新增 `recent` 环形缓冲（最近 200 笔平仓），对比「近期窗口 vs 历史基线」，胜率下滑 ≥15pp 或 avg_r 跌至基线 50% 以下即告警（warn/severe），样本不足不判定。纯只读，`--fail-on severe` 可接看护告警。
+3. **期望值排序** `radar_ranking`：雷达新增 `--rank-by expectancy`（默认 `distance`）与 `--shadow-rank`（只报差异、不改文件）；挂单新增 `--expectancy-weight`（默认 0）。期望 = 历史 avg_r × 样本置信度，无统计证据的信号退回按距离排序。
+4. **风险平价仓位** `--sizing risk`（默认 `fixed`）：`lots = 权益 × risk_per_trade / (|入场−止损| × 合约乘数)`，向下取整且受 `--max-lots` 约束，信息不足时退回固定手数。
+5. **板块敞口上限** `sector_exposure` + `--max-sector-positions`（默认 0=关闭）：33 品种按黑色/能化/有色/贵金属/农产品/航运分组限仓，同一轮已计划成交也计入，未知板块不误伤。
+6. **执行现实性**：`--fill-price-mode gap_open`（默认 `trigger`）跳空穿越按开盘价成交；`--funding-rate-per-8h`（默认 0）补永续资金费成本。
+
+- **部署中发现并修复的两个真问题**：① 国内服务器 `stop_bar_monitor.py` 是旧版、缺上轮的 `read_price_frame`，进程一旦重启即 ImportError —— 已补同步（含 `tail_csv.py`）；② 新参数 help 含裸 `%`，argparse 做百分号格式化导致 `--help` 崩溃 —— 已改为 `%%`。
+- **验证**：新增 49 项测试（含「权重 0 / 上限 0 / 费率 0 时行为完全不变」等回归契约）；**全量 808 passed / 17 skipped**；两端 `--help` 与审计脚本实跑通过。
+- **生效前提**：常驻 monitor 进程需重启才会加载新代码；统计文件目前为空（进程未重启），衰退审计会显示 skip。
+
+## 2026-10-07 (实时操作统计层：每次挂单/成交/平仓按分桶增量聚合，纯可观测)
+
+- **背景缺口**：两端监控每次操作都写 `events.jsonl` 流水，但运行中只有计数打印，**没有胜率/R 倍数/滑点/成交率/止损命中率的聚合**；`context_stats` 的分桶胜率与 `signal_score`/`signal_tier` 只在离线批处理里算，实时链路零 import（`src/chart_bundle.py` 里甚至写死 `INSUFFICIENT_DATA`）。
+- **新增 `fengji_core/live_ops_stats.py`**：每轮监控结束时批量增量更新 `runtime/fengji_ops_stats/{MARKET}_ops_stats.json`。按 strategy × market × bucket_key 聚合：count/wins（**以平仓为准**，与离线 accepted_trades 同口径）、胜率（贝叶斯平滑）、avg_r、avg_net、**成交率**（fill/(fill+skip+cancel)）、**止损命中率**、**不利滑点**（按多/空方向归一，正=不利），并派生 `signal_score`/`signal_tier`。
+- **口径统一（去重）**：抽出轻量模块 `fengji_core/context_score.py`，承载分桶键 + 平滑 + 评分的纯逻辑；离线 `context_stats.aggregate_bucket_stats` 与实时 `live_ops_stats` 共用 `score_bucket_row`，**杜绝两处实现漂移**。`context_stats` 公开 API 全部保留（re-export），既有 28 处调用方无需改动。
+- **零交易风险**：统计纯旁路——所有写入失败只告警不抛异常，绝不触碰下单/仓位/跳过逻辑；文件锁 + 原子替换（崩溃不写坏）；`FENGJI_LIVE_OPS_STATS=0` 应急关闭。本轮**不接入决策**，后续若要影响排序/仓位需另做影子验证。
+- **两端挂接**：国内 `fengji_futures_pending_order_monitor.process_once`、海外 `fengji_pending_order_monitor.process_once` 收尾处各一次调用（fills/closes/blocked 三类事件）。
+- **验证**：新增 `tests/test_live_ops_stats.py` 14 例（含旁路不抛异常、损坏文件自愈、kill switch、与离线同分）；既有 context_stats 10 例 + 两端 monitor 21 例通过；**全量 759 passed / 17 skipped**；两端服务器部署后实跑校验输出一致。
+- **注意**：常驻 monitor 进程需重启后新统计才生效（watchdog 只在进程掉线时拉起，不会主动重启存活进程）。
+
+## 2026-09-04 (部署 watchdog 到两端 + rotate 实现改为原地截断)
+
+- **归档执行**：2.1GB 历史遗留 `.jsonl`（824/790/527MB）已按用户指示移入 `archives/runtime_orphans_20260904/`（可逆，未删除）。
+- **部署**：向海外（`overseas-quant:/home/ubuntu/quant_crypto`）与国内（`domestic-quant:C:/Users/Administrator/quant_futures`）服务器同步了新版 `watchdog_overseas.sh` / `watchdog_domestic.ps1` 与共享工具 `rotate_log_tail.py`，并补充了两端 `sync_deploy_*.ps1` 的同步清单（此前清单漏了 watchdog/rotate 文件）。两端调度均正常：海外 cron 每分钟、国内计划任务 `\FengJiDomesticWatchdog` 每分钟。
+- **海外治理验证成功**：`radar_order_loop.log` 131MB → 8.4MB（保留完整尾部、首行完整）。
+- **国内平台限制暴露（重要）**：国内两个超限日志（`data_manager_futures.log` 191MB、`futures_radar_order_loop.log` 316MB）**无法在进程存活时截断**——Windows 上 `cmd >>`/`2>>` 重定向打开的日志文件不共享写权限，外部 `open("r+b")` 一律 PermissionError（远程诊断已确认）。待持有进程退出后才能治理，属平台文件共享语义。
+- **rotate 实现重写：`os.replace` → 原地截断**（读尾→`ftruncate(0)`→写回，保持 inode）。原「临时文件+原子替换」方案对活跃 writer 是缺陷：Linux 下 writer 继续写被替换的旧 inode（日志静默丢失）；Windows 下对 `cmd >>` 文件必然 PermissionError（含 DELETE 共享要求）——两端都治理不了活跃大日志。现方案 writer 句柄无感知、跨平台一致。`FENGJI_ROTATE_DEBUG=1` 可输出被锁文件跳过原因。
+- **防回归**：审计第 8 项契约改为断言「原地截断、禁止 `os.replace(` 回归」；`tests/test_rotate_log_tail.py` 新增 inode 保持测试（现 7 例）。
+- **验证**：本地 rotate + 审计测试 **8 passed**；审计直跑通过；改动文件 lint 0。
+- **国内遗留（建议后续）**：重启一次 data manager / radar 进程即可顺势治理 191/316MB 日志；`futures_radar_order_loop.log` 自 8/20 停更却仍被某进程锁住，值得排查该 radar 进程健康度。
+
+## 2026-09-04 (新增只读资产膨胀审计 + 2.1GB 历史遗留 `.jsonl` 定性)
+
+- **背景**：上一轮盘点遗留问题——`runtime/` 下三个数百 MB 的 `.jsonl` 不知是否有消费者，人工排查不可重复。
+- **查证结论（可安全归档）**：`runtime/overseas_pending_events_tail.jsonl`（824MB，最后写入 2026-06-30）、`runtime/_tmp_wld_events_tail.jsonl`（790MB，2026-06-26）、`runtime/_tmp_domestic_events.jsonl`（527MB，2026-06-25）——**合计约 2.1GB**：在 `src`/`scripts`/`packages`/`services` 全部 545 个代码文件中**零引用**，且均已停止写入 65-71 天，属无人认领的诊断残留。是否删除仍由人工决定（本轮未删任何文件）。
+- **新增工具**：`scripts/audit_runtime_asset_bloat.py`（**只读，绝不删改文件**）——按体积阈值盘点 `runtime/data/results/archives`，对每个大文件给出体积、最后写入、未写天数、以及「代码里是否仍引用该文件名」；支持 `--json` 导出与 `--fail-on-stale`（存在「超阈值 + 长期未写 + 代码零引用」时退出码 1，可接 CI/巡检）。
+- **踩坑与修复**：首版把待清理文件名写进了脚本自身的 docstring，导致引用检测把「被本脚本文档提到」误判为「仍在使用」（三个文件全被标 referenced）。已改为：文档不再罗列具体文件名 + 引用检测显式排除脚本自身。修复后审计结果正确：三个 `.jsonl` 判为 `STALE`；`runtime/logs/user_paper_execution_job.log`（895MB，仍在写入，被安装脚本引用）与 `runtime/secrets/postgresql-16.6-1-windows-x64.exe`（324MB，被脚本引用）正确保留。
+- **新增测试**：`tests/test_audit_runtime_asset_bloat.py`（6 例：stale 判定、被引用/刚写入不判 stale、阈值过滤、退出码 0/1/2、JSON 报告）。
+- **顺带观测**：`runtime/logs/user_paper_execution_job.log` 已达 895MB 且**仍在持续写入** —— 印证上一轮接入的 watchdog 日志截尾（部署后自动收敛到 8MB）确有必要。
+- **验证**：综合回归 **78 passed**；新增文件 lint 0；审计直跑输出与人工盘点一致。
+- **使用**：`python scripts\audit_runtime_asset_bloat.py --dirs runtime --min-mb 200`（全盘扫描加 `--dirs runtime,data,results,archives`，因 `results/` 文件众多耗时更长）。
+
+## 2026-09-03 (OS 状态写放大治理：内容不变不回写；读取缓存经实测否决)
+
+- **背景**：继续排查 5s 挂单监控的 IO/CPU 热点，发现单份 OS 状态文件（`runtime/fengji_os_state/*_1d.json`，目录 103 份共 0.34GB，最大 14.2MB）在每轮对每个持仓/活跃订单被读一次，且 `build_os_detail_frame_stateful` **无条件回写**整份状态。
+- **实测数据（SOLUSDT_1d.json）**：重新解析 ~0.10s；解析后常驻内存 ~44MB（tracemalloc）；写盘 ~9ms；内容相同时 dict 比较 ~17ms、内容不同时首个键即短路 ~0ms；序列化字符串比较 145ms/次。
+- **修改（写放大治理）**：`packages/fengji_core/fengji_core/os_state_store.py`
+  - `write_os_state` 新增 `previous_state` 参数：新状态与旧状态内容完全相同时**跳过写盘**（返回 False），`build_os_detail_frame_stateful` 在状态匹配时传入旧状态。状态无变化时不再重写十余 MB。
+  - 相等判定 `_states_equal` **只用 dict 相等**：序列化兜底（145ms/次）比写盘（9ms）贵一个量级，属净负优化，已明确不采用；状态含 NaN 时判定为不相等，自动退回原写盘行为，无额外损失。
+  - 新鲜度审计（`audit_os_state_freshness_all.py`）按状态内容（`last_date`/fingerprint）判定、不依赖 mtime，因此跳过写盘不会误报。
+- **评估后否决（记录以防回潮）**：进程内 `(mtime_ns, size)` LRU 缓存解析结果——实测单份 44MB，而监控每轮**按序扫描多个持仓**的状态文件，属 LRU 命中率极低的「循环扫描」模式（缓存条目不足工作集时命中率归零），内存随持仓数线性膨胀且多进程叠加，故不做。`read_os_state` 的 docstring 已写明该结论。
+- **防回归**：`scripts/audit_runtime_hotpath_io.py` 新增第 10 项契约——必须保留「内容不变不回写」，且**禁止**重新引入进程内大对象缓存（检测 `_OS_STATE_CACHE`）；新增 `tests/test_os_state_store.py`（6 例：无缓存契约、相同内容跳过写、内容变化照常写、无 previous_state 必写、build 正确传递 previous_state、空帧不写）。
+- **验证**：相关回归 **139 passed**（含 ds01/ds03/ds07/ds08/os_engine/两个 pending 监控/审计/watchdog 脚本契约）；审计直跑通过；修改文件 lint 0。
+- **未改动**：`runtime_stop_updater.refresh_position_stop` 的 `pd.read_csv` 全量读取**刻意保留**——1d 止损需 1095 根上下文且 OS 增量要求 df 与 state 匹配（截断会触发全量重算，反而更慢且可能改变结果），尾读窗口 64KB 不足以保证等价。
+
+## 2026-09-03 (运行时热路径 II：paper_state 锁外单读 + watchdog 日志增长防护)
+
+- **背景**：上一轮完成行情 CSV 尾读 / Session 连接池 / 数据泵告警后，继续复核 5s 挂单监控每轮文件 IO 与长期运行磁盘增长。取证确认 `state.json`/`futures_pending_state.json` 唯一写者是各自的挂单监控（雷达仅读作 DS03 去重），`last_prices`/`last_check` 无外部消费者。
+- **修改 1（IO：锁外 paper_state 整读合并）**：
+  - `src/fengji_pending_order_monitor.py`：`process_once` 锁外 `discovery_snapshot` 直接复用作 `planning_snapshot`，去掉对同一 paper_state 文件的第二次整读（每轮该文件 load 3 次 → 2 次，锁内 apply 重载保留）。
+  - `src/fengji_futures_pending_order_monitor.py`：同样合并。
+  - 不影响策略/止损/通知语义：planning 仍使用本轮起点的一致快照，锁内照旧重载最新已提交状态。
+- **修改 2（可观测 / 磁盘增长防护）**：
+  - 新增 `scripts/rotate_log_tail.py`：跨平台日志尾部截断工具（原子 `os.replace`、首行完整性保护、`--max-bytes`/`--keep-bytes` 可配、幂等）。
+  - `scripts/watchdog_domestic.ps1`：新增 `Invoke-LogRotation`，每分钟对 `runtime/logs/*.log` 超 100MB 者保留尾部 8MB（含现已 869MB 的 `user_paper_execution_job.log`，部署后自动收敛）。
+  - `scripts/watchdog_overseas.sh`：新增 `rotate_logs`，对 `data_sync.log`/`radar_order_loop.log`/`pending_order_monitor.log`/`paper_run.log`/`runtime/logs/*.log` 同样处理。
+- **修改 3（防回归）**：
+  - `scripts/audit_runtime_hotpath_io.py` 新增契约：两端 monitor 的 `planning_snapshot` 必须复用 `discovery_snapshot`（禁止再次整读同一文件）；`rotate_log_tail.py` 必须存在且原子替换；两端 watchdog 必须接入 rotate。
+  - 新增 `tests/test_rotate_log_tail.py`（6 例：截断结果是原文件后缀、首行完整、保留字节上限、小文件不动、缺路径安全、多文件 CLI）；`test_pending_orders.py` / `test_futures_pending_orders.py` 各新增 1 例运行级快照计数（monkeypatch `load_json` 断言锁外整读每轮 ≤1 次）。
+- **验证**：综合回归 71 passed（含 `test_runtime_check_scripts` 的 watchdog PS 解析契约）；`watchdog_domestic.ps1`/`check_domestic_runtime_status.ps1` PowerShell AST 解析通过；修改文件 lint 0；审计直跑通过。
+- **数据体积盘点（只读，未删）**：`runtime/logs/user_paper_execution_job.log` 869MB（国内 watchdog 部署后自动截尾至 8MB）；`runtime/overseas_pending_events_tail.jsonl` 824MB / `runtime/_tmp_wld_events_tail.jsonl` 790MB / `runtime/_tmp_domestic_events.jsonl` 527MB 为 .jsonl 诊断/事件留存，不在 rotate 范围，需确认消费者后再决定归档/清理；`data/market_data.sqlite` 691MB（gitignore，正常）。
+- **部署提示**：watchdog 改动需同步服务器后生效；海外 rotate 覆盖 root 级 logs 与 `runtime/logs/*.log`。
+
 ## 2026-08-14 (全量测试回归 700 passed + 海外监控测试隔离修复)
 
 - **背景**：2026-08-11 之后多轮变更（板块批回测重跑、审计脚本动态化等），用 `--basetemp` 定向临时目录跑 `pytest tests` 全量回归（规避沙箱删除保护误拦截）。

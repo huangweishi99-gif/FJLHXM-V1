@@ -31,6 +31,12 @@ from fengji_core.os_state_store import (
     is_futures_market,
     os_state_path,
 )
+from fengji_core.radar_ranking import (
+    format_shadow_report,
+    load_bucket_stats,
+    rank_rows,
+    shadow_compare,
+)
 
 
 DEFAULT_SYMBOLS = [
@@ -1025,6 +1031,25 @@ def parse_args() -> argparse.Namespace:
         default="auto",
         help="Market mode for data loading and OS state paths.",
     )
+    parser.add_argument(
+        "--rank-by",
+        choices=["distance", "expectancy"],
+        default="distance",
+        help=(
+            "排序依据：distance=按距触发远近（现状，默认）；"
+            "expectancy=按历史期望 R（需 --stats-file，证据不足的信号仍按距离垫后）"
+        ),
+    )
+    parser.add_argument(
+        "--stats-file",
+        default="",
+        help="桶统计来源：实时 JSON(runtime/fengji_ops_stats/*_ops_stats.json) 或离线 CSV(context_bucket_stats.csv)",
+    )
+    parser.add_argument(
+        "--shadow-rank",
+        action="store_true",
+        help="影子对比：只打印「按距离」与「按期望」两种 top-n 的差异，不改变任何输出文件",
+    )
     return parser.parse_args()
 
 
@@ -1060,8 +1085,16 @@ def main() -> None:
             )
     payload = [asdict(row) for row in rows]
     frame = pd.DataFrame(payload)
+    stats = load_bucket_stats(args.stats_file) if args.stats_file else {}
     if not frame.empty:
-        frame = frame.sort_values(["score", "status", "symbol", "strategy_id"]).head(args.top_n)
+        if args.rank_by == "expectancy" and stats:
+            # 期望值排序：仅在显式启用且提供了统计源时生效，否则保持原行为
+            frame = pd.DataFrame(rank_rows(payload, stats, top_n=args.top_n))
+        else:
+            frame = frame.sort_values(["score", "status", "symbol", "strategy_id"]).head(args.top_n)
+    if args.shadow_rank and stats and not frame.empty:
+        # 影子对比：只报告差异，不动任何输出文件
+        print(format_shadow_report(shadow_compare(payload, stats, top_n=args.top_n)))
     frame.to_csv(out_dir / "radar.csv", index=False, encoding="utf-8-sig")
     (out_dir / "radar.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(frame.to_string(index=False) if not frame.empty else "No radar rows.")

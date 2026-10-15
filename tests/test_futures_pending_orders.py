@@ -347,3 +347,33 @@ def test_format_stop_exit_domestic_close_status_by_position_side() -> None:
     assert "消息类型: 已买入平仓 + 平仓价格已成交" in short_msg
     assert "状态: 已买入平仓" in short_msg
 
+
+def test_futures_process_once_reads_paper_state_once_outside_lock(tmp_path: Path, monkeypatch) -> None:
+    import fengji_futures_pending_order_monitor as fpm
+
+    out_dir = tmp_path / "pending"
+    orders_json, _ = write_orders([], out_dir)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    args = make_args(tmp_path, orders_json, data_dir)
+    paper_state = Path(args.paper_state_file)
+    paper_state.parent.mkdir(parents=True, exist_ok=True)
+    paper_state.write_text(json.dumps({"symbols": {}}), encoding="utf-8")
+    state = {"version": 1, "filled_order_ids": [], "cancelled_order_ids": [], "fills": []}
+
+    real_load_json = fpm.load_json
+    paper_reads: list = []
+
+    def counting_load_json(path, default=None):
+        if str(Path(path).resolve()) == str(paper_state.resolve()):
+            paper_reads.append(str(Path(path).resolve()))
+        return real_load_json(path, default)
+
+    monkeypatch.setattr(fpm, "load_json", counting_load_json)
+
+    summary = fpm.process_once(args, state)
+
+    assert summary["checked_orders"] == 0
+    # 锁外 discovery 1 次 + 锁内重载 1 次；回归（planning 再整读同一文件）前为 3 次
+    assert len(paper_reads) == 2
+

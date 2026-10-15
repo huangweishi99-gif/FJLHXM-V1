@@ -54,6 +54,11 @@ def os_state_path(state_dir: str | Path, symbol: str, timeframe: str) -> Path:
 
 
 def read_os_state(path: Path) -> dict[str, Any] | None:
+    """读取 OS 状态；解析后的对象视为只读（调用方不应就地修改）。
+
+    注：单份 1d 状态解析后常驻内存约 40MB，而监控每轮会按序扫描多个持仓的状态文件，
+    进程内缓存对这种「循环扫描」模式命中率极低且内存不可控，故此处刻意不做缓存。
+    """
     if not path.exists():
         return None
     try:
@@ -87,15 +92,37 @@ def state_matches_frame(
     return True
 
 
+def _states_equal(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    """内容相等判定（用于跳过等价内容的回写）。
+
+    只用 dict 相等：实测 14MB 状态「内容相同」时约 17ms，「内容不同」时首个键即
+    短路（~0ms）；而序列化比较需 145ms/次、写盘本身仅 ~9ms —— 序列化兜底是净负
+    优化，故不采用。状态若含 ``NaN``（``nan != nan``）则判定为不相等，退回旧行为
+    照常写盘，无额外损失。比较过程中任何异常同样按「不相等」处理（保守写盘）。
+    """
+    try:
+        return bool(left == right)
+    except Exception:
+        return False
+
+
 def write_os_state(
     path: Path,
     engine: FengJiOSIdentityEngine,
     df: pd.DataFrame,
     *,
     include_hardened_by_bar: bool,
-) -> None:
+    previous_state: dict[str, Any] | None = None,
+) -> bool:
+    """落盘 OS 状态，返回是否真正写盘。
+
+    给出了 ``previous_state`` 且新状态与之完全相同时跳过写盘：挂单监控每 5s 对
+    每个持仓推进一次 OS 增量，绝大多数轮次状态并无变化，跳过等价内容的十余 MB
+    回写可显著降低磁盘写放大。新鲜度审计（`audit_os_state_freshness_all`）按状态
+    内容（last_date / fingerprint）判定、不依赖 mtime，因此跳过写盘不会误报。
+    """
     if df.empty:
-        return
+        return False
     state = engine.to_state(include_hardened_by_bar=include_hardened_by_bar)
     state.update(
         {
@@ -104,10 +131,13 @@ def write_os_state(
             "last_row_fingerprint": row_fingerprint(df.iloc[-1]),
         }
     )
+    if previous_state is not None and _states_equal(previous_state, state):
+        return False
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_suffix(path.suffix + ".tmp")
     temp_path.write_text(json.dumps(state, ensure_ascii=False, default=str), encoding="utf-8")
     temp_path.replace(path)
+    return True
 
 
 def build_os_detail_frame_stateful(
@@ -118,13 +148,24 @@ def build_os_detail_frame_stateful(
     *,
     record_hardened_by_bar: bool = True,
 ) -> tuple[pd.DataFrame, FengJiOSIdentityEngine]:
-    """增量 OS：状态匹配则 run_from_state 只处理新 K；否则全量重算并落盘。"""
+    """增量 OS：状态匹配则 run_from_state 只处理新 K；否则全量重算并落盘。
+
+    落盘前与旧状态比对：仅在内容真正变化时才写（避免每轮无谓的十余 MB 回写）。
+    """
     state = read_os_state(state_path) if state_path is not None else None
-    if not state_matches_frame(state, df, gap, record_hardened_by_bar):
+    matched = state_matches_frame(state, df, gap, record_hardened_by_bar)
+    previous_state = state if matched else None
+    if not matched:
         state = None
     engine = FengJiOSIdentityEngine(gap=gap, record_hardened_by_bar=record_hardened_by_bar).run_from_state(df, state)
     if state_path is not None:
-        write_os_state(state_path, engine, df, include_hardened_by_bar=record_hardened_by_bar)
+        write_os_state(
+            state_path,
+            engine,
+            df,
+            include_hardened_by_bar=record_hardened_by_bar,
+            previous_state=previous_state,
+        )
     return attach_os_detail(df, engine), engine
 
 
