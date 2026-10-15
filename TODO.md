@@ -1,5 +1,16 @@
 # TODO
 
+## 2026-10-15 - v0.1.0 发布 + 数据同步流程
+
+- [x] **发布适用性检查**：工作区 292 个未提交改动（P0-P2 + `fengji_core` 6 新模块 + A 股/海外数据）、本地 `main` 领先 `origin/main` 27 个提交、`gh` 不在 PATH（实际装在 `C:\Program Files\GitHub CLI\gh.exe`，已登录 `huangweishi99-gif`）；敏感文件名扫描 0 命中、待提交 diff 密钥模式扫描 0 命中；`verify_phase2_closeout.py` → `PHASE2_CLOSEOUT_OK`。
+- [x] **提交并推送**：`c9ca822`（代码/测试/文档/脚本 67 files）+ `6bb32e2`（数据 223 files）；`git push origin main` → `bdce4bb..6bb32e2`（29 个提交）。
+- [x] **发布 v0.1.0**：注解 tag `v0.1.0`（→ `6bb32e2`）已推送；`gh release create v0.1.0 --title "峰极OS v0.1.0 — 首个里程碑版本（方案 A 引擎稳定化）" --notes-file <tmp> --latest`；Release URL `https://github.com/huangweishi99-gif/FJLHXM-V1/releases/tag/v0.1.0`（`isDraft=false` / `isPrerelease=false`，中文标题渲染正常）。
+- [x] **发布后数据同步**：提交 `e93b7e7`（7 个海外日线 2026-10-15 盘中更新）；`git push origin main` → `6bb32e2..e93b7e7`。
+- [ ] **日常数据同步（可复用流程）**：数据泵实时写 `data/overseas_1d/*.csv` + `data/a_stock/*.csv`（**已被 git 跟踪**，`.gitignore` 的 `data/**/*.csv` 不影响已跟踪文件，故改动可见属预期）。四步：① `git status --short`（确认有 `M data/` 改动）② `git add data/overseas_1d/ data/a_stock/` ③ `git commit -m "data: daily update <YYYY-MM-DD>"` ④ `git push origin main`。
+- [ ] **网络容错提示**：`github.com:443` 间歇性阻断（`api.github.com` 可达、本机外网正常）。`git push` 报 `Failed to connect to github.com port 443` / `Recv failure: Connection was reset` 时**重试**即可；远端校验优先 `gh api repos/huangweishi99-gif/FJLHXM-V1/commits/main --jq .sha`。
+- [ ] **（可选）一键同步脚本**：可新增 `scripts/sync_data_to_github.ps1`（`git add data/` → commit → push 重试 3 次 → `gh api` 校验），待你确认后再做。
+- [ ] **（可选）`gh` 加入 PATH**：把 `C:\Program Files\GitHub CLI` 加入用户 PATH，免去每次绝对路径调用。
+
 ## 2026-10-12 - free-stockdb 精华吸收（P0 摸底完成 · P1-P6 启动）
 
 - [x] **P0 摸底**：只读 clone `hello245m/free-stockdb`（MIT License）→ `$env:TEMP\free-stockdb-audit`；逐文件读源码（`stock_sdk.py`/`zhibiao.py`/`native_mcp.py`/`stock_mcp_server.py`/`updater.cpp`/`DATA_SOURCE.md`/`调用方式/*`/`stockdb.conf`/`sync_url.txt`）；输出一页摘要 `docs/FREE_STOCKDB_AUDIT.md`（仓库元信息、目录树、技术栈、10 条核心设计模式、安全要点、12 项借鉴映射、P1-P6 对应表、验证计划、安全边界）。

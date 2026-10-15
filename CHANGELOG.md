@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-10-15 (v0.1.0 发布 + 数据同步流程)
+
+- **发布 `v0.1.0`（首个里程碑版本）**：注解 tag `v0.1.0` → 提交 `6bb32e2`；GitHub Release 已发布，标题「峰极OS v0.1.0 — 首个里程碑版本（方案 A 引擎稳定化）」，`gh release create v0.1.0 --latest`，URL `https://github.com/huangweishi99-gif/FJLHXM-V1/releases/tag/v0.1.0`。发布前工作区 292 个改动分两批提交：`c9ca822`（代码/测试/文档/脚本 67 files）+ `6bb32e2`（数据 223 files）；`git push origin main` → `bdce4bb..6bb32e2`（29 个提交）。
+- **发布后数据同步**：提交 `e93b7e7` — 7 个海外 crypto 日线（ADA/BTC/ETH/IO/LINK/SOL/TAO）的 2026-10-15 当日 K 线盘中更新（7 files, +7/-7）；`git push origin main` → `6bb32e2..e93b7e7`。
+- **新增 数据同步流程（标准操作）**：数据泵持续实时写入 `data/overseas_1d/*.csv`（海外 crypto 日线）与 `data/a_stock/*.csv`（A 股）。`.gitignore` 含 `data/**/*.csv`，但上述文件**已被 git 跟踪**（历史遗留），故其修改会照常出现在 `git status` 中，属预期现象、非异常。同步四步：
+  1. `git status --short` — 确认出现 `M data/overseas_1d/...` / `M data/a_stock/...`；
+  2. `git add data/overseas_1d/ data/a_stock/`；
+  3. `git commit -m "data(overseas): refresh <YYYY-MM-DD> candles for N symbols"`（或 `data: daily update`）；
+  4. `git push origin main`。
+- **网络注意（`github.com:443` 间歇性阻断）**：DNS 正常解析 `github.com` → `20.205.243.166`，`api.github.com:443` 可达、本机外网正常（`www.baidu.com:443` 可达），但 `github.com:443` 偶发不通。实测 `git push` 第 1 次/第 3 次失败、第 2 次成功；失败时报 `Failed to connect to github.com port 443` 或 `Recv failure: Connection was reset`——**直接重试即可**，勿判定为仓库、账号或代码故障。远端校验优先用 `gh api repos/huangweishi99-gif/FJLHXM-V1/commits/main --jq .sha`（走 `api.github.com`，比 `git ls-remote` 稳定）。
+- **本地 `gh` CLI**：位于 `C:\Program Files\GitHub CLI\gh.exe`（未加入 PATH，需用绝对路径调用）；已登录 `huangweishi99-gif`（keyring 存储，token scopes 含 `repo` / `workflow`）。
+- **影响范围**：✅ 未改任何交易 / 回测 / 定式 / 峰极线 / 阵营 / 模拟实盘逻辑；✅ 本次仅数据 CSV 与文档改动；✅ tag `v0.1.0` 固定指向 `6bb32e2`，不受其后数据提交影响。
+
 ## 2026-10-12 (free-stockdb 精华吸收 · P2 复权 + 批量查询 · 阶段 A)
 
 - **新增** `src/adj_factor.py`（仿 free-stockdb `AdjFactorIndex`）：内存索引（dict[code → list[(date, factor)]]，按日期升序去重）；`from_csv` / `from_records` 加载；`to_qfq` / `to_hfq` / `to_none` / `apply(fq)` 折算；`factor_on` / `range` / `missing` / `is_full` 区间查询；`AdjFactorMissingError` 携带 code/区间/缺失日期前 5 个。约定（东财 push2 不复权口径，固化在 `_apply`）：`adj_factor[t]` 累计复权因子（最新日 = 1.0）；`qfq[t] = none × (1/adj_factor[t])`；`hfq[t] = none = qfq × adj_factor[t]`。不主动拉取（拉取放脚本）。
